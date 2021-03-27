@@ -1,5 +1,5 @@
-#ifndef __HOST_H__
-#define __HOST_H__
+#ifndef __LOCALHOST_H__
+#define __LOCALHOST_H__
 
 
 #ifdef _WIN32

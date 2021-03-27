@@ -32,7 +32,7 @@
 LocalHost::LocalHost(void) {
 
 #ifdef _WIN32
-// initialize Windows Socket API with given VERSION.
+    // initialize Windows Socket API with given VERSION.
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData)) {
         perror("WSAStartup failure");
@@ -263,19 +263,22 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
 #else
     int s = socket(PF_INET, SOCK_DGRAM, 0);
     struct ifconf ifc;
-    struct ifreq req[64];
-    ifc.ifc_len = sizeof(req);
-    ifc.ifc_buf = (char*)req;
+    struct ifreq* ifr;
+    char buf[16384];
+    ifc.ifc_len = sizeof(buf);
+    ifc.ifc_buf = buf;
     if (ioctl(s, SIOCGIFCONF, &ifc) == 0) {
-        for (int i = 0; i < ifc.ifc_len / sizeof(struct ifreq); ++i) {
+        ifr = ifc.ifc_req;
+        for (int i = 0; i < ifc.ifc_len;) {
             struct ifreq buffer;
             memset(&buffer, 0x00, sizeof(buffer));
-            strcpy(buffer.ifr_name, req[i].ifr_name);
+            strcpy(buffer.ifr_name, ifr->ifr_name);
             InterfaceInfo info;
             info.if_name = std::string(buffer.ifr_name);
             info.if_index = if_nametoindex(buffer.ifr_name);
-            std::string ip_name = toString(req[i].ifr_ifru.ifru_addr);
+            std::string ip_name = toString(ifr->ifr_ifru.ifru_addr);
             info.ip_addresses.push_back(ip_name);
+
 #ifndef __APPLE__
             if (ioctl(s, SIOCGIFHWADDR, &buffer) == 0) {
                 struct sockaddr saddr = buffer.ifr_ifru.ifru_hwaddr;
@@ -285,9 +288,16 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
                     (uint8_t)saddr.sa_data[3], (uint8_t)saddr.sa_data[4], (uint8_t)saddr.sa_data[5]);
                 info.mac_address = mac_addr;
             }
+            size_t len = sizeof(struct ifreq);
+#else
+            size_t len = IFNAMSIZ + ifr->ifr_addr.sa_len;
 #endif
+
             fprintf(stdout, "address: %28.*s  mac: %s  name: \"%s\"\n", (int)ip_name.length(), ip_name.c_str(), info.mac_address.c_str(), info.if_name.c_str());
             addresses.push_back(info);
+
+            ifr = (struct ifreq*)((char*)ifr + len);
+            i += len;
         }
     }
     close(s);
