@@ -1,4 +1,4 @@
-project("speedwire-lib")
+project("speedwire")
 
 cmake_minimum_required(VERSION 3.10)
 
