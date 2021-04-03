@@ -7,6 +7,7 @@
 #include <Winsock2.h>
 #include <Ws2tcpip.h>
 #include <iphlpapi.h>
+#include <chrono>
 #else
 #include <unistd.h>
 #include <sys/types.h>
@@ -441,7 +442,7 @@ void LocalHost::sleep(uint32_t millis) {
 
 
 /**
- *  Platform get tick count in ms ticks
+ *  Platform neutral get tick count in ms ticks
  */
 uint64_t LocalHost::getTickCountInMs(void) {  // return a tick counter with ms resolution
 #ifdef _WIN32
@@ -455,6 +456,23 @@ uint64_t LocalHost::getTickCountInMs(void) {  // return a tick counter with ms r
 #endif
 }
 
+
+/**
+ *  Platform neutral get unix epoch time in ms
+ */
+uint64_t LocalHost::getUnixEpochTimeInMs(void) {
+#ifdef _WIN32
+    std::chrono::system_clock::duration time = std::chrono::system_clock::now().time_since_epoch();
+    std::chrono::system_clock::period period = std::chrono::system_clock::period();
+    return (time.count() * period.num) / (period.den/1000);
+#else
+    struct timespec spec;
+    if (clock_gettime(CLOCK_REALTIME, &spec) == -1) {
+        abort();
+    }
+    return spec.tv_sec * 1000 + spec.tv_nsec / 1e6;
+#endif
+}
 
 /*
  *  Match given ip address to longest matching local interface ip address

@@ -79,6 +79,9 @@ public:
 
     // platform neutral get tick count method
     static uint64_t getTickCountInMs(void);
+
+    // platform neutral get unix epoch time in ms
+    static uint64_t LocalHost::getUnixEpochTimeInMs(void);
 };
 
 #endif
