@@ -1,5 +1,6 @@
 #include <ObisData.hpp>
 #include <SpeedwireEmeterProtocol.hpp>
+#pragma warning( disable : 4996 )  // disable sscanf_s suggestion
 
 
 /**
@@ -102,9 +103,9 @@ std::array<uint8_t, 12> ObisData::toByteArray(void) const {
         if (channel == 144) {
             // convert software version
             uint32_t int_array[sizeof(uint32_t)] = { 0xff, 0xff, 0xff, 0xff };
-            int n = sscanf_s(measurementValue->value_string.c_str(), "%u.%u.%u.%u", &int_array[3], &int_array[2], &int_array[1], &int_array[0]);
+            int n = sscanf(measurementValue->value_string.c_str(), "%u.%u.%u.%u", &int_array[3], &int_array[2], &int_array[1], &int_array[0]);
             if (n != 4) {
-                n = sscanf_s(measurementValue->value_string.c_str(), "%02x.%02x.%02x.%02x", &int_array[3], &int_array[2], &int_array[1], &int_array[0]);
+                n = sscanf(measurementValue->value_string.c_str(), "%02x.%02x.%02x.%02x", &int_array[3], &int_array[2], &int_array[1], &int_array[0]);
             }
             uint32_t value = int_array[3] << 24 | int_array[2] << 16 | int_array[1] << 8 | int_array[0];
             SpeedwireEmeterProtocol::setObisValue4(byte_array.data(), value);
