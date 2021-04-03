@@ -383,7 +383,7 @@ SpeedwireInfo::SpeedwireInfo(void) : susyID(0), serialNumber(0), deviceClass(), 
  */
 std::string SpeedwireInfo::toString(void) const {
     char buffer[256] = { 0 };
-    snprintf(buffer, sizeof(buffer), "SusyID %u  Serial %u  Class %s  Type %s  IP %s  IF %s", 
+    snprintf(buffer, sizeof(buffer), "SusyID %u  Serial %u  Class %-8s  Type %-8s  IP %s  IF %s", 
              susyID, serialNumber, deviceClass.c_str(), deviceType.c_str(), peer_ip_address.c_str(), interface_ip_address.c_str());
     return std::string(buffer);
 }

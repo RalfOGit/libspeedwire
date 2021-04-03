@@ -29,6 +29,7 @@ std::string MeasurementType::getFullName(const Line line) const {
 
 MeasurementValue::MeasurementValue(void) {
     value = 0.0;
+    value_string = "";
     timer = 0;
     elapsed = 0;
     sumValue = 0;
@@ -46,6 +47,10 @@ void MeasurementValue::setValue(uint32_t raw_value, unsigned long divisor) {
 
 void MeasurementValue::setValue(uint64_t raw_value, unsigned long divisor) {
     value = (double)raw_value / (double)divisor;
+}
+
+void MeasurementValue::setValue(const std::string& raw_value) {
+    value_string = raw_value;
 }
 
 void MeasurementValue::setTimer(uint32_t time) {
@@ -106,10 +111,12 @@ bool isInstantaneous(const Quantity quantity) {
 
 std::string toString(const Type type) {
     switch(type) {
-        case Type::ACTIVE:    return "active";
-        case Type::REACTIVE:  return "reactive";
-        case Type::APPARENT:  return "apparent";
-        case Type::NO_TYPE:   return "";
+        case Type::ACTIVE:      return "active";
+        case Type::REACTIVE:    return "reactive";
+        case Type::APPARENT:    return "apparent";
+        case Type::VERSION:     return "version";
+        case Type::END_OF_DATA: return "end of data";
+        case Type::NO_TYPE:     return "";
     }
     return "undefined type";
 }

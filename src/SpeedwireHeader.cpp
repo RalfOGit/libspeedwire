@@ -66,10 +66,10 @@ bool SpeedwireHeader::checkHeader(void)  const {
     }
 
     // test group field
-    //__uint16_t group = getGroup();
+    //uint16_t group = getGroup();
 
     // test length field
-    //__uint16_t length = getLength();
+    //uint16_t length = getLength();
 
     // test SMA net version 2
     if (memcmp(sma_net_v2, udp + sma_netversion_offset, sizeof(sma_net_v2)) != 0) {

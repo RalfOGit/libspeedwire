@@ -5,7 +5,9 @@
 #include <stdio.h>
 #include <string>
 #include <array>
+#include <vector>
 #include <Measurement.hpp>
+#include <SpeedwireEmeterProtocol.hpp>
 
 
 /**
@@ -26,7 +28,7 @@ public:
     void print(const uint32_t value, FILE *file) const;
     void print(const uint64_t value, FILE *file) const;
 
-    std::array<uint8_t, 8> toByteArray(void) const;
+    std::array<uint8_t, 12> toByteArray(void) const;
 };
 
 
@@ -50,6 +52,10 @@ public:
 
     void print(FILE *file) const;
 
+    std::array<uint8_t, 12> toByteArray(void) const;
+
+    static std::vector<ObisData> getAllPredefined(void);
+
     // pre-defined instances
     static const ObisData PositiveActivePowerTotal;
     static const ObisData PositiveActivePowerL1;
@@ -67,6 +73,38 @@ public:
     static const ObisData NegativeActiveEnergyL1;
     static const ObisData NegativeActiveEnergyL2;
     static const ObisData NegativeActiveEnergyL3;
+    static const ObisData PositiveReactivePowerTotal;
+    static const ObisData PositiveReactivePowerL1;
+    static const ObisData PositiveReactivePowerL2;
+    static const ObisData PositiveReactivePowerL3;
+    static const ObisData PositiveReactiveEnergyTotal;
+    static const ObisData PositiveReactiveEnergyL1;
+    static const ObisData PositiveReactiveEnergyL2;
+    static const ObisData PositiveReactiveEnergyL3;
+    static const ObisData NegativeReactivePowerTotal;
+    static const ObisData NegativeReactivePowerL1;
+    static const ObisData NegativeReactivePowerL2;
+    static const ObisData NegativeReactivePowerL3;
+    static const ObisData NegativeReactiveEnergyTotal;
+    static const ObisData NegativeReactiveEnergyL1;
+    static const ObisData NegativeReactiveEnergyL2;
+    static const ObisData NegativeReactiveEnergyL3;
+    static const ObisData PositiveApparentPowerTotal;
+    static const ObisData PositiveApparentPowerL1;
+    static const ObisData PositiveApparentPowerL2;
+    static const ObisData PositiveApparentPowerL3;
+    static const ObisData PositiveApparentEnergyTotal;
+    static const ObisData PositiveApparentEnergyL1;
+    static const ObisData PositiveApparentEnergyL2;
+    static const ObisData PositiveApparentEnergyL3;
+    static const ObisData NegativeApparentPowerTotal;
+    static const ObisData NegativeApparentPowerL1;
+    static const ObisData NegativeApparentPowerL2;
+    static const ObisData NegativeApparentPowerL3;
+    static const ObisData NegativeApparentEnergyTotal;
+    static const ObisData NegativeApparentEnergyL1;
+    static const ObisData NegativeApparentEnergyL2;
+    static const ObisData NegativeApparentEnergyL3;
     static const ObisData PowerFactorTotal;
     static const ObisData PowerFactorL1;
     static const ObisData PowerFactorL2;
@@ -77,6 +115,8 @@ public:
     static const ObisData CurrentL1;
     static const ObisData CurrentL2;
     static const ObisData CurrentL3;
+    static const ObisData SoftwareVersion;
+    static const ObisData EndOfData;
     static const ObisData SignedActivePowerTotal;
     static const ObisData SignedActivePowerL1;
     static const ObisData SignedActivePowerL2;

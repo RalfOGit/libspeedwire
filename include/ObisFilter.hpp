@@ -22,7 +22,8 @@ public:
     ObisFilter(void);
     ~ObisFilter(void);
 
-    void addFilter   (const ObisData &entry);
+    void addFilter(const ObisData& entry);
+    void addFilter(const std::vector<ObisData> &entries);
     void removeFilter(const ObisData &entry);
     const std::vector<ObisData> &getFilter(void) const;
 

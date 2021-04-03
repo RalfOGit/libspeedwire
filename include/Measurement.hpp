@@ -46,6 +46,8 @@ enum class Type {
     ACTIVE,
     REACTIVE,
     APPARENT,
+    VERSION,
+    END_OF_DATA,
     NO_TYPE
 };
 std::string toString(const Type type);
@@ -69,23 +71,25 @@ public:
 
     // pre-defined instances for emeter measurement types
     // these definitions are used by static initializers; to avoid static initialization ordering issues, define them as methods
-    static MeasurementType EmeterPositiveActivePower    (void) { return MeasurementType(Direction::POSITIVE,     Type::ACTIVE,   Quantity::POWER,        "W",         10); }
-    static MeasurementType EmeterPositiveActiveEnergy   (void) { return MeasurementType(Direction::POSITIVE,     Type::ACTIVE,   Quantity::ENERGY,       "kWh",  3600000); }
-    static MeasurementType EmeterNegativeActivePower    (void) { return MeasurementType(Direction::NEGATIVE,     Type::ACTIVE,   Quantity::POWER,        "W",         10); }
-    static MeasurementType EmeterNegativeActiveEnergy   (void) { return MeasurementType(Direction::NEGATIVE,     Type::ACTIVE,   Quantity::ENERGY,       "kWh",  3600000); }
-    static MeasurementType EmeterPositiveApparentPower  (void) { return MeasurementType(Direction::POSITIVE,     Type::APPARENT, Quantity::POWER,        "VA",        10); }
-    static MeasurementType EmeterPositiveApparentEnergy (void) { return MeasurementType(Direction::POSITIVE,     Type::APPARENT, Quantity::ENERGY,       "VAh",  3600000); }
-    static MeasurementType EmeterNegativeApparentPower  (void) { return MeasurementType(Direction::NEGATIVE,     Type::APPARENT, Quantity::POWER,        "Var",       10); }
-    static MeasurementType EmeterNegativeApparentEnergy (void) { return MeasurementType(Direction::NEGATIVE,     Type::APPARENT, Quantity::ENERGY,       "Varh", 3600000); }
-    static MeasurementType EmeterPositiveReactivePower  (void) { return MeasurementType(Direction::POSITIVE,     Type::REACTIVE, Quantity::POWER,        "W",         10); }
-    static MeasurementType EmeterPositiveReactiveEnergy (void) { return MeasurementType(Direction::POSITIVE,     Type::REACTIVE, Quantity::ENERGY,       "kWh",  3600000); }
-    static MeasurementType EmeterNegativeReactivePower  (void) { return MeasurementType(Direction::NEGATIVE,     Type::REACTIVE, Quantity::POWER,        "W",         10); }
-    static MeasurementType EmeterNegativeReactiveEnergy (void) { return MeasurementType(Direction::NEGATIVE,     Type::REACTIVE, Quantity::ENERGY,       "kWh",  3600000); }
-    static MeasurementType EmeterSignedActivePower      (void) { return MeasurementType(Direction::SIGNED,       Type::ACTIVE,   Quantity::POWER,        "W",         10); }
-    static MeasurementType EmeterPowerFactor            (void) { return MeasurementType(Direction::POSITIVE,     Type::ACTIVE,   Quantity::POWER_FACTOR, "phi",     1000); }
-    static MeasurementType EmeterVoltage                (void) { return MeasurementType(Direction::NO_DIRECTION, Type::ACTIVE,   Quantity::VOLTAGE,      "V",       1000); }
-    static MeasurementType EmeterCurrent                (void) { return MeasurementType(Direction::POSITIVE,     Type::ACTIVE,   Quantity::CURRENT,      "A",       1000); }
-    static MeasurementType EmeterStatus                 (void) { return MeasurementType(Direction::NO_DIRECTION, Type::ACTIVE,   Quantity::STATUS,       "-",          1); }
+    static MeasurementType EmeterPositiveActivePower    (void) { return MeasurementType(Direction::POSITIVE,     Type::ACTIVE,      Quantity::POWER,        "W",         10); }
+    static MeasurementType EmeterPositiveActiveEnergy   (void) { return MeasurementType(Direction::POSITIVE,     Type::ACTIVE,      Quantity::ENERGY,       "kWh",  3600000); }
+    static MeasurementType EmeterNegativeActivePower    (void) { return MeasurementType(Direction::NEGATIVE,     Type::ACTIVE,      Quantity::POWER,        "W",         10); }
+    static MeasurementType EmeterNegativeActiveEnergy   (void) { return MeasurementType(Direction::NEGATIVE,     Type::ACTIVE,      Quantity::ENERGY,       "kWh",  3600000); }
+    static MeasurementType EmeterPositiveApparentPower  (void) { return MeasurementType(Direction::POSITIVE,     Type::APPARENT,    Quantity::POWER,        "VA",        10); }
+    static MeasurementType EmeterPositiveApparentEnergy (void) { return MeasurementType(Direction::POSITIVE,     Type::APPARENT,    Quantity::ENERGY,       "VAh",  3600000); }
+    static MeasurementType EmeterNegativeApparentPower  (void) { return MeasurementType(Direction::NEGATIVE,     Type::APPARENT,    Quantity::POWER,        "Var",       10); }
+    static MeasurementType EmeterNegativeApparentEnergy (void) { return MeasurementType(Direction::NEGATIVE,     Type::APPARENT,    Quantity::ENERGY,       "Varh", 3600000); }
+    static MeasurementType EmeterPositiveReactivePower  (void) { return MeasurementType(Direction::POSITIVE,     Type::REACTIVE,    Quantity::POWER,        "W",         10); }
+    static MeasurementType EmeterPositiveReactiveEnergy (void) { return MeasurementType(Direction::POSITIVE,     Type::REACTIVE,    Quantity::ENERGY,       "kWh",  3600000); }
+    static MeasurementType EmeterNegativeReactivePower  (void) { return MeasurementType(Direction::NEGATIVE,     Type::REACTIVE,    Quantity::POWER,        "W",         10); }
+    static MeasurementType EmeterNegativeReactiveEnergy (void) { return MeasurementType(Direction::NEGATIVE,     Type::REACTIVE,    Quantity::ENERGY,       "kWh",  3600000); }
+    static MeasurementType EmeterSignedActivePower      (void) { return MeasurementType(Direction::SIGNED,       Type::ACTIVE,      Quantity::POWER,        "W",         10); }
+    static MeasurementType EmeterPowerFactor            (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE,     Quantity::POWER_FACTOR, "phi",     1000); }
+    static MeasurementType EmeterVoltage                (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE,     Quantity::VOLTAGE,      "V",       1000); }
+    static MeasurementType EmeterCurrent                (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE,     Quantity::CURRENT,      "A",       1000); }
+    static MeasurementType EmeterSoftwareVersion        (void) { return MeasurementType(Direction::NO_DIRECTION, Type::VERSION,     Quantity::NO_QUANTITY,  "",           1); }
+    static MeasurementType EmeterEndOfData              (void) { return MeasurementType(Direction::NO_DIRECTION, Type::END_OF_DATA, Quantity::NO_QUANTITY,  "",           1); }
+//    static MeasurementType EmeterStatus                 (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE,  Quantity::STATUS,       "-",          1); }
 
     // pre-defined instances for inverter measurement types
     static MeasurementType InverterPower                (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::POWER,         "W",          1); }
@@ -101,6 +105,7 @@ public:
 class MeasurementValue {
 public:
     double       value;         // the current measurement
+    std::string  value_string;  // the current measurement, if it is not a numeric value (e.g. software version, etc)
     uint32_t     timer;         // the current timestamp
     uint32_t     elapsed;       // time elapsed from previous timestamp to current timestamp
     double       sumValue;      // the sum of previous and current measurements
@@ -111,6 +116,7 @@ public:
     void setValue(int32_t  raw_value, unsigned long divisor);
     void setValue(uint32_t raw_value, unsigned long divisor);
     void setValue(uint64_t raw_value, unsigned long divisor);
+    void setValue(const std::string& raw_value);
     void setTimer(uint32_t timer);
 };
 

@@ -15,6 +15,12 @@ void ObisFilter::addFilter(const ObisData &entry) {
     filterTable.push_back(entry);
 }
 
+void ObisFilter::addFilter(const std::vector<ObisData> &entries) {
+    for (std::vector<ObisData>::const_iterator it = entries.begin(); it != entries.end(); it++) {
+        addFilter(*it);
+    }
+}
+
 void ObisFilter::removeFilter(const ObisData &entry) {
     for (std::vector<ObisData>::iterator it = filterTable.begin(); it != filterTable.end(); it++) {
         if (it->equals(entry)) {
@@ -48,24 +54,25 @@ bool ObisFilter::consume(const void *const obis, const uint32_t timer) const {
     const ObisData *const filteredElement = filter(element);
     if (filteredElement != NULL && filteredElement->measurementValue != NULL) {
         MeasurementValue *mvalue = filteredElement->measurementValue;
-        if (filteredElement->type == 4) {
+        switch (filteredElement->type) {
+        case 0:
+            mvalue->setValue(SpeedwireEmeterProtocol::toValueString(obis, false));
+            break;
+        case 4:
             mvalue->setValue((uint32_t)SpeedwireEmeterProtocol::getObisValue4(obis), filteredElement->measurementType.divisor);
-            mvalue->setTimer(timer);
-            produce(*filteredElement);
-        }
-        else if (filteredElement->type == 7) {
+            break;
+        case 7:
             mvalue->setValue((int32_t)SpeedwireEmeterProtocol::getObisValue4(obis), filteredElement->measurementType.divisor);
-            mvalue->setTimer(timer);
-            produce(*filteredElement);
-        }
-        else if (filteredElement->type == 8) {
+            break;
+        case 8:
             mvalue->setValue(SpeedwireEmeterProtocol::getObisValue8(obis), filteredElement->measurementType.divisor);
-            mvalue->setTimer(timer);
-            produce(*filteredElement);
-        }
-        else {
+            break;
+        default:
             perror("obis identifier not implemented");
         }
+        mvalue->setTimer(timer);
+        produce(*filteredElement);
+
         return true;
     }
     return false;
