@@ -81,7 +81,7 @@ public:
     static uint64_t getTickCountInMs(void);
 
     // platform neutral get unix epoch time in ms
-    static uint64_t LocalHost::getUnixEpochTimeInMs(void);
+    static uint64_t getUnixEpochTimeInMs(void);
 };
 
 #endif
