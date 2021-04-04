@@ -6,21 +6,25 @@ SpeedwireSocketFactory* SpeedwireSocketFactory::instance = NULL;
 
 
 /**
- *  Get instance
+ *  Get instance methods
  */
 SpeedwireSocketFactory* SpeedwireSocketFactory::getInstance(const LocalHost& localhost) {
-    if (instance == NULL) {
-        // choose a socket strategy depending on the host operating system
+    // choose a socket strategy depending on the host operating system
 #ifdef _WIN32
-        // for windows hosts, the following strategies will work
-        Strategy strategy = Strategy::ONE_SOCKET_FOR_EACH_INTERFACE;
-        //Strategy strategy = Strategy::ONE_MULTICAST_SOCKET_AND_ONE_UNICAST_SOCKET_FOR_EACH_INTERFACE;
-        //Strategy strategy = Strategy::ONE_SINGLE_SOCKET;
+    // for windows hosts, the following strategies will work
+    //Strategy strategy = Strategy::ONE_SOCKET_FOR_EACH_INTERFACE;
+    Strategy strategy = Strategy::ONE_MULTICAST_SOCKET_AND_ONE_UNICAST_SOCKET_FOR_EACH_INTERFACE;
+    //Strategy strategy = Strategy::ONE_SINGLE_SOCKET;
 #else 
-        // for linux hosts, the following strategies will work
-        Strategy strategy = Strategy::ONE_MULTICAST_SOCKET_AND_ONE_UNICAST_SOCKET_FOR_EACH_INTERFACE;
-        //Strategy strategy = Strategy::ONE_SINGLE_SOCKET;
+    // for linux hosts, the following strategies will work
+    Strategy strategy = Strategy::ONE_MULTICAST_SOCKET_AND_ONE_UNICAST_SOCKET_FOR_EACH_INTERFACE;
+    //Strategy strategy = Strategy::ONE_SINGLE_SOCKET;
 #endif
+    return getInstance(localhost, strategy);
+}
+
+SpeedwireSocketFactory* SpeedwireSocketFactory::getInstance(const LocalHost& localhost, const Strategy strategy) {
+    if (instance == NULL) {
         instance = new SpeedwireSocketFactory(localhost, strategy);
     }
     return instance;
@@ -33,76 +37,22 @@ SpeedwireSocketFactory* SpeedwireSocketFactory::getInstance(const LocalHost& loc
 SpeedwireSocketFactory::SpeedwireSocketFactory(const LocalHost& _localhost, const Strategy _strategy) : localhost(_localhost), strategy(_strategy) {
 
     if (strategy == Strategy::ONE_SOCKET_FOR_EACH_INTERFACE) {
-
         // create one socket for each local interface address; this works for windows hosts
-        const std::vector<std::string>& localIPs = localhost.getLocalIPv4Addresses();
-        for (auto& local_ip : localIPs) {
-
-            // open socket for local ip address
-            SocketEntry entry(localhost);
-            if (entry.socket.openSocket(local_ip) < 0) {
-                perror("cannot open recv socket instance");
-            }
-            else {
-                entry.direction = (Direction)(Direction::SEND | Direction::RECV);
-                entry.type = (Type)(Type::MULTICAST | Type::UNICAST);
-                entry.interface_address = local_ip;
-                sockets.push_back(entry);
-            }
-        }
+        openSocketForEachInterface((Direction)(Direction::SEND | Direction::RECV), (Type)(Type::MULTICAST | Type::UNICAST));
     }
     else if (strategy == Strategy::ONE_SINGLE_SOCKET) {
-
         // create a single socket for all local interfaces
-        SocketEntry entry(localhost);
-        if (entry.socket.openSocket("0.0.0.0") < 0) {
-            perror("cannot open recv socket instance");
-        }
-        else {
-            entry.direction = (Direction)(Direction::SEND | Direction::RECV);
-            entry.type = (Type)(Type::MULTICAST | Type::UNICAST);
-            entry.interface_address = "0.0.0.0";
-            sockets.push_back(entry);
-        }
+        openSocketForSingleInterface((Direction)(Direction::SEND | Direction::RECV), (Type)(Type::MULTICAST | Type::UNICAST), "0.0.0.0");
     }
     else if (strategy == Strategy::ONE_MULTICAST_SOCKET_AND_ONE_UNICAST_SOCKET_FOR_EACH_INTERFACE) {
-
-        // create a single socket for multicast reception and one unicast socket for each local interface address
-        const std::vector<std::string>& localIPs = localhost.getLocalIPv4Addresses();
-        for (auto& local_ip : localIPs) {
-
-            // open socket for local ip address
-            SocketEntry entry(localhost);
-            if (entry.socket.openSocket(local_ip) < 0) {
-                perror("cannot open recv socket instance");
-            }
-            else {
-                entry.direction = (Direction)(Direction::SEND | Direction::RECV);
-                entry.type = Type::UNICAST;
-                entry.interface_address = local_ip;
-                sockets.push_back(entry);
-            }
-            //SocketEntry entry2(localhost);
-            //if (entry2.socket.openSocket(local_ip) < 0) {
-            //    perror("cannot open recv socket instance");
-            //}
-            //else {
-            //    entry2.direction = Direction::SEND;
-            //    entry2.type = Type::MULTICAST;
-            //    entry2.interface_address = local_ip;
-            //    sockets.push_back(entry2);
-            //}
-        }
-        SocketEntry entry(localhost);
-        if (entry.socket.openSocket("0.0.0.0") < 0) {
-            perror("cannot open recv socket instance");
-        }
-        else {
-            entry.direction = (Direction)(Direction::SEND | Direction::RECV);
-            entry.type = (Type)(Type::MULTICAST | Type::UNICAST);
-            entry.interface_address = "0.0.0.0";
-            sockets.push_back(entry);
-        }
+        // create one unicast socket for each local interface address
+        openSocketForEachInterface((Direction)(Direction::SEND | Direction::RECV), Type::UNICAST);
+        // create a single socket for multicast
+        openSocketForSingleInterface((Direction)(Direction::SEND | Direction::RECV), (Type)(Type::MULTICAST | Type::UNICAST), "0.0.0.0");
+    }
+    else if (strategy == Strategy::ONE_UNICAST_SOCKET_FOR_EACH_INTERFACE) {
+        // create one unicast socket for each local interface address
+        openSocketForEachInterface((Direction)(Direction::SEND | Direction::RECV), Type::UNICAST);
     }
 }
 
@@ -115,6 +65,41 @@ SpeedwireSocketFactory::~SpeedwireSocketFactory(void) {
         entry.socket.closeSocket();
     }
     sockets.clear();
+}
+
+
+/**
+ *  Open a socket with the given characteristics for for the given local interface
+ */
+bool SpeedwireSocketFactory::openSocketForSingleInterface(const Direction direction, const Type type, const std::string& interface_address) {
+    // create a single socket for multicast
+    SocketEntry entry(localhost);
+    if (entry.socket.openSocket(interface_address, (type & Type::MULTICAST) != 0) < 0) {
+        perror("cannot open recv socket instance");
+        return false;
+    }
+    entry.direction = direction;
+    entry.type = type;
+    entry.interface_address = interface_address;
+    sockets.push_back(entry);
+    return true;
+}
+
+
+/**
+ *  Open a socket with the given characteristics for each local interface
+ */
+bool SpeedwireSocketFactory::openSocketForEachInterface(const Direction direction, const Type type) {
+    bool result = true;
+    // loop across all local interfaces
+    const std::vector<std::string>& localIPs = localhost.getLocalIPv4Addresses();
+    for (auto& local_ip : localIPs) {
+        // open socket for local ip address
+        if (openSocketForSingleInterface(direction, type, local_ip) == false) {
+            result = false;
+        }
+    }
+    return result;
 }
 
 

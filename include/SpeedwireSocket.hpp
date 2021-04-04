@@ -35,8 +35,8 @@ private:
     sockaddr_in  speedwire_multicast_address_v4;
     sockaddr_in6 speedwire_multicast_address_v6;
 
-    int openSocketV4(const std::string &local_interface_address);
-    int openSocketV6(const std::string &local_interface_address);
+    int openSocketV4(const std::string &local_interface_address, const bool multicast);
+    int openSocketV6(const std::string &local_interface_address, const bool multicast);
 
 public:
 
@@ -57,7 +57,7 @@ public:
     bool isIpAny(void) const;
 
     // open and close a speedwire socket on the given interface
-    int openSocket(const std::string &local_interface_address);
+    int openSocket(const std::string &local_interface_address, const bool multicast);
     int closeSocket(void);
 
     // receive data from the socket and return the sender address

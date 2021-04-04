@@ -142,15 +142,15 @@ const sockaddr_in6 SpeedwireSocket::getSpeedwireMulticastIn6Address(void) const 
  *  Open socket for the given interface; the interface is either an ipv4 interface in 
  *  dot notation (e.g. "192.168.178.1") or an ipv6 interface in : notation
  */
-int SpeedwireSocket::openSocket(const std::string &local_interface_address) {
+int SpeedwireSocket::openSocket(const std::string &local_interface_address, const bool multicast) {
     socket_interface = local_interface_address;
     if (local_interface_address.find_first_of('.') != std::string::npos) {
         socket_protocol = AF_INET;
-        socket_fd = openSocketV4(local_interface_address);
+        socket_fd = openSocketV4(local_interface_address, multicast);
     }
     else if (local_interface_address.find_first_of(':') != std::string::npos) {
         socket_protocol = AF_INET6;
-        socket_fd = openSocketV6(local_interface_address);
+        socket_fd = openSocketV6(local_interface_address, multicast);
     }
     else {
         socket_protocol = AF_UNSPEC;
@@ -184,7 +184,7 @@ int SpeedwireSocket::closeSocket(void) {
 /**
  *  Open socket for the given interface described in ipv4 dot notation (e.g. "192.168.178.1")
  */
-int SpeedwireSocket::openSocketV4(const std::string &local_interface_address) {
+int SpeedwireSocket::openSocketV4(const std::string &local_interface_address, const bool multicast) {
 
     // convert the given interface address to socket structs
     socket_interface_v4 = localhost.toInAddress(local_interface_address);
@@ -240,23 +240,34 @@ int SpeedwireSocket::openSocketV4(const std::string &local_interface_address) {
     }
 
     // join multicast group
+    if (multicast == true) {
 #ifdef _WIN32
-    // windows requires that each interface separately joins the multicast group
-    if (isInterfaceAny) {   // if IN4_ADDRESS_ANY
-        std::vector<std::string> local_ip_addresses = localhost.getLocalIPAddresses();
-        for (auto& addr : local_ip_addresses) {
-            if (addr.find(':') == std::string::npos) {
-                struct ip_mreq mreq;
-                mreq.imr_multiaddr = speedwire_multicast_address_v4.sin_addr;
-                mreq.imr_interface = localhost.toInAddress(addr);
-                if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq)) < 0) {
-                    perror("setsockopt");
-                    return -1;
+        // windows requires that each interface separately joins the multicast group
+        if (isInterfaceAny) {   // if IN4_ADDRESS_ANY
+            std::vector<std::string> local_ip_addresses = localhost.getLocalIPAddresses();
+            for (auto& addr : local_ip_addresses) {
+                if (addr.find(':') == std::string::npos) {
+                    struct ip_mreq mreq;
+                    mreq.imr_multiaddr = speedwire_multicast_address_v4.sin_addr;
+                    mreq.imr_interface = localhost.toInAddress(addr);
+                    if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq)) < 0) {
+                        perror("setsockopt");
+                        return -1;
+                    }
                 }
             }
         }
-    }
-    else {
+        else {
+            struct ip_mreq req;
+            memset(&req, 0, sizeof(req));
+            req.imr_multiaddr = speedwire_multicast_address_v4.sin_addr;
+            req.imr_interface = socket_interface_v4;
+            if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&req, sizeof(req)) < 0) {
+                perror("setsockopt IP_ADD_MEMBERSHIP failure");
+                return -1;
+            }
+        }
+#else
         struct ip_mreq req;
         memset(&req, 0, sizeof(req));
         req.imr_multiaddr = speedwire_multicast_address_v4.sin_addr;
@@ -265,23 +276,16 @@ int SpeedwireSocket::openSocketV4(const std::string &local_interface_address) {
             perror("setsockopt IP_ADD_MEMBERSHIP failure");
             return -1;
         }
-    }
-#else
-    struct ip_mreq req;
-    memset(&req, 0, sizeof(req));
-    req.imr_multiaddr = speedwire_multicast_address_v4.sin_addr;
-    req.imr_interface = socket_interface_v4;
-    if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&req, sizeof(req)) < 0) {
-        perror("setsockopt IP_ADD_MEMBERSHIP failure");
-        return -1;
-    }
 #endif
+    }
 
     // define interface to use for outbound multicast and unicast traffic
     if (!isInterfaceAny) {   // if not IN4_ADDRESS_ANY
-        if (setsockopt(fd, IPPROTO_IP, IP_MULTICAST_IF, (const char*)&socket_interface_v4, sizeof(socket_interface_v4)) < 0) {
-            perror("setsockopt IP_MULTICAST_IF failure");
-            return -1;
+        if (multicast == true) {
+            if (setsockopt(fd, IPPROTO_IP, IP_MULTICAST_IF, (const char*)&socket_interface_v4, sizeof(socket_interface_v4)) < 0) {
+                perror("setsockopt IP_MULTICAST_IF failure");
+                return -1;
+            }
         }
 #ifdef _WIN32
         if (setsockopt(fd, IPPROTO_IP, IP_UNICAST_IF, (const char*)&socket_interface_v4, sizeof(socket_interface_v4)) < 0) {
@@ -301,7 +305,7 @@ int SpeedwireSocket::openSocketV4(const std::string &local_interface_address) {
 /**
  *  Open socket for the given interface described in ipv6 interface in : notation
  */
-int SpeedwireSocket::openSocketV6(const std::string &local_interface_address) {
+int SpeedwireSocket::openSocketV6(const std::string &local_interface_address, const bool multicast) {
 
     // convert the given interface address to socket structs
     socket_interface_v6 = LocalHost::toIn6Address(local_interface_address);
