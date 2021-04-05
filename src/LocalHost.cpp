@@ -306,13 +306,12 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
             size_t len = IFNAMSIZ + ifr->ifr_addr.sa_len;
 #endif
             /* try to get network mask */
-            uint32_t prefix = -1;
+            uint32_t prefix = 0;
             if (ioctl(s, SIOCGIFNETMASK, &buffer) == 0) {
-                struct sockaddr smask = buffer.ifr_ifru.ifr_netmask;
+                struct sockaddr smask = buffer.ifr_ifru.ifru_netmask;
                 if (smask.sa_family == AF_INET) {
                     struct sockaddr_in smaskv4 = *(struct sockaddr_in*)&smask;
                     uint32_t saddr = smaskv4.sin_addr.s_addr;
-                    uint32_t prefix = 0;
                     for (int i = 0; i < 32; ++i) {
                         if ((saddr & (1u << i)) == 0) break;
                         ++prefix;
