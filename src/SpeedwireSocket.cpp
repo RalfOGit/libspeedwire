@@ -230,7 +230,11 @@ int SpeedwireSocket::openSocketV4(const std::string &local_interface_address, co
     saddr.sin_family = AF_INET;
     //saddr.sin_addr.s_addr = htonl(INADDR_ANY);  // receive udp unicast and multicast traffic directed to port below
     saddr.sin_addr = socket_interface_v4;         // receive udp unicast and multicast traffic directed to port below
-    saddr.sin_port = speedwire_multicast_address_v4.sin_port;
+    if (multicast == true) {
+        saddr.sin_port = speedwire_multicast_address_v4.sin_port;
+    } else {
+        saddr.sin_port = 0;                       // let the OS choose an available port
+    }
 #ifdef __APPLE__
     saddr.sin_len = sizeof(struct sockaddr_in);
 #endif
@@ -352,7 +356,12 @@ int SpeedwireSocket::openSocketV6(const std::string &local_interface_address, co
     saddr.sin6_family = AF_INET6;
     //memcpy(&saddr.sin6_addr, &IN6_ADDRESS_ANY, sizeof(IN6_ADDRESS_ANY));  // receive udp traffic directed to port below
     saddr.sin6_addr = socket_interface_v6;
-    saddr.sin6_port = speedwire_multicast_address_v6.sin6_port;
+    if (multicast == true) {
+        saddr.sin6_port = speedwire_multicast_address_v6.sin6_port;
+    }
+    else {
+        saddr.sin6_port = 0; // let the OS choose an available port
+    }
 #ifdef __APPLE__
     saddr.sin6_len = sizeof(struct sockaddr_in6);
 #endif
@@ -368,20 +377,24 @@ int SpeedwireSocket::openSocketV6(const std::string &local_interface_address, co
     }
 
     // join multicast group
-    struct ipv6_mreq req;
-    memset(&req, 0, sizeof(req));
-    req.ipv6mr_multiaddr = speedwire_multicast_address_v6.sin6_addr;
-    req.ipv6mr_interface = ifindex;
-    if (setsockopt(fd, IPPROTO_IPV6, IPV6_JOIN_GROUP, (char*)&req, sizeof(req)) < 0) {
-        perror("setsockopt IPV6_JOIN_GROUP failure");
-        return -1;
+    if (multicast == true) {
+        struct ipv6_mreq req;
+        memset(&req, 0, sizeof(req));
+        req.ipv6mr_multiaddr = speedwire_multicast_address_v6.sin6_addr;
+        req.ipv6mr_interface = ifindex;
+        if (setsockopt(fd, IPPROTO_IPV6, IPV6_JOIN_GROUP, (char*)&req, sizeof(req)) < 0) {
+            perror("setsockopt IPV6_JOIN_GROUP failure");
+            return -1;
+        }
     }
 
     // define interface to use for outbound multicast and unicast traffic
     if (!isInterfaceAny) {   // if not IN6_ADDRESS_ANY
-        if (setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_IF, (const char*)&ifindex, sizeof(ifindex)) < 0) {
-            perror("setsockopt IPV6_MULTICAST_IF failure");
-            return -1;
+        if (multicast == true) {
+            if (setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_IF, (const char*)&ifindex, sizeof(ifindex)) < 0) {
+                perror("setsockopt IPV6_MULTICAST_IF failure");
+                return -1;
+            }
         }
 #ifdef _WIN32
         if (setsockopt(fd, IPPROTO_IP, IPV6_UNICAST_IF, (const char*)&ifindex, sizeof(ifindex)) < 0) {
