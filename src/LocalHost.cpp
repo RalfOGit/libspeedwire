@@ -81,19 +81,11 @@ const std::vector<std::string> &LocalHost::getLocalIPAddresses(void) const {
 }
 
 const std::vector<std::string> LocalHost::getLocalIPv4Addresses(void) const {
-    std::vector<std::string> addresses;
-    for (auto& a : local_ip_addresses) {
-        if (a.find(':') == std::string::npos) addresses.push_back(a);
-    }
-    return addresses;
+    return local_ipv4_addresses;
 }
 
 const std::vector<std::string> LocalHost::getLocalIPv6Addresses(void) const {
-    std::vector<std::string> addresses;
-    for (auto& a : local_ip_addresses) {
-        if (a.find(':') != std::string::npos) addresses.push_back(a);
-    }
-    return addresses;
+    return local_ipv6_addresses;
 }
 
 /**
@@ -101,6 +93,15 @@ const std::vector<std::string> LocalHost::getLocalIPv6Addresses(void) const {
  */
 void LocalHost::cacheLocalIPAddresses(const std::vector<std::string> &local_ip_addresses) {
     this->local_ip_addresses = local_ip_addresses;
+    local_ipv4_addresses.clear();
+    local_ipv6_addresses.clear();
+    for (auto& a : local_ip_addresses) {
+        if (a.find(':') == std::string::npos) {
+            local_ipv4_addresses.push_back(a);
+        } else {
+            local_ipv6_addresses.push_back(a);
+        }
+    }
 }
 
 
@@ -156,6 +157,19 @@ const uint32_t LocalHost::getInterfaceIndex(const std::string & local_ip_address
             if (addr == local_ip_address) {
                 return info.if_index;
             }
+        }
+    }
+    return (uint32_t)-1;
+}
+
+/**
+ *  Getter for obtaining the interface address prefix length for a given ip address that is associated with a local interface.
+ */
+const uint32_t LocalHost::getInterfacePrefixLength(const std::string& local_ip_address) const {
+    for (auto& info : local_interface_infos) {
+        auto it = info.ip_address_prefix_lengths.find(local_ip_address);
+        if (it != info.ip_address_prefix_lengths.end()) {
+            return it->second;
         }
     }
     return (uint32_t)-1;
@@ -247,11 +261,9 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
                 PIP_ADAPTER_UNICAST_ADDRESS_LH unicast_address = pAdapterAddresses->FirstUnicastAddress;
                 do {
                     std::string ip_name = toString(*(sockaddr*)(unicast_address->Address.lpSockaddr));
-                    //char prefix[10];
-                    //snprintf(prefix, sizeof(prefix), "/%u", unicast_address->OnLinkPrefixLength);
-                    //ip_name.append(prefix);
-                    fprintf(stdout, "address: %28.*s  mac: %s  name: \"%s\"\n", (int)ip_name.length(), ip_name.c_str(), mac_addr, info.if_name.c_str());
                     info.ip_addresses.push_back(ip_name);
+                    info.ip_address_prefix_lengths[ip_name] = unicast_address->OnLinkPrefixLength;
+                    fprintf(stdout, "address: %28.*s  prefixlength: %d  mac: %s  name: \"%s\"\n", (int)ip_name.length(), ip_name.c_str(), unicast_address->OnLinkPrefixLength, mac_addr, info.if_name.c_str());
                     unicast_address = unicast_address->Next;
                 } while (unicast_address != NULL);
 
@@ -293,8 +305,32 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
 #else
             size_t len = IFNAMSIZ + ifr->ifr_addr.sa_len;
 #endif
-
-            fprintf(stdout, "address: %28.*s  mac: %s  name: \"%s\"\n", (int)ip_name.length(), ip_name.c_str(), info.mac_address.c_str(), info.if_name.c_str());
+            /* try to get network mask */
+            uint32_t prefix = -1;
+            if (ioctl(s, SIOCGIFNETMASK, &buffer) == 0) {
+                struct sockaddr smask = buffer.ifr_ifru.ifr_netmask;
+                if (smask.sa_family == AF_INET) {
+                    struct sockaddr_in smaskv4 = *(struct sockaddr_in*)&smask;
+                    uint32_t saddr = smaskv4.sin_addr.s_addr;
+                    uint32_t prefix = 0;
+                    for (int i = 0; i < 32; ++i) {
+                        if ((saddr & (1u << i)) == 0) break;
+                        ++prefix;
+                    }
+                }
+                else if (smask.sa_family == AF_INET6) {
+                    struct sockaddr_in6 smaskv6 = *(struct sockaddr_in6*)&smask;
+                    for (int i = 0; i < sizeof(smaskv6.sin6_addr.s6_addr); ++i) {
+                        uint8_t b = smaskv6.sin6_addr.s6_addr[i];
+                        for (int j = 0; j < 8; ++j) {
+                            if ((b & (1u << j)) == 0) break;
+                            ++prefix;
+                        }
+                    }
+                }
+            }
+            info.ip_address_prefix_lengths[ip_name] = prefix;
+            fprintf(stdout, "address: %28.*s  prefixlength: %d  mac: %s  name: \"%s\"\n", (int)ip_name.length(), ip_name.c_str(), prefix, info.mac_address.c_str(), info.if_name.c_str());
             addresses.push_back(info);
 
             ifr = (struct ifreq*)((char*)ifr + len);

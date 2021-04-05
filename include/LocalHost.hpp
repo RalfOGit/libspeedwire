@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <vector>
 #include <string>
+#include <map>
 
 
 /**
@@ -24,6 +25,7 @@ public:
         std::string if_name;
         std::string mac_address;
         std::vector<std::string> ip_addresses;
+        std::map<std::string, uint32_t> ip_address_prefix_lengths;
         uint32_t if_index;      // required for ipv6
     } InterfaceInfo;
 
@@ -31,6 +33,8 @@ private:
 
     std::string hostname;
     std::vector<std::string> local_ip_addresses;
+    std::vector<std::string> local_ipv4_addresses;
+    std::vector<std::string> local_ipv6_addresses;
     std::vector<InterfaceInfo> local_interface_infos;
 
 public:
@@ -55,6 +59,7 @@ public:
     const std::string getMacAddress(const std::string &local_ip_address) const;
     const std::string getInterfaceName(const std::string &local_ip_address) const;
     const uint32_t getInterfaceIndex(const std::string &local_ip_address) const;
+    const uint32_t getInterfacePrefixLength(const std::string& local_ip_address) const;
 
     // query functions to obtain non-cached information from the operating system
     static const std::string queryHostname(void);
