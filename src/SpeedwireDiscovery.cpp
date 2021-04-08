@@ -17,6 +17,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <AddressConversion.hpp>
 #include <SpeedwireByteEncoding.hpp>
 #include <SpeedwireHeader.hpp>
 #include <SpeedwireEmeterProtocol.hpp>
@@ -257,7 +258,7 @@ bool SpeedwireDiscovery::sendDiscoveryPackets(size_t& broadcast_counter, size_t&
                 SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::UNICAST, localIPs[prereg_counter]);
                 sockaddr_in sockaddr;
                 sockaddr.sin_family = AF_INET;
-                sockaddr.sin_addr = localhost.toInAddress(device.peer_ip_address);
+                sockaddr.sin_addr = AddressConversion::toInAddress(device.peer_ip_address);
                 sockaddr.sin_port = htons(9522);
                 //fprintf(stdout, "send unicast discovery request to %s (via interface %s)\n", device.peer_ip_address.c_str(), socket.getLocalInterfaceAddress().c_str());
                 int nbytes = socket.sendto(unicast_request, sizeof(unicast_request), sockaddr);
@@ -279,7 +280,7 @@ bool SpeedwireDiscovery::sendDiscoveryPackets(size_t& broadcast_counter, size_t&
             addr.append(buff);
             sockaddr_in sockaddr;
             sockaddr.sin_family = AF_INET;
-            sockaddr.sin_addr = localhost.toInAddress(addr);
+            sockaddr.sin_addr = AddressConversion::toInAddress(addr);
             sockaddr.sin_port = htons(9522);
             //fprintf(stdout, "send unicast discovery request to %s (via interface %s)\n", localhost.toString(sockaddr).c_str(), socket.getLocalInterfaceAddress().c_str());
             int nbytes = socket.sendto(unicast_request, sizeof(unicast_request), sockaddr);
@@ -309,13 +310,13 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
         struct sockaddr_in addr;
         nbytes = socket.recvfrom(udp_packet, sizeof(udp_packet), addr);
         addr.sin_port = 0;
-        peer_ip_address = localhost.toString(addr);
+        peer_ip_address = AddressConversion::toString(addr);
     }
     else if (socket.isIpv6()) {
         struct sockaddr_in6 addr;
         nbytes = socket.recvfrom(udp_packet, sizeof(udp_packet), addr);
         addr.sin6_port = 0;
-        peer_ip_address = localhost.toString(addr);
+        peer_ip_address = AddressConversion::toString(addr);
     }
     if (nbytes > 0) {
         SpeedwireHeader protocol(udp_packet, nbytes);

@@ -1,14 +1,6 @@
 #ifndef __LOCALHOST_H__
 #define __LOCALHOST_H__
 
-
-#ifdef _WIN32
-#include <Winsock2.h>
-//#include <inaddr.h>
-#else
-#include <netinet/in.h>
-#include <net/if.h>
-#endif
 #include <cstdint>
 #include <vector>
 #include <string>
@@ -65,19 +57,6 @@ public:
     static const std::string queryHostname(void);
     static std::vector<std::string> queryLocalIPAddresses(void);
     static std::vector<InterfaceInfo> queryLocalInterfaceInfos(void);
-
-    // conversions from bsd socket and ip address information to std::string
-    static std::string toString(const struct in_addr &address);
-    static std::string toString(const struct in6_addr &address);
-    static std::string toString(const struct sockaddr &address);
-    static std::string toString(const struct sockaddr_in &address);
-    static std::string toString(const struct sockaddr_in6 &address);
-
-    static struct in_addr  toInAddress(const std::string &ipv4_address);
-    static struct in6_addr toIn6Address(const std::string &ipv6_address);
-
-    // remove non-ip characters like []%/, subnet masks, escape characters, etc
-    static const std::string stripIPAddress(const std::string& ip_address);
 
     // platform neutral sleep
     static void sleep(uint32_t millis);

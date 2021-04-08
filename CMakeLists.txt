@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 set(COMMON_SOURCES
     src/DataProcessor.cpp
+    src/AddressConversion.cpp
     src/LocalHost.cpp
     src/Measurement.cpp
     src/ObisData.cpp
@@ -30,4 +31,3 @@ target_include_directories(${PROJECT_NAME}
 PUBLIC
     include
 )
-

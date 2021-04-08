@@ -21,6 +21,7 @@
 #endif
 
 #include <LocalHost.hpp>
+#include <AddressConversion.hpp>
 
 /**
  *  Class implementing platform neutral abstractions for host related information
@@ -208,7 +209,7 @@ std::vector<std::string> LocalHost::queryLocalIPAddresses(void) {
         if (info->ai_protocol == 0 &&
             (info->ai_family == AF_INET ||
              info->ai_family == AF_INET6)) {
-            interfaces.push_back(toString(*info->ai_addr));
+            interfaces.push_back(AddressConversion::toString(*info->ai_addr));
         }
         info = info->ai_next;
     }
@@ -260,7 +261,7 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
 
                 PIP_ADAPTER_UNICAST_ADDRESS_LH unicast_address = pAdapterAddresses->FirstUnicastAddress;
                 do {
-                    std::string ip_name = toString(*(sockaddr*)(unicast_address->Address.lpSockaddr));
+                    std::string ip_name = AddressConversion::toString(*(sockaddr*)(unicast_address->Address.lpSockaddr));
                     info.ip_addresses.push_back(ip_name);
                     info.ip_address_prefix_lengths[ip_name] = unicast_address->OnLinkPrefixLength;
                     fprintf(stdout, "address: %28.*s  prefixlength: %d  mac: %s  name: \"%s\"\n", (int)ip_name.length(), ip_name.c_str(), unicast_address->OnLinkPrefixLength, mac_addr, info.if_name.c_str());
@@ -289,7 +290,7 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
             InterfaceInfo info;
             info.if_name = std::string(buffer.ifr_name);
             info.if_index = if_nametoindex(buffer.ifr_name);
-            std::string ip_name = toString(ifr->ifr_ifru.ifru_addr);
+            std::string ip_name = InternetAddressConversions::toString(ifr->ifr_ifru.ifru_addr);
             info.ip_addresses.push_back(ip_name);
 
 #ifndef __APPLE__
@@ -310,7 +311,7 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
             if (ioctl(s, SIOCGIFNETMASK, &buffer) == 0) {
                 struct sockaddr smask = buffer.ifr_ifru.ifru_netmask;
                 if (smask.sa_family == AF_INET) {
-                    struct sockaddr_in smaskv4 = *(struct sockaddr_in*)&smask;
+                    struct sockaddr_in& smaskv4 = InternetAddressConversions::toSockAddrIn(smask);
                     uint32_t saddr = smaskv4.sin_addr.s_addr;
                     for (int i = 0; i < 32; ++i) {
                         if ((saddr & (1u << i)) == 0) break;
@@ -318,7 +319,7 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
                     }
                 }
                 else if (smask.sa_family == AF_INET6) {
-                    struct sockaddr_in6 smaskv6 = *(struct sockaddr_in6*)&smask;
+                    struct sockaddr_in6 smaskv6 = InternetAddressConversions::toSockAddrIn6(smask);
                     for (int i = 0; i < sizeof(smaskv6.sin6_addr.s6_addr); ++i) {
                         uint8_t b = smaskv6.sin6_addr.s6_addr[i];
                         for (int j = 0; j < 8; ++j) {
@@ -341,127 +342,6 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
     return addresses;
 }
 
-
-/**
- *  Convert a binary ipv4 address into a string
- */
-std::string LocalHost::toString(const struct in_addr &address) {
-    struct sockaddr_in socket_address;
-    memset(&socket_address, 0, sizeof(socket_address));
-    socket_address.sin_family = AF_INET;
-    socket_address.sin_addr = address;
-    return toString(socket_address);
-}
-
-/**
- *  Convert a binary ipv6 address into a string
- */
-std::string LocalHost::toString(const struct in6_addr &address) {
-    struct sockaddr_in6 socket_address;
-    memset(&socket_address, 0, sizeof(socket_address));
-    socket_address.sin6_family = AF_INET6;
-    socket_address.sin6_addr = address;
-    return toString(socket_address);
-}
-
-/**
- *  Convert a binary generic ipv4 / ipv6 socket address into a string
- */
-std::string LocalHost::toString(const struct sockaddr &address) {
-    if (address.sa_family == AF_INET) {
-        return toString(*(const sockaddr_in *const)&address);
-    } else if (address.sa_family == AF_INET6) {
-        return toString(*(const sockaddr_in6 *const)&address);
-    }
-    return "unknown sockaddr family";
-}
-
-/**
- *  Convert a binary ipv4 socket address into a string
- */
-std::string LocalHost::toString(const struct sockaddr_in &address) {
-    char buffer[20] = { 0 };
-    char host[NI_MAXHOST];
-    char service[NI_MAXSERV];
-    memset(host, 0, sizeof(host));
-    memset(service, 0, sizeof(service));
-    int len = 0;
-    if (getnameinfo((const struct sockaddr*)&address, (socklen_t)sizeof(address), host, NI_MAXHOST, service, NI_MAXSERV, NI_NUMERICSERV | NI_NUMERICHOST) != 0) {
-        perror("getnameinfo failed");
-    } else {
-        if (address.sin_port != 0) {
-            len = snprintf(buffer, sizeof(buffer), "%s:%s\0", host, service);
-        } else {
-            len = snprintf(buffer, sizeof(buffer), "%s\0", host);
-        }
-    }
-    return std::string(buffer);
-}
-
-/**
- *  Convert a binary ipv6 socket address into a string
- */
-std::string LocalHost::toString(const struct sockaddr_in6 &address) {
-    char buffer[256] = { 0 };
-    char host[NI_MAXHOST];
-    char service[NI_MAXSERV];
-    memset(host, 0, sizeof(host));
-    memset(service, 0, sizeof(service));
-    int len = 0;
-    if (getnameinfo((const struct sockaddr*)&address, (socklen_t)sizeof(address), host, NI_MAXHOST, service, NI_MAXSERV, NI_NUMERICSERV | NI_NUMERICHOST) != 0) {
-        perror("getnameinfo failed");
-    } else {
-        if (address.sin6_port != 0) {
-            len = snprintf(buffer, sizeof(buffer), "[%s]:%s\0", host, service);
-        }
-        else {
-            len = snprintf(buffer, sizeof(buffer), "%s\0", host);
-        }
-    }
-    return std::string(buffer);
-}
-
-
-/**
- *  Convert an ipv4 string to an ipv4 binary address
- */
-struct in_addr LocalHost::toInAddress(const std::string &ipv4_address) {
-    struct in_addr addr;
-    memset(&addr, 0, sizeof(addr));
-    if (inet_pton(AF_INET, ipv4_address.c_str(), &(addr)) != 1) {
-        perror("inet_pton failure");
-    }
-    return addr;
-}
-
-/**
- *  Convert an ipv6 string to an ipv6 binary address
- */
-struct in6_addr LocalHost::toIn6Address(const std::string &ipv6_address) {
-    struct in6_addr addr;
-    memset(&addr, 0, sizeof(addr));
-    std::string::size_type imask = ipv6_address.find_first_of('%');
-    std::string ipv6 = ((imask == std::string::npos) ? ipv6_address : ipv6_address.substr(0, imask));
-    if (inet_pton(AF_INET6, ipv6.c_str(), &(addr)) != 1) {
-        perror("inet_pton failure");
-    }
-    return addr;
-}
-
-
-/**
- *  Remove non-ip address related characters like []%/, subnet masks, escape characters, etc
- */
-const std::string LocalHost::stripIPAddress(const std::string& ip_address) {
-    std::string::size_type first_1 = ip_address.find('[');
-    std::string::size_type first_index = (first_1 != std::string::npos ? first_1 : 0);
-    std::string::size_type last_1 = ip_address.find('%');
-    std::string::size_type last_2 = ip_address.find('/');
-    std::string::size_type last_3 = ip_address.find(']');
-    std::string::size_type last_n = (last_1 < last_2 ? (last_1 < last_3 ? last_1 : last_3) : (last_2 < last_3 ? last_2 : last_3));
-    std::string::size_type last_index = (last_n != std::string::npos ? last_n : ip_address.size());
-    return ip_address.substr(first_index, last_index);
-}
 
 
 /**
@@ -513,8 +393,8 @@ uint64_t LocalHost::getUnixEpochTimeInMs(void) {
  *  Match given ip address to longest matching local interface ip address
  */
 static std::string::size_type findFirstDifference(const std::string& str1, const std::string& str2) {
-    const std::string s1 = LocalHost::stripIPAddress(str1);
-    const std::string s2 = LocalHost::stripIPAddress(str2);
+    const std::string s1 = AddressConversion::stripIPAddress(str1);
+    const std::string s2 = AddressConversion::stripIPAddress(str2);
     const char *c1 = s1.c_str(),  *c2 = s2.c_str();
     for (std::string::size_type i = 0; c1 != NULL && c2 != NULL; ++i) {
         if (*c1++ != *c2++)

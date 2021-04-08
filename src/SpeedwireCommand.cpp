@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <AddressConversion.hpp>
 #include <SpeedwireByteEncoding.hpp>
 #include <SpeedwireInverterProtocol.hpp>
 #include <SpeedwireSocket.hpp>
@@ -402,25 +403,25 @@ bool SpeedwireCommand::checkReply(const SpeedwireInfo& peer, const uint16_t pack
     }
 
     if (recvfrom.sa_family == AF_INET) {
-        const struct sockaddr_in *const addr = (const struct sockaddr_in* const)&recvfrom;
-        if (addr->sin_port != htons(9522)) {
-            printf("ipv4 port %u is not 9522\n", (unsigned)ntohs(addr->sin_port));
+        const struct sockaddr_in& addr = AddressConversion::toSockAddrIn(recvfrom);
+        if (addr.sin_port != htons(9522)) {
+            printf("ipv4 port %u is not 9522\n", (unsigned)ntohs(addr.sin_port));
             return false;
         }
-        if (addr->sin_addr.s_addr != localhost.toInAddress(peer.peer_ip_address).s_addr) {
-            printf("ipv4 address %s is not peer ip address %s\n", LocalHost::toString(addr->sin_addr).c_str(), peer.peer_ip_address.c_str());
+        if (addr.sin_addr.s_addr != AddressConversion::toInAddress(peer.peer_ip_address).s_addr) {
+            printf("ipv4 address %s is not peer ip address %s\n", AddressConversion::toString(addr.sin_addr).c_str(), peer.peer_ip_address.c_str());
             return false;
         }
     }
     else if (recvfrom.sa_family == AF_INET6) {
-        const struct sockaddr_in6* const addr = (const struct sockaddr_in6* const)&recvfrom;
-        if (addr->sin6_port != htons(9522)) {
-            printf("ipv6 port %u is not 9522\n", (unsigned)ntohs(addr->sin6_port));
+        const struct sockaddr_in6& addr = AddressConversion::toSockAddrIn6(recvfrom);
+        if (addr.sin6_port != htons(9522)) {
+            printf("ipv6 port %u is not 9522\n", (unsigned)ntohs(addr.sin6_port));
             return false;
         }
-        struct in6_addr temp = localhost.toIn6Address(peer.peer_ip_address);
-        if (memcmp(&addr->sin6_addr, &temp, sizeof(temp)) != 0) {
-            printf("ipv4 address %s is not peer ip address %s\n", LocalHost::toString(addr->sin6_addr).c_str(), peer.peer_ip_address.c_str());
+        struct in6_addr temp = AddressConversion::toIn6Address(peer.peer_ip_address);
+        if (memcmp(&addr.sin6_addr, &temp, sizeof(temp)) != 0) {
+            printf("ipv4 address %s is not peer ip address %s\n", AddressConversion::toString(addr.sin6_addr).c_str(), peer.peer_ip_address.c_str());
             return false;
         }
     }

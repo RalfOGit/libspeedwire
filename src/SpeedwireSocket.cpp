@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <vector>
 #include <SpeedwireSocket.hpp>
+#include <AddressConversion.hpp>
 
 
 /**
@@ -31,12 +32,12 @@ SpeedwireSocket::SpeedwireSocket(const LocalHost &_localhost) :
     // configure ipv4 and ipv6 addresses for mDNS multicast traffic
     memset(&speedwire_multicast_address_v4, 0, sizeof(speedwire_multicast_address_v4));
     speedwire_multicast_address_v4.sin_family = AF_INET;
-    speedwire_multicast_address_v4.sin_addr = LocalHost::toInAddress("239.12.255.254");
+    speedwire_multicast_address_v4.sin_addr = AddressConversion::toInAddress("239.12.255.254");
     speedwire_multicast_address_v4.sin_port = htons(9522);
 
     memset(&speedwire_multicast_address_v6, 0, sizeof(speedwire_multicast_address_v6));
     speedwire_multicast_address_v6.sin6_family = AF_INET6;
-    speedwire_multicast_address_v6.sin6_addr = LocalHost::toIn6Address("::");     // FIXME: tbd
+    speedwire_multicast_address_v6.sin6_addr = AddressConversion::toIn6Address("::");     // FIXME: tbd
     speedwire_multicast_address_v6.sin6_port = htons(9522);
 }
 
@@ -144,11 +145,11 @@ const sockaddr_in6 SpeedwireSocket::getSpeedwireMulticastIn6Address(void) const 
  */
 int SpeedwireSocket::openSocket(const std::string &local_interface_address, const bool multicast) {
     socket_interface = local_interface_address;
-    if (local_interface_address.find_first_of('.') != std::string::npos) {
+    if (AddressConversion::isIpv4(local_interface_address) == true) {
         socket_protocol = AF_INET;
         socket_fd = openSocketV4(local_interface_address, multicast);
     }
-    else if (local_interface_address.find_first_of(':') != std::string::npos) {
+    else if (AddressConversion::isIpv6(local_interface_address) == true) {
         socket_protocol = AF_INET6;
         socket_fd = openSocketV6(local_interface_address, multicast);
     }
@@ -187,7 +188,7 @@ int SpeedwireSocket::closeSocket(void) {
 int SpeedwireSocket::openSocketV4(const std::string &local_interface_address, const bool multicast) {
 
     // convert the given interface address to socket structs
-    socket_interface_v4 = localhost.toInAddress(local_interface_address);
+    socket_interface_v4 = AddressConversion::toInAddress(local_interface_address);
     isInterfaceAny = (memcmp(&socket_interface_v4, &IN4_ADDRESS_ANY, sizeof(socket_interface_v4)) == 0);    // if IN4_ADDRESS_ANY
 
     // open socket
@@ -253,7 +254,7 @@ int SpeedwireSocket::openSocketV4(const std::string &local_interface_address, co
                 if (addr.find(':') == std::string::npos) {
                     struct ip_mreq mreq;
                     mreq.imr_multiaddr = speedwire_multicast_address_v4.sin_addr;
-                    mreq.imr_interface = localhost.toInAddress(addr);
+                    mreq.imr_interface = AddressConversion::toInAddress(addr);
                     if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq)) < 0) {
                         perror("setsockopt");
                         return -1;
@@ -312,7 +313,7 @@ int SpeedwireSocket::openSocketV4(const std::string &local_interface_address, co
 int SpeedwireSocket::openSocketV6(const std::string &local_interface_address, const bool multicast) {
 
     // convert the given interface address to socket structs
-    socket_interface_v6 = LocalHost::toIn6Address(local_interface_address);
+    socket_interface_v6 = AddressConversion::toIn6Address(local_interface_address);
     isInterfaceAny = (memcmp(&socket_interface_v6, &IN6_ADDRESS_ANY, sizeof(socket_interface_v6)) == 0);    // if IN4_ADDRESS_ANY
 
     // open socket
@@ -488,12 +489,12 @@ int SpeedwireSocket::send(const void* const buff, const unsigned long size) cons
 int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, const std::string& dest) const {
     if (dest.find(':') == std::string::npos) {
         struct sockaddr_in addr = speedwire_multicast_address_v4;  // use as template
-        addr.sin_addr = localhost.toInAddress(dest);
+        addr.sin_addr = AddressConversion::toInAddress(dest);
         return sendto(buff, size, addr);
     }
     else {
         struct sockaddr_in6 addr = speedwire_multicast_address_v6;  // use as template
-        addr.sin6_addr = localhost.toIn6Address(dest);
+        addr.sin6_addr = AddressConversion::toIn6Address(dest);
         return sendto(buff, size, addr);
     }
     return -1;
@@ -523,7 +524,7 @@ int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, co
  */
 int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, const struct sockaddr& dest) const {
     if (dest.sa_family == AF_INET) {
-        struct sockaddr_in& destv4 = *(struct sockaddr_in*)&dest;
+        const struct sockaddr_in& destv4 = AddressConversion::toSockAddrIn(dest);
         if ((ntohl(destv4.sin_addr.s_addr) >> 24) == 239) {
             if (setsockopt(socket_fd, IPPROTO_IP, IP_MULTICAST_IF, (const char*)&socket_interface_v4, sizeof(socket_interface_v4)) < 0) {
                 perror("setsockopt IP_MULTICAST_IF failure");
@@ -533,7 +534,7 @@ int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, co
     }
     // FIXME: not implemented yet
     //else if (dest.sa_family == AF_INET6) {
-    //    struct sockaddr_in6& destv6 = *(struct sockaddr_in6*)&dest;
+    //    const struct sockaddr_in6& destv6 = InternetAddressConversions::toSockAddrIn6(dest);
     //    if (destv6.sin6_addr.u.Byte[0] == 255) {
     //        uint32_t ifindex = localhost.getInterfaceIndex(socket_interface);
     //        if (ifindex == -1) { ifindex = 0; }

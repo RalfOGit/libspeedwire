@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <LocalHost.hpp>
+#include <AddressConversion.hpp>
 #include <SpeedwireSocketSimple.hpp>
 
 
@@ -104,10 +105,10 @@ int SpeedwireSocketSimple::open(void) {
     // windows requires that each interface separately joins the multicast group
     std::vector<std::string> local_ip_addresses = LocalHost::queryLocalIPAddresses();
     for (auto& addr : local_ip_addresses) {
-        if (addr.find(':') != std::string::npos) continue;  // ignore ipv6 addresses
+        if (AddressConversion::isIpv6(addr) == true) continue;  // ignore ipv6 addresses
         struct ip_mreq mreq;
-        mreq.imr_multiaddr = LocalHost::toInAddress(multicast_group);
-        mreq.imr_interface = LocalHost::toInAddress(addr);
+        mreq.imr_multiaddr = AddressConversion::toInAddress(multicast_group);
+        mreq.imr_interface = AddressConversion::toInAddress(addr);
         if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq)) < 0) {
             perror("setsockopt");
             return -1;
@@ -136,7 +137,7 @@ int SpeedwireSocketSimple::send(const void *const buff, const unsigned long size
     struct sockaddr_in dest_addr;
     memset(&dest_addr, 0, sizeof(dest_addr));
     dest_addr.sin_family = AF_INET;
-    dest_addr.sin_addr = LocalHost::toInAddress(multicast_group);
+    dest_addr.sin_addr = AddressConversion::toInAddress(multicast_group);
     dest_addr.sin_port = htons(multicast_port);
 
     // now just sendto() our destination
