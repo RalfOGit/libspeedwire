@@ -290,7 +290,7 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
             InterfaceInfo info;
             info.if_name = std::string(buffer.ifr_name);
             info.if_index = if_nametoindex(buffer.ifr_name);
-            std::string ip_name = InternetAddressConversions::toString(ifr->ifr_ifru.ifru_addr);
+            std::string ip_name = AddressConversion::toString(ifr->ifr_ifru.ifru_addr);
             info.ip_addresses.push_back(ip_name);
 
 #ifndef __APPLE__
@@ -311,7 +311,7 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
             if (ioctl(s, SIOCGIFNETMASK, &buffer) == 0) {
                 struct sockaddr smask = buffer.ifr_ifru.ifru_netmask;
                 if (smask.sa_family == AF_INET) {
-                    struct sockaddr_in& smaskv4 = InternetAddressConversions::toSockAddrIn(smask);
+                    struct sockaddr_in& smaskv4 = AddressConversion::toSockAddrIn(smask);
                     uint32_t saddr = smaskv4.sin_addr.s_addr;
                     for (int i = 0; i < 32; ++i) {
                         if ((saddr & (1u << i)) == 0) break;
@@ -319,7 +319,7 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
                     }
                 }
                 else if (smask.sa_family == AF_INET6) {
-                    struct sockaddr_in6 smaskv6 = InternetAddressConversions::toSockAddrIn6(smask);
+                    struct sockaddr_in6 smaskv6 = AddressConversion::toSockAddrIn6(smask);
                     for (int i = 0; i < sizeof(smaskv6.sin6_addr.s6_addr); ++i) {
                         uint8_t b = smaskv6.sin6_addr.s6_addr[i];
                         for (int j = 0; j < 8; ++j) {
