@@ -116,7 +116,7 @@ int SpeedwireSocketSimple::open(void) {
     }
 #else
     struct ip_mreq mreq;
-    mreq.imr_multiaddr = LocalHost::toInAddress(multicast_group);
+    mreq.imr_multiaddr = AddressConversion::toInAddress(multicast_group);
     mreq.imr_interface.s_addr = htonl(INADDR_ANY);
     if ( setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*) &mreq, sizeof(mreq)) < 0 ){
         perror("setsockopt");
