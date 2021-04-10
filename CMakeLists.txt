@@ -8,6 +8,7 @@ set(COMMON_SOURCES
     src/DataProcessor.cpp
     src/AddressConversion.cpp
     src/LocalHost.cpp
+    src/Logger.cpp
     src/Measurement.cpp
     src/ObisData.cpp
     src/ObisFilter.cpp
