@@ -19,6 +19,7 @@ set(COMMON_SOURCES
     src/SpeedwireEmeterProtocol.cpp
     src/SpeedwireHeader.cpp
     src/SpeedwireInverterProtocol.cpp
+    src/SpeedwireReceiveDispatcher.cpp
     src/SpeedwireSocket.cpp
     src/SpeedwireSocketFactory.cpp
     src/SpeedwireSocketSimple.cpp
