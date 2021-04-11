@@ -3,40 +3,6 @@
 #include <SpeedwireHeader.hpp>
 
 
-const uint8_t  SpeedwireHeader::sma_signature[] = {
-    0x53, 0x4d, 0x41, 0x00      // "SMA\0"
-};
-
-const uint8_t SpeedwireHeader::sma_tag0[] = {
-    0x00, 0x04, 0x02, 0xa0      // length: 0x0004  tag: 0x02a0
-};
-
-const uint8_t SpeedwireHeader::sma_net_v2[] = {
-    0x00, 0x10
-};
-
-const uint16_t SpeedwireHeader::sma_emeter_protocol_id    = 0x6069;
-const uint16_t SpeedwireHeader::sma_inverter_protocol_id  = 0x6065;
-const uint16_t SpeedwireHeader::sma_discovery_protocol_id = 0xffff;
-
-const unsigned long SpeedwireHeader::sma_signature_offset = 0;
-const unsigned long SpeedwireHeader::sma_signature_size = sizeof(SpeedwireHeader::sma_signature);
-const unsigned long SpeedwireHeader::sma_tag0_offset = SpeedwireHeader::sma_signature_size;
-const unsigned long SpeedwireHeader::sma_tag0_size = sizeof(SpeedwireHeader::sma_tag0);
-const unsigned long SpeedwireHeader::sma_group_offset = SpeedwireHeader::sma_tag0_offset + SpeedwireHeader::sma_tag0_size;
-const unsigned long SpeedwireHeader::sma_group_size = 4;
-const unsigned long SpeedwireHeader::sma_length_offset = SpeedwireHeader::sma_group_offset + SpeedwireHeader::sma_group_size;
-const unsigned long SpeedwireHeader::sma_length_size = 2;
-const unsigned long SpeedwireHeader::sma_netversion_offset = SpeedwireHeader::sma_length_offset + SpeedwireHeader::sma_length_size;
-const unsigned long SpeedwireHeader::sma_netversion_size = sizeof(SpeedwireHeader::sma_net_v2);
-const unsigned long SpeedwireHeader::sma_protocol_offset = SpeedwireHeader::sma_netversion_offset + SpeedwireHeader::sma_netversion_size;
-const unsigned long SpeedwireHeader::sma_protocol_size = 2;
-const unsigned long SpeedwireHeader::sma_long_words_offset = SpeedwireHeader::sma_protocol_offset + SpeedwireHeader::sma_protocol_size;
-const unsigned long SpeedwireHeader::sma_long_words_size = 1;
-const unsigned long SpeedwireHeader::sma_control_offset = SpeedwireHeader::sma_long_words_offset + SpeedwireHeader::sma_long_words_size;
-const unsigned long SpeedwireHeader::sma_control_size = 1;
-
-
 SpeedwireHeader::SpeedwireHeader(const void *const udp_packet, const unsigned long udp_packet_len) {
     udp = (uint8_t *)udp_packet;
     size = udp_packet_len;

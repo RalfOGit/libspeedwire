@@ -8,19 +8,19 @@
 class SpeedwireInverterProtocol {
 
 protected:
-    static const unsigned long sma_dst_susy_id_offset;
-    static const unsigned long sma_dst_serial_number_offset;
-    static const unsigned long sma_dst_control_offset;
-    static const unsigned long sma_src_susy_id_offset;
-    static const unsigned long sma_src_serial_number_offset;
-    static const unsigned long sma_src_control_offset;
-    static const unsigned long sma_error_code_offset;
-    static const unsigned long sma_fragment_id_offset;
-    static const unsigned long sma_packet_id_offset;
-    static const unsigned long sma_command_id_offset;
-    static const unsigned long sma_first_register_id_offset;
-    static const unsigned long sma_last_register_id_offset;
-    static const unsigned long sma_data_offset;
+    static constexpr unsigned long SpeedwireInverterProtocol::sma_dst_susy_id_offset       = 0;
+    static constexpr unsigned long SpeedwireInverterProtocol::sma_dst_serial_number_offset = sma_dst_susy_id_offset + 2;
+    static constexpr unsigned long SpeedwireInverterProtocol::sma_dst_control_offset       = sma_dst_serial_number_offset + 4;
+    static constexpr unsigned long SpeedwireInverterProtocol::sma_src_susy_id_offset       = sma_dst_control_offset + 2;
+    static constexpr unsigned long SpeedwireInverterProtocol::sma_src_serial_number_offset = sma_src_susy_id_offset + 2;
+    static constexpr unsigned long SpeedwireInverterProtocol::sma_src_control_offset       = sma_src_serial_number_offset + 4;
+    static constexpr unsigned long SpeedwireInverterProtocol::sma_error_code_offset        = sma_src_control_offset + 2;
+    static constexpr unsigned long SpeedwireInverterProtocol::sma_fragment_id_offset       = sma_error_code_offset + 2;
+    static constexpr unsigned long SpeedwireInverterProtocol::sma_packet_id_offset         = sma_fragment_id_offset + 2;
+    static constexpr unsigned long SpeedwireInverterProtocol::sma_command_id_offset        = sma_packet_id_offset + 2;
+    static constexpr unsigned long SpeedwireInverterProtocol::sma_first_register_id_offset = sma_command_id_offset + 4;
+    static constexpr unsigned long SpeedwireInverterProtocol::sma_last_register_id_offset  = sma_first_register_id_offset + 4;
+    static constexpr unsigned long SpeedwireInverterProtocol::sma_data_offset              = sma_last_register_id_offset + 4;
 
     uint8_t* udp;
     unsigned long size;

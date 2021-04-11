@@ -16,35 +16,30 @@
 class SpeedwireHeader {
 
 protected:
-    static const uint8_t  sma_signature[4];
-    static const uint8_t  sma_tag0[4];
-    static const uint8_t  sma_net_v2[2];
+    static constexpr uint8_t  sma_signature[4] = { 0x53, 0x4d, 0x41, 0x00 };     // "SMA\0"
+    static constexpr uint8_t  sma_tag0[4]      = { 0x00, 0x04, 0x02, 0xa0 };     // length: 0x0004  tag: 0x02a0;
+    static constexpr uint8_t  sma_net_v2[2]    = { 0x00, 0x10 };
 
-    static const unsigned long sma_signature_offset;
-    static const unsigned long sma_signature_size;
-    static const unsigned long sma_tag0_offset;
-    static const unsigned long sma_tag0_size;
-    static const unsigned long sma_group_offset;
-    static const unsigned long sma_group_size;
-    static const unsigned long sma_length_offset;
-    static const unsigned long sma_length_size;
-    static const unsigned long sma_netversion_offset;
-    static const unsigned long sma_netversion_size;
-    static const unsigned long sma_protocol_offset;
-    static const unsigned long sma_protocol_size;
-    static const unsigned long sma_long_words_offset;
-    static const unsigned long sma_long_words_size;
-    static const unsigned long sma_control_offset;
-    static const unsigned long sma_control_size;
+    static constexpr unsigned long sma_signature_offset  = 0;
+    static constexpr unsigned long sma_tag0_offset       = sizeof(sma_signature);
+    static constexpr unsigned long sma_group_offset      = sma_tag0_offset + sizeof(sma_tag0);
+    static constexpr unsigned long sma_length_offset     = sma_group_offset + 4;
+    static constexpr unsigned long sma_netversion_offset = sma_length_offset + 2;
+    static constexpr unsigned long sma_protocol_offset   = sma_netversion_offset + sizeof(sma_net_v2);
+    static constexpr unsigned long sma_protocol_size     = 2;
+    static constexpr unsigned long sma_long_words_offset = sma_protocol_offset + sma_protocol_size;
+    static constexpr unsigned long sma_control_offset    = sma_long_words_offset + 1;
+    static constexpr unsigned long sma_control_size      = 1;
 
     uint8_t *udp;
     unsigned long size;
 
 public:
 
-    static const uint16_t sma_emeter_protocol_id;
-    static const uint16_t sma_inverter_protocol_id;
-    static const uint16_t sma_discovery_protocol_id;
+    static constexpr uint16_t sma_emeter_protocol_id    = 0x6069;
+    static constexpr uint16_t sma_inverter_protocol_id  = 0x6065;
+    static constexpr uint16_t sma_discovery_protocol_id = 0xffff;
+
 
     SpeedwireHeader(const void *const udp_packet, const unsigned long udp_packet_size);
     ~SpeedwireHeader(void);

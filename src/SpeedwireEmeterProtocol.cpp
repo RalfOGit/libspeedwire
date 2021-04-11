@@ -6,15 +6,6 @@
 #include <SpeedwireEmeterProtocol.hpp>
 
 
-const unsigned long SpeedwireEmeterProtocol::sma_susy_id_offset = 0;
-const unsigned long SpeedwireEmeterProtocol::sma_susy_id_size   = 2;
-const unsigned long SpeedwireEmeterProtocol::sma_serial_number_offset = SpeedwireEmeterProtocol::sma_susy_id_size;
-const unsigned long SpeedwireEmeterProtocol::sma_serial_number_size   = 4;
-const unsigned long SpeedwireEmeterProtocol::sma_time_offset = SpeedwireEmeterProtocol::sma_serial_number_offset + SpeedwireEmeterProtocol::sma_serial_number_size;
-const unsigned long SpeedwireEmeterProtocol::sma_time_size   = 4;
-const uint8_t SpeedwireEmeterProtocol::sma_firmware_version_channel = 144;
-
-
 SpeedwireEmeterProtocol::SpeedwireEmeterProtocol(const void *const udp_packet, const unsigned long udp_packet_len) {
     udp = (uint8_t *)udp_packet;
     size = udp_packet_len;

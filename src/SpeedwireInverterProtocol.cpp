@@ -5,21 +5,6 @@
 #include <SpeedwireInverterProtocol.hpp>
 
 
-const unsigned long SpeedwireInverterProtocol::sma_dst_susy_id_offset       = 0;
-const unsigned long SpeedwireInverterProtocol::sma_dst_serial_number_offset = SpeedwireInverterProtocol::sma_dst_susy_id_offset + 2;
-const unsigned long SpeedwireInverterProtocol::sma_dst_control_offset       = SpeedwireInverterProtocol::sma_dst_serial_number_offset + 4;
-const unsigned long SpeedwireInverterProtocol::sma_src_susy_id_offset       = SpeedwireInverterProtocol::sma_dst_control_offset + 2;
-const unsigned long SpeedwireInverterProtocol::sma_src_serial_number_offset = SpeedwireInverterProtocol::sma_src_susy_id_offset + 2;
-const unsigned long SpeedwireInverterProtocol::sma_src_control_offset       = SpeedwireInverterProtocol::sma_src_serial_number_offset + 4;
-const unsigned long SpeedwireInverterProtocol::sma_error_code_offset        = SpeedwireInverterProtocol::sma_src_control_offset + 2;
-const unsigned long SpeedwireInverterProtocol::sma_fragment_id_offset       = SpeedwireInverterProtocol::sma_error_code_offset + 2;
-const unsigned long SpeedwireInverterProtocol::sma_packet_id_offset         = SpeedwireInverterProtocol::sma_fragment_id_offset + 2;
-const unsigned long SpeedwireInverterProtocol::sma_command_id_offset        = SpeedwireInverterProtocol::sma_packet_id_offset + 2;
-const unsigned long SpeedwireInverterProtocol::sma_first_register_id_offset = SpeedwireInverterProtocol::sma_command_id_offset + 4;
-const unsigned long SpeedwireInverterProtocol::sma_last_register_id_offset  = SpeedwireInverterProtocol::sma_first_register_id_offset + 4;
-const unsigned long SpeedwireInverterProtocol::sma_data_offset              = SpeedwireInverterProtocol::sma_last_register_id_offset + 4;
-
-
 SpeedwireInverterProtocol::SpeedwireInverterProtocol(const void* const udp_packet, const unsigned long udp_packet_len) {
     udp = (uint8_t*)udp_packet;
     size = udp_packet_len;
