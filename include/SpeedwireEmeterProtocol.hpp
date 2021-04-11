@@ -10,13 +10,13 @@
 class SpeedwireEmeterProtocol {
 
 protected:
-    static constexpr unsigned long SpeedwireEmeterProtocol::sma_susy_id_offset       = 0;
-    static constexpr unsigned long SpeedwireEmeterProtocol::sma_susy_id_size         = 2;
-    static constexpr unsigned long SpeedwireEmeterProtocol::sma_serial_number_offset = sma_susy_id_size;
-    static constexpr unsigned long SpeedwireEmeterProtocol::sma_serial_number_size   = 4;
-    static constexpr unsigned long SpeedwireEmeterProtocol::sma_time_offset          = sma_serial_number_offset + sma_serial_number_size;
-    static constexpr unsigned long SpeedwireEmeterProtocol::sma_time_size            = 4;
-    static constexpr uint8_t SpeedwireEmeterProtocol::sma_firmware_version_channel   = 144;
+    static constexpr unsigned long sma_susy_id_offset       = 0;
+    static constexpr unsigned long sma_susy_id_size         = 2;
+    static constexpr unsigned long sma_serial_number_offset = sma_susy_id_size;
+    static constexpr unsigned long sma_serial_number_size   = 4;
+    static constexpr unsigned long sma_time_offset          = sma_serial_number_offset + sma_serial_number_size;
+    static constexpr unsigned long sma_time_size            = 4;
+    static constexpr uint8_t sma_firmware_version_channel   = 144;
 
     uint8_t *udp;
     unsigned long size;
