@@ -22,13 +22,17 @@ bool SpeedwireHeader::checkHeader(void)  const {
     }
 
     // test SMA signature
-    if (memcmp(sma_signature, udp + sma_signature_offset, sizeof(sma_signature)) != 0) {
-        return false;
+    for (size_t i = 0; i < sizeof(sma_signature); ++i) {
+        if (sma_signature[i] != udp[sma_signature_offset + i]) {
+            return false;
+        }
     }
 
     // test SMA tag0
-    if (memcmp(sma_tag0, udp + sma_tag0_offset, sizeof(sma_tag0)) != 0) {
-        return false;
+    for (size_t i = 0; i < sizeof(sma_tag0); ++i) {
+        if (sma_tag0[i] != udp[sma_tag0_offset + i]) {
+            return false;
+        }
     }
 
     // test group field
@@ -38,8 +42,10 @@ bool SpeedwireHeader::checkHeader(void)  const {
     //uint16_t length = getLength();
 
     // test SMA net version 2
-    if (memcmp(sma_net_v2, udp + sma_netversion_offset, sizeof(sma_net_v2)) != 0) {
-        return false;
+    for (size_t i = 0; i < sizeof(sma_net_v2); ++i) {
+        if (sma_net_v2[i] != udp[sma_netversion_offset + i]) {
+            return false;
+        }
     }
 
     return true;
@@ -101,11 +107,17 @@ void SpeedwireHeader::setDefaultHeader(void) {
     setDefaultHeader(1, 0, 0);
 }
 void SpeedwireHeader::setDefaultHeader(uint32_t group, uint16_t length, uint16_t protocolID) {
-    memcpy(udp + sma_signature_offset, sma_signature, sizeof(sma_signature));
-    memcpy(udp + sma_tag0_offset,      sma_tag0,      sizeof(sma_tag0));
+    for (size_t i = 0; i < sizeof(sma_signature); ++i) {
+        udp[sma_signature_offset + i] = sma_signature[i];
+    }
+    for (size_t i = 0; i < sizeof(sma_tag0); ++i) {
+        udp[sma_tag0_offset + i] = sma_tag0[i];
+    }
     setGroup(group);
     setLength(length);
-    memcpy(udp + sma_netversion_offset, sma_net_v2, sizeof(sma_net_v2));
+    for (size_t i = 0; i < sizeof(sma_net_v2); ++i) {
+        udp[sma_netversion_offset + i] = sma_net_v2[i];
+    }
     setProtocolID(protocolID);
     setLongWords((uint8_t)(length / sizeof(uint32_t)));
     setControl(0);
