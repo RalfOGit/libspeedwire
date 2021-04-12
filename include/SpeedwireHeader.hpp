@@ -16,9 +16,9 @@
 class SpeedwireHeader {
 
 protected:
-    static constexpr uint8_t  sma_signature[4] = { 0x53, 0x4d, 0x41, 0x00 };     // "SMA\0"
-    static constexpr uint8_t  sma_tag0[4]      = { 0x00, 0x04, 0x02, 0xa0 };     // length: 0x0004  tag: 0x02a0;
-    static constexpr uint8_t  sma_net_v2[2]    = { 0x00, 0x10 };
+    static const uint8_t  sma_signature[4];
+    static const uint8_t  sma_tag0[4];
+    static const uint8_t  sma_net_v2[2];
 
     static constexpr unsigned long sma_signature_offset  = 0;
     static constexpr unsigned long sma_tag0_offset       = sizeof(sma_signature);

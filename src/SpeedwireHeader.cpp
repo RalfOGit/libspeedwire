@@ -2,6 +2,10 @@
 #include <SpeedwireByteEncoding.hpp>
 #include <SpeedwireHeader.hpp>
 
+const uint8_t  SpeedwireHeader::sma_signature[4] = { 0x53, 0x4d, 0x41, 0x00 };     // "SMA\0"
+const uint8_t  SpeedwireHeader::sma_tag0[4]      = { 0x00, 0x04, 0x02, 0xa0 };     // length: 0x0004  tag: 0x02a0;
+const uint8_t  SpeedwireHeader::sma_net_v2[2]    = { 0x00, 0x10 };
+
 
 SpeedwireHeader::SpeedwireHeader(const void *const udp_packet, const unsigned long udp_packet_len) {
     udp = (uint8_t *)udp_packet;
@@ -22,17 +26,13 @@ bool SpeedwireHeader::checkHeader(void)  const {
     }
 
     // test SMA signature
-    for (size_t i = 0; i < sizeof(sma_signature); ++i) {
-        if (sma_signature[i] != udp[sma_signature_offset + i]) {
-            return false;
-        }
+    if (memcmp(sma_signature, udp + sma_signature_offset, sizeof(sma_signature)) != 0) {
+        return false;
     }
 
     // test SMA tag0
-    for (size_t i = 0; i < sizeof(sma_tag0); ++i) {
-        if (sma_tag0[i] != udp[sma_tag0_offset + i]) {
-            return false;
-        }
+    if (memcmp(sma_tag0, udp + sma_tag0_offset, sizeof(sma_tag0)) != 0) {
+        return false;
     }
 
     // test group field
@@ -42,10 +42,8 @@ bool SpeedwireHeader::checkHeader(void)  const {
     //uint16_t length = getLength();
 
     // test SMA net version 2
-    for (size_t i = 0; i < sizeof(sma_net_v2); ++i) {
-        if (sma_net_v2[i] != udp[sma_netversion_offset + i]) {
-            return false;
-        }
+    if (memcmp(sma_net_v2, udp + sma_netversion_offset, sizeof(sma_net_v2)) != 0) {
+        return false;
     }
 
     return true;
@@ -107,17 +105,11 @@ void SpeedwireHeader::setDefaultHeader(void) {
     setDefaultHeader(1, 0, 0);
 }
 void SpeedwireHeader::setDefaultHeader(uint32_t group, uint16_t length, uint16_t protocolID) {
-    for (size_t i = 0; i < sizeof(sma_signature); ++i) {
-        udp[sma_signature_offset + i] = sma_signature[i];
-    }
-    for (size_t i = 0; i < sizeof(sma_tag0); ++i) {
-        udp[sma_tag0_offset + i] = sma_tag0[i];
-    }
+    memcpy(udp + sma_signature_offset, sma_signature, sizeof(sma_signature));
+    memcpy(udp + sma_tag0_offset,      sma_tag0,      sizeof(sma_tag0));
     setGroup(group);
     setLength(length);
-    for (size_t i = 0; i < sizeof(sma_net_v2); ++i) {
-        udp[sma_netversion_offset + i] = sma_net_v2[i];
-    }
+    memcpy(udp + sma_netversion_offset, sma_net_v2, sizeof(sma_net_v2));
     setProtocolID(protocolID);
     setLongWords((uint8_t)(length / sizeof(uint32_t)));
     setControl(0);
