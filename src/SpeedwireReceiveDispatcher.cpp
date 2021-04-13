@@ -86,8 +86,8 @@ int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& so
                     SpeedwireEmeterProtocol emeter(speedwire_packet);
                     uint16_t susyid = emeter.getSusyID();
                     uint32_t serial = emeter.getSerialNumber();
-                    uint32_t timer  = emeter.getTime();
-                    logger.print(LogLevel::LOG_INFO_2, "RECEIVED EMETER PACKET  time 0x%016llx\n", timer);
+                    uint32_t time   = emeter.getTime();
+                    logger.print(LogLevel::LOG_INFO_2, "received emeter packet  time %lu\n", time);
                     valid_emeter_packet = true;
                     ++npackets;
                 }
@@ -110,12 +110,12 @@ int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& so
                     }
 
                     SpeedwireInverterProtocol inverter(speedwire_packet);
-                    logger.print(LogLevel::LOG_INFO_2, "RECEIVED INVERTER PACKET  time 0x%016llx\n", LocalHost::getUnixEpochTimeInMs());
+                    logger.print(LogLevel::LOG_INFO_2, "received inverter packet  time %lu\n", (uint32_t)LocalHost::getUnixEpochTimeInMs());
                     valid_inverter_packet = true;
                     ++npackets;
                 }
                 else {
-                    logger.print(LogLevel::LOG_INFO_0, "RECEIVED UNKNOWN PROTOCOL 0x%04x time 0x%016llx\n", protocolID, LocalHost::getUnixEpochTimeInMs());
+                    logger.print(LogLevel::LOG_WARNING, "received unknown protocol 0x%04x time %lu\n", protocolID, (uint32_t)LocalHost::getUnixEpochTimeInMs());
                 }
 
                 // pass it to the relevant registered packet consumers

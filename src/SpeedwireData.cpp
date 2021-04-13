@@ -18,7 +18,7 @@ SpeedwireRawData::SpeedwireRawData(const uint32_t _command, const uint32_t _id, 
     time(_time) {
     data_size = (_data_size < sizeof(data) ? _data_size : sizeof(data));
     memset(data, 0, sizeof(data));
-    if (data != NULL) {
+    if (_data != NULL) {
         memcpy(data, _data, data_size);
     }
 }
@@ -74,7 +74,7 @@ void SpeedwireRawData::print(uint64_t value, FILE* file) const {
  *  Constructor
  */
 SpeedwireData::SpeedwireData(const uint32_t command, const uint32_t id, const uint8_t conn, const uint8_t type, const time_t time, const void *const data, const size_t data_size,
-                                         const MeasurementType& mType, const Line _line) :
+                             const MeasurementType& mType, const Line _line) :
     SpeedwireRawData(command, id, conn, type, time, data, data_size),
     measurementType(mType),
     line(_line),
