@@ -14,11 +14,14 @@
 #include <stdlib.h>
 #include <time.h>
 #include <AddressConversion.hpp>
+#include <Logger.hpp>
 #include <SpeedwireByteEncoding.hpp>
 #include <SpeedwireInverterProtocol.hpp>
 #include <SpeedwireSocket.hpp>
 #include <SpeedwireSocketFactory.hpp>
 #include <SpeedwireCommand.hpp>
+
+static Logger logger("SpeedwireCommand");
 
 
 SpeedwireCommand::SpeedwireCommand(const LocalHost &_localhost, const std::vector<SpeedwireInfo> &_devices) :
@@ -50,9 +53,118 @@ SpeedwireCommand::~SpeedwireCommand(void) {
 
 
 /**
+ *  synchronous login method - send inverter login command to the given peer, wait for the response and check for error codes
+ */
+bool SpeedwireCommand::login(const SpeedwireInfo& peer, const bool user, const char* password, const int timeout_in_ms) {
+
+    // determine receive socket
+    SocketIndex socket_index = socket_map[peer.interface_ip_address];
+    if (socket_index < 0) {
+        logger.print(LogLevel::LOG_ERROR, "invalid socket_index");
+        return false;
+    }
+    SpeedwireSocket& socket = sockets[socket_index];
+
+    // send login request to peer
+    SpeedwireCommandTokenIndex token_index = sendLoginRequest(peer, user, password);
+    if (token_index < 0) {
+        return false;
+    }
+
+
+    // wait for the response
+    unsigned char response_buffer[2048];
+    int32_t nbytes = receiveResponse(token_index, socket, response_buffer, sizeof(response_buffer), timeout_in_ms);
+    if (nbytes <= 0) {
+        return false;
+    }
+
+    // check error code
+    const SpeedwireHeader speedwire_packet(response_buffer, sizeof(response_buffer));
+    const SpeedwireInverterProtocol inverter_packet(speedwire_packet);
+    uint16_t error_code = inverter_packet.getErrorCode();
+    if (error_code != 0x0000) {
+        if (error_code == 0x0017) {
+            logger.print(LogLevel::LOG_ERROR, "lost connection - not authenticated (error code 0x0017)");
+            token_repository.needs_login = true;
+        }
+        else if (token_repository.at(token_index).command == 0xfffd040c) { // login command
+            if (error_code == 0x0100) {
+                logger.print(LogLevel::LOG_ERROR, "invalid password - not authenticated");
+            }
+            else {
+                logger.print(LogLevel::LOG_ERROR, "login failure - not authenticated");
+            }
+        }
+        else {
+            logger.print(LogLevel::LOG_ERROR, "query error code received");
+        }
+        token_repository.remove(token_index);
+        return false;
+    }
+    token_repository.remove(token_index);
+    return true;
+}
+
+
+/**
+ *  synchronous logoff method - send inverter logoff command to the given peer and return; there is no reply from the inverter for logoff commands
+ */
+bool SpeedwireCommand::logoff(const SpeedwireInfo& peer) {
+    sendLogoffRequest(peer);
+    return true;
+}
+
+
+/**
+ *  synchronous query method - send inverter query command to the given peer, wait for the response and check for error codes
+ */
+int32_t SpeedwireCommand::query(const SpeedwireInfo& peer, const Command command, const uint32_t first_register, const uint32_t last_register, void* udp_buffer, const size_t udp_buffer_size, const int timeout_in_ms) {
+
+    // determine receive socket
+    SocketIndex socket_index = socket_map[peer.interface_ip_address];
+    if (socket_index < 0) {
+        logger.print(LogLevel::LOG_ERROR, "invalid socket_index");
+        return -1;
+    }
+    SpeedwireSocket& socket = sockets[socket_index];
+
+    // send query request to peer
+    SpeedwireCommandTokenIndex token_index = sendQueryRequest(peer, command, first_register, last_register);
+    if (token_index < 0) {
+        return -1;
+    }
+
+    // wait for the response
+    int32_t nbytes = receiveResponse(token_index, socket, udp_buffer, udp_buffer_size, timeout_in_ms);
+    if (nbytes <= 0) {
+        return -1;
+    }
+
+    // check error code
+    const SpeedwireHeader speedwire_packet(udp_buffer, (unsigned long)udp_buffer_size);
+    const SpeedwireInverterProtocol inverter_packet(speedwire_packet);
+    uint16_t error_code = inverter_packet.getErrorCode();
+    if (error_code != 0x0000) {
+        if (error_code == 0x0017) {
+            logger.print(LogLevel::LOG_ERROR, "lost connection - not authenticated (error code 0x0017)");
+            token_repository.needs_login = true;
+        }
+        else {
+            logger.print(LogLevel::LOG_ERROR, "query error code received");
+        }
+        token_repository.remove(token_index);
+        return -1;
+    }
+    token_repository.remove(token_index);
+    return nbytes;
+}
+
+
+/**
  *  send inverter login command to the given peer
  */
-int32_t SpeedwireCommand::login(const SpeedwireInfo& peer, const bool user, const char* password) {
+SpeedwireCommandTokenIndex SpeedwireCommand::sendLoginRequest(const SpeedwireInfo& peer, const bool user, const char* password) {
     // Request  534d4100000402a000000001003a0010 60650ea0 7a01842a71b30001 7d0042be283a0001 000000000280 0c04fdff 07000000 84030000 00d8e85f 00000000 c1c1c1c18888888888888888 00000000   => login command = 0xfffd040c, first = 0x00000007 (user 7, installer a), last = 0x00000384 (hier timeout), time = 0x5fdf9ae8, 0x00000000, pw 12 bytes
     // Response 534d4100000402a000000001002e0010 60650be0 7d0042be283a0001 7a01842a71b30001 000000000280 0d04fdff 07000000 84030000 00d8e85f 00000000 00000000 => login OK
     // Response 534d4100000402a000000001002e0010 60650be0 7d0042be283a0001 7a01842a71b30001 000100000280 0d04fdff 07000000 84030000 fddbe85f 00000000 00000000 => login INVALID PASSWORD
@@ -88,27 +200,30 @@ int32_t SpeedwireCommand::login(const SpeedwireInfo& peer, const bool user, cons
     // send login request packet to peer
     SocketIndex socket_index = socket_map[peer.interface_ip_address];
     if (socket_index < 0) {
-        perror("invalid socket_index");
+        logger.print(LogLevel::LOG_ERROR, "invalid socket_index");
         return -1;
     }
     SpeedwireSocket& socket = sockets[socket_index];
     int nsent = socket.sendto(request_buffer, sizeof(request_buffer), peer.peer_ip_address);
-
-    if (nsent > 0) {
-        // add a query token; this is used to match reply packets to this request packet
-        token_repository.add(peer.susyID, peer.serialNumber, packet_id, peer.peer_ip_address, 0xfffd040c);
-
-        // increment packet id
-        packet_id = (packet_id + 1) | 0x8000;
+    if (nsent <= 0) {
+        logger.print(LogLevel::LOG_ERROR, "cannot send data to socket");
+        return -1;
     }
-    return nsent;
+
+    // add a query token; this is used to match reply packets to this request packet
+    SpeedwireCommandTokenIndex index = token_repository.add(peer.susyID, peer.serialNumber, packet_id, peer.peer_ip_address, 0xfffd040c);
+
+    // increment packet id
+    packet_id = (packet_id + 1) | 0x8000;
+
+    return index;
 }
 
 
 /**
  *  send inverter logoff command to the given peer
  */
-int32_t SpeedwireCommand::logoff(const SpeedwireInfo& peer) {
+void SpeedwireCommand::sendLogoffRequest(const SpeedwireInfo& peer) {
     // Request 534d4100000402a00000000100220010 606508a0 ffffffffffff0003 7d0052be283a0003 000000000280 0e01fdff ffffffff 00000000   => logoff command = 0xfffd01e0 (fehlt hier last?)
     // Request 534d4100000402a00000000100220010 606508a0 ffffffffffff0003 7d0042be283a0003 000000000180 e001fdff ffffffff 00000000
     // assemble unicast device logoff packet
@@ -133,27 +248,25 @@ int32_t SpeedwireCommand::logoff(const SpeedwireInfo& peer) {
 
     SocketIndex socket_index = socket_map.at(peer.interface_ip_address);
     if (socket_index < 0) {
-        perror("invalid socket_index");
-        return -1;
+        logger.print(LogLevel::LOG_ERROR, "invalid socket_index");
+        return;
     }
     SpeedwireSocket& socket = sockets[socket_index];
     int nsent = socket.sendto(request_buffer, sizeof(request_buffer), peer.peer_ip_address);
-
-    if (nsent > 0) {
-        // add a query token; this is used to match reply packets to this request packet
-        // query_token.add(peer.susyID, peer.serialNumber, packet_id, peer.peer_ip_address, 0xfffd01e0);
-
-        // increment packet id
-        packet_id = (packet_id + 1) | 0x8000;
+    if (nsent <= 0) {
+        logger.print(LogLevel::LOG_ERROR, "cannot send data to socket");
+        return;
     }
-    return nsent;
+
+    // increment packet id
+    packet_id = (packet_id + 1) | 0x8000;
 }
 
 
 /**
  *  assemble inverter query command and send it to the given peer
  */
-int32_t SpeedwireCommand::query(const SpeedwireInfo& peer, const Command command, const uint32_t first_register, const uint32_t last_register) {
+SpeedwireCommandTokenIndex SpeedwireCommand::sendQueryRequest(const SpeedwireInfo& peer, const Command command, const uint32_t first_register, const uint32_t last_register) {
     // Request  534d4100000402a00000000100260010 606509a0 7a01842a71b30001 7d0042be283a0001 000000000380 00020058 00348200 ff348200 00000000 =>  query software version
     // Response 534d4100000402a000000001004e0010 606513a0 7d0042be283a00a1 7a01842a71b30001 000000000380 01020058 0a000000 0a000000 01348200 2ae5e65f 00000000 00000000 feffffff feffffff 040a1003 040a1003 00000000 00000000 00000000  code = 0x00823401    3 (BCD).10 (BCD).10 (BIN) Typ R (Enum)
     // Request  534d4100000402a00000000100260010 606509a0 7a01842a71b30001 7d0042be283a0001 000000000480 00020058 001e8200 ff208200 00000000 =>  query device type
@@ -212,27 +325,82 @@ int32_t SpeedwireCommand::query(const SpeedwireInfo& peer, const Command command
     // send query request packet to peer
     SocketIndex socket_index = socket_map[peer.interface_ip_address];
     if (socket_index < 0) {
-        perror("invalid socket_index");
+        logger.print(LogLevel::LOG_ERROR, "invalid socket_index");
         return -1;
     }
     SpeedwireSocket& socket = sockets[socket_index];
     int nsent = socket.sendto(request_buffer, sizeof(request_buffer), peer.peer_ip_address);
-
-    if (nsent > 0) {
-        // add a query token; this is used to match reply packets to this request packet
-        token_repository.add(peer.susyID, peer.serialNumber, packet_id, peer.peer_ip_address, command);
-
-        // increment packet id
-        packet_id = (packet_id + 1) | 0x8000;
+    if (nsent <= 0) {
+        logger.print(LogLevel::LOG_ERROR, "cannot send data to socket");
+        return -1;
     }
-    return nsent;
+
+    // add a query token; this is used to match reply packets to this request packet
+    SpeedwireCommandTokenIndex index = token_repository.add(peer.susyID, peer.serialNumber, packet_id, peer.peer_ip_address, command);
+
+    // increment packet id
+    packet_id = (packet_id + 1) | 0x8000;
+
+    return index;
+}
+
+
+/**
+ *  synchronously receive inverter reply; for asynchronous receiption please use class SpeedwireReceiveDispatcher
+ */
+int32_t SpeedwireCommand::receiveResponse(const SpeedwireCommandTokenIndex token_index, SpeedwireSocket& socket, void* udp_buffer, const size_t udp_buffer_size, const int timeout_in_ms) {
+
+    // prepare the pollfd structure
+    struct pollfd pollfds;
+    pollfds.fd      = socket.getSocketFd();
+    pollfds.events  = POLLIN;
+    pollfds.revents = 0;
+
+    // enter packet receive wait loop - any udp packets received before the inverter packet or before the timeout kicks in are skipped(!)
+    int  nbytes = -1;
+    bool valid  = false;
+    while (valid == false && nbytes != 0) {
+
+        // wait for a packet on the configured socket
+        if (poll(&pollfds, 1, timeout_in_ms) < 0) {
+            logger.print(LogLevel::LOG_ERROR, "poll failure");
+            return -1;
+        }
+
+        // determine if the socket received a packet
+        if ((pollfds.revents & POLLIN) != 0) {
+
+            // read packet data
+            struct sockaddr src;
+            if (socket.isIpv4()) {
+                nbytes = socket.recvfrom(udp_buffer, udp_buffer_size, AddressConversion::toSockAddrIn(src));
+            }
+            else if (socket.isIpv6()) {
+                nbytes = socket.recvfrom(udp_buffer, udp_buffer_size, AddressConversion::toSockAddrIn6(src));
+            }
+
+            // check if the reply packet is a valid sma speedwire packet
+            SpeedwireHeader speedwire_packet(udp_buffer, nbytes);
+            bool valid_speedwire_packet = speedwire_packet.checkHeader();
+            if (valid_speedwire_packet == true) {
+
+                // check reply packet for validity
+                const SpeedwireCommandToken& token = token_repository.at(token_index);
+                if (checkReply(speedwire_packet, src, token) == true) {
+                    valid = true;
+                    token_repository.remove(token_index);
+                }
+            }
+        }
+    }
+    return nbytes;
 }
 
 
 /**
  *  find SpeedwireCommandToken for the reply packet; return index in token_repository or -1
  */
-int SpeedwireCommand::findCommandToken(SpeedwireHeader& speedwire_reply_packet) {
+int SpeedwireCommand::findCommandToken(const SpeedwireHeader& speedwire_reply_packet) const {
     if (speedwire_reply_packet.isInverterProtocolID() == true) {
         const SpeedwireInverterProtocol inverter_packet(speedwire_reply_packet);
         uint16_t susyid   = inverter_packet.getSrcSusyID();
@@ -256,17 +424,17 @@ SpeedwireCommandTokenRepository& SpeedwireCommand::getTokenRepository(void) {
 /**
  *  check reply packet for correctness
  */
-bool SpeedwireCommand::checkReply(SpeedwireHeader& speedwire_reply_packet, const struct sockaddr& recvfrom) {
+bool SpeedwireCommand::checkReply(const SpeedwireHeader& speedwire_reply_packet, const struct sockaddr& recvfrom) const {
     int token_index = findCommandToken(speedwire_reply_packet);
     if (token_index < 0) {
         //logger.print(LogLevel::LOG_ERROR, "cannot find query token => DROPPED\n");
         return false;
     }
-    SpeedwireCommandToken& token = token_repository.at(token_index);
+    const SpeedwireCommandToken& token = token_repository.at(token_index);
     return checkReply(speedwire_reply_packet, recvfrom, token);
 }
 
-bool SpeedwireCommand::checkReply(SpeedwireHeader& speedwire_reply_packet, const struct sockaddr& recvfrom, const SpeedwireCommandToken& token) {
+bool SpeedwireCommand::checkReply(const SpeedwireHeader& speedwire_reply_packet, const struct sockaddr& recvfrom, const SpeedwireCommandToken& token) {
     size_t   buff_size = speedwire_reply_packet.getPacketSize();
     uint8_t* buff      = speedwire_reply_packet.getPacketPointer();
 
@@ -299,7 +467,7 @@ bool SpeedwireCommand::checkReply(SpeedwireHeader& speedwire_reply_packet, const
         return false;
     }
 
-    SpeedwireInverterProtocol inverter(speedwire_reply_packet);
+    const SpeedwireInverterProtocol inverter(speedwire_reply_packet);
     if (inverter.getDstSusyID() != 0xffff && inverter.getDstSusyID() != local_susy_id) {
         printf("destination susy id %u is not local susy id %u\n", (unsigned)inverter.getDstSusyID(), (unsigned)local_susy_id);
         return false;
@@ -351,13 +519,14 @@ bool SpeedwireCommand::checkReply(SpeedwireHeader& speedwire_reply_packet, const
 
 //=====================================================================================
 
-void SpeedwireCommandTokenRepository::add(const uint16_t susyid, const uint32_t serialnumber, const uint16_t packetid, const std::string& peer_ip_address, const uint32_t command) {
+SpeedwireCommandTokenIndex SpeedwireCommandTokenRepository::add(const uint16_t susyid, const uint32_t serialnumber, const uint16_t packetid, const std::string& peer_ip_address, const uint32_t command) {
     uint32_t create_time = (uint32_t)LocalHost::getUnixEpochTimeInMs();
     SpeedwireCommandToken new_token = { susyid, serialnumber, packetid, peer_ip_address, command, create_time };
     token.push_back(new_token);
+    return (SpeedwireCommandTokenIndex)token.size()-1;
 }
 
-void SpeedwireCommandTokenRepository::remove(const int index) {
+void SpeedwireCommandTokenRepository::remove(const SpeedwireCommandTokenIndex index) {
     int i = 0;
     for (std::vector<SpeedwireCommandToken>::iterator it = token.begin(); it != token.end(); ++it, ++i) {
         if (i == index) {
@@ -367,9 +536,9 @@ void SpeedwireCommandTokenRepository::remove(const int index) {
     }
 }
 
-int SpeedwireCommandTokenRepository::find(const uint16_t susyid, const uint32_t serialnumber, const uint16_t packetid) {
+int SpeedwireCommandTokenRepository::find(const uint16_t susyid, const uint32_t serialnumber, const uint16_t packetid) const {
     for (int i = 0; i < token.size(); ++i) {
-        SpeedwireCommandToken& t = token[i];
+        const SpeedwireCommandToken& t = token[i];
         if (t.susyid == susyid && t.serialnumber == serialnumber && t.packetid == packetid) {
             return i;
         }
@@ -377,7 +546,7 @@ int SpeedwireCommandTokenRepository::find(const uint16_t susyid, const uint32_t 
     return -1;
 }
 
-SpeedwireCommandToken& SpeedwireCommandTokenRepository::at(const int index) {
+const SpeedwireCommandToken& SpeedwireCommandTokenRepository::at(const SpeedwireCommandTokenIndex index) const {
     return token[index];
 }
 
@@ -400,6 +569,6 @@ int SpeedwireCommandTokenRepository::expire(const int timeout_in_ms) {
     return count;
 }
 
-int SpeedwireCommandTokenRepository::size(void) {
+int SpeedwireCommandTokenRepository::size(void) const {
     return (int)token.size();
 }

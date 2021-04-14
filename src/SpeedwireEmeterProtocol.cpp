@@ -11,7 +11,7 @@ SpeedwireEmeterProtocol::SpeedwireEmeterProtocol(const void *const udp_packet, c
     size = udp_packet_len;
 }
 
-SpeedwireEmeterProtocol::SpeedwireEmeterProtocol(SpeedwireHeader& prot) {
+SpeedwireEmeterProtocol::SpeedwireEmeterProtocol(const SpeedwireHeader& prot) {
     udp = prot.getPacketPointer() + prot.getPayloadOffset();
     size = prot.getPacketSize() - prot.getPayloadOffset();
 }

@@ -28,7 +28,7 @@ protected:
 
 public:
     SpeedwireInverterProtocol(const void* const udp_packet, const unsigned long udp_packet_size);
-    SpeedwireInverterProtocol(SpeedwireHeader &prot);
+    SpeedwireInverterProtocol(const SpeedwireHeader &prot);
     ~SpeedwireInverterProtocol(void);
 
     // accessor methods

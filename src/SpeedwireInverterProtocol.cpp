@@ -11,7 +11,7 @@ SpeedwireInverterProtocol::SpeedwireInverterProtocol(const void* const udp_packe
     packet_id = 0x8001;
 }
 
-SpeedwireInverterProtocol::SpeedwireInverterProtocol(SpeedwireHeader& prot) {
+SpeedwireInverterProtocol::SpeedwireInverterProtocol(const SpeedwireHeader& prot) {
     udp = prot.getPacketPointer() + prot.getPayloadOffset();
     size = prot.getPacketSize() - prot.getPayloadOffset();
     packet_id = 0x8001;

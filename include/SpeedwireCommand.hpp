@@ -5,9 +5,10 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <SpeedwireHeader.hpp>
 #include <SpeedwireDiscovery.hpp>
 #include <SpeedwireData.hpp>
+#include <SpeedwireHeader.hpp>
+#include <SpeedwireSocket.hpp>
 
 
 enum Command : uint32_t {
@@ -35,15 +36,17 @@ typedef struct {
  *  Class SpeedwireCommandTokenRepository holds SpeedwireCommandTokens from when the command is send 
  *  to the peer until the corresponding reply is received.
  */
+typedef int SpeedwireCommandTokenIndex;
+
 class SpeedwireCommandTokenRepository {
 public:
-    void add (const uint16_t susyid, const uint32_t serialnumber, const uint16_t packetid, const std::string& peer_ip_address, const uint32_t command);
-    int  find(const uint16_t susyid, const uint32_t serialnumber, const uint16_t packetid);
-    void remove(const int index);
+    SpeedwireCommandTokenIndex add(const uint16_t susyid, const uint32_t serialnumber, const uint16_t packetid, const std::string& peer_ip_address, const uint32_t command);
+    int  find(const uint16_t susyid, const uint32_t serialnumber, const uint16_t packetid) const;
+    void remove(const SpeedwireCommandTokenIndex index);
     void clear(void);
     int  expire(const int timeout_in_ms);
-    SpeedwireCommandToken& at(const int index);
-    int  size(void);
+    const SpeedwireCommandToken& at(const SpeedwireCommandTokenIndex index) const;
+    int  size(void) const;
     bool needs_login;
 
     SpeedwireCommandTokenRepository(void) { needs_login = false;  }
@@ -79,22 +82,31 @@ public:
     SpeedwireCommand(const LocalHost &localhost, const std::vector<SpeedwireInfo> &devices);
     ~SpeedwireCommand(void);
 
-    // commands
-    int32_t login (const SpeedwireInfo& peer, const bool user, const char* password);
-    int32_t logoff(const SpeedwireInfo& peer);
-    int32_t query (const SpeedwireInfo& peer, const Command command, const uint32_t first_register, const uint32_t last_register);
+    // synchronous command methods - send command requests and wait for the response
+    bool    login (const SpeedwireInfo& peer, const bool user, const char* password, const int timeout_in_ms = 1000);
+    bool    logoff(const SpeedwireInfo& peer);
+    int32_t query (const SpeedwireInfo& peer, const Command command, const uint32_t first_register, const uint32_t last_register, void* udp_buffer, const size_t udp_buffer_size, const int timeout_in_ms = 1000);
+
+    // asynchronous send command methods - send command requests and return immediately
+    void sendLogoffRequest(const SpeedwireInfo& peer);
+    SpeedwireCommandTokenIndex sendLoginRequest(const SpeedwireInfo& peer, const bool user, const char* password);
+    SpeedwireCommandTokenIndex sendQueryRequest(const SpeedwireInfo& peer, const Command command, const uint32_t first_register, const uint32_t last_register);
+
+    // synchronous receive method - receive command reply packet for the given command token; this method will block until the packet is received or it times out
+    // (for asynchronous receive handling, see class SpeedwireReceiveDispatcher)
+    int32_t receiveResponse(const SpeedwireCommandTokenIndex index, SpeedwireSocket& socket, void* udp_buffer, const size_t udp_buffer_size, const int poll_timeout_in_ms);
 
     // find SpeedwireCommandToken for the reply packet
-    int findCommandToken(SpeedwireHeader& speedwire_packet);   // convenience method returns index
-    SpeedwireCommandTokenRepository& getTokenRepository(void);
+    int findCommandToken(const SpeedwireHeader& speedwire_packet) const;   // convenience method => returns index
 
     // check reply packet for correctness
-    static bool checkReply(SpeedwireHeader& speedwire_packet, const struct sockaddr& recvfrom, const SpeedwireCommandToken& token);
-    bool checkReply(SpeedwireHeader& speedwire_packet, const struct sockaddr& recvfrom);
+    static bool checkReply(const SpeedwireHeader& speedwire_packet, const struct sockaddr& recvfrom, const SpeedwireCommandToken& token);
+    bool checkReply(const SpeedwireHeader& speedwire_packet, const struct sockaddr& recvfrom) const;
 
-    // get local susy id and serial number
+    // getter methods for local susy id, serial number and token repository
     uint16_t getLocalSusyID      (void) const { return local_susy_id; }
     uint32_t getLocalSerialNumber(void) const { return local_serial_id; }
+    SpeedwireCommandTokenRepository& getTokenRepository(void);
 };
 
 #endif

@@ -23,7 +23,7 @@ protected:
 
 public:
     SpeedwireEmeterProtocol(const void* const udp_packet, const unsigned long udp_packet_size);
-    SpeedwireEmeterProtocol(SpeedwireHeader &protocol);
+    SpeedwireEmeterProtocol(const SpeedwireHeader &protocol);
     ~SpeedwireEmeterProtocol(void);
 
     // accessor methods
