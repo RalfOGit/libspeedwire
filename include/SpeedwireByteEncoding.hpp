@@ -3,13 +3,22 @@
 
 #include <cstdint>
 
-
+/**
+ *  Class implementing platform neutral byte encoding conversions
+ *
+ *  Multi-byte data in network packets can be encoded in big endian or in little endian byte order. For some
+ *  reason SMA is using both byte encoding formats.Emeter packets use big endian byte order and inverter
+ *  packets use little endian byte order.
+ * 
+ *  Methods in this class provide direct access to memory, you need to ensure that the memory is accessible.
+ */
 class SpeedwireByteEncoding {
 
 public:
 
-    static uint8_t getUint8(const void* const udp_ptr);
-    static void setUint8(void* udp_ptr, const uint8_t value);
+    // methods to get and set single byte values
+    static uint8_t  getUint8(const void* const udp_ptr);
+    static void     setUint8(void* udp_ptr, const uint8_t value);
 
     // methods to get and set field value from and to big endian format, i.e. standard network byte order
     static uint16_t getUint16BigEndian(const void* const udp_ptr);

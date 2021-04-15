@@ -23,39 +23,47 @@
 #include <LocalHost.hpp>
 #include <AddressConversion.hpp>
 
-/**
- *  Class implementing platform neutral abstractions for host related information
- */
+LocalHost *LocalHost::instance = NULL;
 
 
 /**
  *  Constructor
  */
-LocalHost::LocalHost(void) {
-
-#ifdef _WIN32
-    // initialize Windows Socket API with given VERSION.
-    WSADATA wsaData;
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData)) {
-        perror("WSAStartup failure");
-    }
-#endif
-
-    // query hostname
-    cacheHostname(LocalHost::queryHostname());
-
-    // query interfaces
-    cacheLocalIPAddresses(LocalHost::queryLocalIPAddresses());
-
-    // query interface information, such as interface names, mac addresses and local ip addressesl and interface indexes
-    const std::vector<LocalHost::InterfaceInfo> &infos = LocalHost::queryLocalInterfaceInfos();
-    cacheLocalInterfaceInfos(infos);
-}
+LocalHost::LocalHost(void) {}
 
 /**
  *  Destructor
  */
-LocalHost::~LocalHost(void) {
+LocalHost::~LocalHost(void) {}
+
+/**
+ *  Get singleton instance. The cache of the returned instance cache is fully initialized.
+ */
+LocalHost& LocalHost::getInstance(void) {
+    // check if instance has been instanciated
+    if (instance == NULL) {
+
+        // instanciate instance
+        instance = new LocalHost();
+
+#ifdef _WIN32
+        // initialize Windows Socket API with given VERSION.
+        WSADATA wsaData;
+        if (WSAStartup(MAKEWORD(2, 2), &wsaData)) {
+            perror("WSAStartup failure");
+        }
+#endif
+        // query hostname
+        instance->cacheHostname(LocalHost::queryHostname());
+
+        // query interfaces
+        instance->cacheLocalIPAddresses(LocalHost::queryLocalIPAddresses());
+
+        // query interface information, such as interface names, mac addresses and local ip addressesl and interface indexes
+        const std::vector<LocalHost::InterfaceInfo> infos = LocalHost::queryLocalInterfaceInfos();
+        instance->cacheLocalInterfaceInfos(infos);
+    }
+    return *instance;
 }
 
 
@@ -75,17 +83,23 @@ void LocalHost::cacheHostname(const std::string &hostname) {
 
 
 /**
- *  Getter for cached interface names
+ *  Getter for cached ipv4 and ipv6 interface names
  */
-const std::vector<std::string> &LocalHost::getLocalIPAddresses(void) const {
+const std::vector<std::string>& LocalHost::getLocalIPAddresses(void) const {
     return local_ip_addresses;
 }
 
-const std::vector<std::string> LocalHost::getLocalIPv4Addresses(void) const {
+/**
+ *  Getter for cached ipv4 interface names
+ */
+const std::vector<std::string>& LocalHost::getLocalIPv4Addresses(void) const {
     return local_ipv4_addresses;
 }
 
-const std::vector<std::string> LocalHost::getLocalIPv6Addresses(void) const {
+/**
+ *  Getter for cached ipv6 interface names
+ */
+const std::vector<std::string>& LocalHost::getLocalIPv6Addresses(void) const {
     return local_ipv6_addresses;
 }
 
@@ -97,9 +111,9 @@ void LocalHost::cacheLocalIPAddresses(const std::vector<std::string> &local_ip_a
     local_ipv4_addresses.clear();
     local_ipv6_addresses.clear();
     for (auto& a : local_ip_addresses) {
-        if (a.find(':') == std::string::npos) {
+        if (AddressConversion::isIpv4(a) == true) {
             local_ipv4_addresses.push_back(a);
-        } else {
+        } else if (AddressConversion::isIpv6(a) == true) {
             local_ipv6_addresses.push_back(a);
         }
     }
@@ -191,7 +205,7 @@ const std::string LocalHost::queryHostname(void) {
 
 
 /**
- *  Query the local ip addresses from the operating system
+ *  Query all local ipv4 and ipv6 addresses from the operating system
  */
 std::vector<std::string> LocalHost::queryLocalIPAddresses(void) {
     std::vector<std::string> interfaces;
@@ -219,7 +233,7 @@ std::vector<std::string> LocalHost::queryLocalIPAddresses(void) {
 
 
 /**
- *  Query information related to local interfaces from the operating system
+ *  Query information related to all local interfaces from the operating system
  */
 std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) {
     std::vector<LocalHost::InterfaceInfo> addresses;
@@ -345,7 +359,7 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
 
 
 /**
- *  Platform neutral sleep
+ *  Platform neutral sleep method
  */
 void LocalHost::sleep(uint32_t millis) {
 #ifdef _WIN32
@@ -357,7 +371,7 @@ void LocalHost::sleep(uint32_t millis) {
 
 
 /**
- *  Platform neutral get tick count in ms ticks
+ *  Platform neutral method to get a tick count provided in ms ticks; this is useful for timing purposes
  */
 uint64_t LocalHost::getTickCountInMs(void) {  // return a tick counter with ms resolution
 #ifdef _WIN32
@@ -373,7 +387,7 @@ uint64_t LocalHost::getTickCountInMs(void) {  // return a tick counter with ms r
 
 
 /**
- *  Platform neutral get unix epoch time in ms
+ *  Platform neutral method to get the unix epoch time in ms
  */
 uint64_t LocalHost::getUnixEpochTimeInMs(void) {
 #ifdef _WIN32
@@ -389,9 +403,8 @@ uint64_t LocalHost::getUnixEpochTimeInMs(void) {
 #endif
 }
 
-/*
- *  Match given ip address to longest matching local interface ip address
- */
+
+// private helper function
 static std::string::size_type findFirstDifference(const std::string& str1, const std::string& str2) {
     const std::string s1 = AddressConversion::stripIPAddress(str1);
     const std::string s2 = AddressConversion::stripIPAddress(str2);
@@ -403,6 +416,9 @@ static std::string::size_type findFirstDifference(const std::string& str1, const
     return std::string::npos;
 }
 
+/**
+ *  Match given ip address to longest matching local interface ip address
+ */
 const std::string LocalHost::getMatchingLocalIPAddress(std::string ip_address) const {
     std::string::size_type index = std::string::npos;
     std::string::size_type difference = 0;

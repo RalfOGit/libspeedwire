@@ -22,7 +22,6 @@
 #include <AddressConversion.hpp>
 
 
-
 /**
  *  Convert a binary ipv4 address into a string
  */
@@ -150,7 +149,7 @@ struct in6_addr AddressConversion::toIn6Address(const std::string& ipv6_address)
 
 
 /**
- *  Convert the given ip address prefix length to a netmask suitable for use with struct in_addr
+ *  Convert the given ip address prefix length to an ipv4 netmask suitable for use with struct in_addr
  */
 struct in_addr AddressConversion::toInNetMask(const uint32_t prefix_length) {
     struct in_addr mask;
@@ -162,7 +161,7 @@ struct in_addr AddressConversion::toInNetMask(const uint32_t prefix_length) {
 }
 
 /**
- *  Convert the given ip address prefix length to a netmask suitable for use with struct in6_addr
+ *  Convert the given ip address prefix length to an ipv6 netmask suitable for use with struct in6_addr
  */
 struct in6_addr AddressConversion::toIn6NetMask(const uint32_t prefix_length) {
     struct in6_addr mask;
@@ -177,7 +176,7 @@ struct in6_addr AddressConversion::toIn6NetMask(const uint32_t prefix_length) {
 }
 
 /**
- *  Check if both given hosts are residing on the same subnet as defined by its prefix_length
+ *  Check if both given ipv4 hosts are residing on the same subnet as defined by its prefix_length
  */
 bool AddressConversion::resideOnSameSubnet(const struct in_addr& host1, const struct in_addr& host2, const uint32_t prefix_length) {
     struct in_addr netmask = toInNetMask(prefix_length);
@@ -185,7 +184,7 @@ bool AddressConversion::resideOnSameSubnet(const struct in_addr& host1, const st
 }
 
 /**
- *  Check if both given hosts are residing on the same subnet as defined by its prefix_length
+ *  Check if both given ipv6 hosts are residing on the same subnet as defined by its prefix_length
  */
 bool AddressConversion::resideOnSameSubnet(const struct in6_addr& host1, const struct in6_addr& host2, const uint32_t prefix_length) {
     struct in6_addr netmask = toIn6NetMask(prefix_length);
@@ -211,3 +210,28 @@ const std::string AddressConversion::stripIPAddress(const std::string& ip_addres
     std::string::size_type last_index = (last_n != std::string::npos ? last_n : ip_address.size());
     return ip_address.substr(first_index, last_index);
 }
+
+
+/** Cast the given binary ipv4 socket address reference into a binary generic ipv4/ipv6 socket address reference in a type safe way */
+struct sockaddr& AddressConversion::toSockAddr(struct sockaddr_in& src) { return (struct sockaddr&)src; }
+
+/** Cast the given binary ipv6 socket address reference into a binary generic ipv4/ipv6 socket address reference in a type safe way */
+struct sockaddr& AddressConversion::toSockAddr(struct sockaddr_in6& src) { return (struct sockaddr&)src; }
+
+/** Cast the given binary generic ipv4/ipv6 socket address reference into a binary ipv4 socket address reference in a type safe way */
+struct sockaddr_in& AddressConversion::toSockAddrIn(struct sockaddr& src) { return (struct sockaddr_in&)src; }
+
+/** Cast the given binary generic ipv4/ipv6 socket address reference into a binary ipv6 socket address reference in a type safe way */
+struct sockaddr_in6& AddressConversion::toSockAddrIn6(struct sockaddr& src) { return (struct sockaddr_in6&)src; }
+
+/** Cast the given const binary ipv4 socket address reference into a binary generic const ipv4/ipv6 socket address reference in a type safe way */
+const struct sockaddr& AddressConversion::toSockAddr(const struct sockaddr_in& src) { return (const struct sockaddr&)src; }
+
+/** Cast the given const binary ipv6 socket address reference into a binary generic const ipv4/ipv6 socket address reference in a type safe way */
+const struct sockaddr& AddressConversion::toSockAddr(const struct sockaddr_in6& src) { return (const struct sockaddr&)src; }
+
+/** Cast the given const binary generic ipv4/ipv6 socket address reference into a binary const ipv4 socket address reference in a type safe way */
+const struct sockaddr_in& AddressConversion::toSockAddrIn(const struct sockaddr& src) { return (const struct sockaddr_in&)src; }
+
+/** Cast the given const binary generic ipv4/ipv6 socket address reference into a binary const ipv6 socket address reference in a type safe way */
+const struct sockaddr_in6& AddressConversion::toSockAddrIn6(const struct sockaddr& src) { return (const struct sockaddr_in6&)src; }

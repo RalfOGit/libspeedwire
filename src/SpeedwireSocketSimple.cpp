@@ -103,7 +103,7 @@ int SpeedwireSocketSimple::open(void) {
     // use setsockopt() to request that the kernel joins the multicast group
 #ifdef _WIN32
     // windows requires that each interface separately joins the multicast group
-    std::vector<std::string> local_ip_addresses = LocalHost::queryLocalIPAddresses();
+    std::vector<std::string> local_ip_addresses = LocalHost::getInstance().getLocalIPv4Addresses();
     for (auto& addr : local_ip_addresses) {
         if (AddressConversion::isIpv6(addr) == true) continue;  // ignore ipv6 addresses
         struct ip_mreq mreq;

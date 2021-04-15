@@ -39,14 +39,14 @@ public:
     static bool resideOnSameSubnet(const struct in6_addr& host1, const struct in6_addr& host2, const uint32_t prefix_length);
 
     // conversions for bsd socket address information
-    static struct sockaddr& toSockAddr(struct sockaddr_in& src) { return (struct sockaddr&)src; }
-    static struct sockaddr& toSockAddr(struct sockaddr_in6& src) { return (struct sockaddr&)src; }
-    static struct sockaddr_in& toSockAddrIn(struct sockaddr& src) { return (struct sockaddr_in&)src; }
-    static struct sockaddr_in6& toSockAddrIn6(struct sockaddr& src) { return (struct sockaddr_in6&)src; }
-    static const struct sockaddr& toSockAddr(const struct sockaddr_in& src) { return (const struct sockaddr&)src; }
-    static const struct sockaddr& toSockAddr(const struct sockaddr_in6& src) { return (const struct sockaddr&)src; }
-    static const struct sockaddr_in& toSockAddrIn(const struct sockaddr& src) { return (const struct sockaddr_in&)src; }
-    static const struct sockaddr_in6& toSockAddrIn6(const struct sockaddr& src) { return (const struct sockaddr_in6&)src; }
+    static struct sockaddr& toSockAddr(struct sockaddr_in& src);
+    static struct sockaddr& toSockAddr(struct sockaddr_in6& src);
+    static struct sockaddr_in& toSockAddrIn(struct sockaddr& src);
+    static struct sockaddr_in6& toSockAddrIn6(struct sockaddr& src);
+    static const struct sockaddr& toSockAddr(const struct sockaddr_in& src);
+    static const struct sockaddr& toSockAddr(const struct sockaddr_in6& src);
+    static const struct sockaddr_in& toSockAddrIn(const struct sockaddr& src);
+    static const struct sockaddr_in6& toSockAddrIn6(const struct sockaddr& src);
 
     // remove non-ip characters like []%/, subnet masks, escape characters, etc
     static const std::string stripIPAddress(const std::string& ip_address);
