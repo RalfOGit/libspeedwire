@@ -74,11 +74,11 @@ void SpeedwireRawData::print(uint64_t value, FILE* file) const {
  *  Constructor
  */
 SpeedwireData::SpeedwireData(const uint32_t command, const uint32_t id, const uint8_t conn, const uint8_t type, const time_t time, const void *const data, const size_t data_size,
-                             const MeasurementType& mType, const Line _line) :
+                             const MeasurementType& mType, const Wire _wire) :
     SpeedwireRawData(command, id, conn, type, time, data, data_size),
     measurementType(mType),
-    line(_line),
-    description(mType.getFullName(_line)) {
+    wire(_wire),
+    description(mType.getFullName(_wire)) {
     measurementValue = new MeasurementValue();
 }
 
@@ -87,8 +87,8 @@ SpeedwireData::SpeedwireData(const uint32_t command, const uint32_t id, const ui
  *  Copy constructor
  */
 SpeedwireData::SpeedwireData(const SpeedwireData& rhs) :
-    SpeedwireData(rhs.command, rhs.id, rhs.conn, rhs.type, rhs.time, &rhs.data, rhs.data_size, rhs.measurementType, rhs.line) {
-    line = rhs.line;
+    SpeedwireData(rhs.command, rhs.id, rhs.conn, rhs.type, rhs.time, &rhs.data, rhs.data_size, rhs.measurementType, rhs.wire) {
+    wire = rhs.wire;
     description = rhs.description;
     *measurementValue = *rhs.measurementValue;  // the constructor call above already allocated a new MeasurementValue instance
 }
@@ -100,7 +100,7 @@ SpeedwireData::SpeedwireData(const SpeedwireData& rhs) :
 SpeedwireData::SpeedwireData(void) :
     SpeedwireRawData(0, 0, 0, 0, 0, NULL, 0),
     measurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::NO_QUANTITY, "", 0),
-    line(Line::NO_LINE),
+    wire(Wire::NO_WIRE),
     description() {
     measurementValue = new MeasurementValue();
 }
@@ -113,7 +113,7 @@ SpeedwireData& SpeedwireData::operator=(const SpeedwireData& rhs) {
     if (this != &rhs) {
         this->SpeedwireRawData::operator=(rhs);
         this->measurementType = rhs.measurementType;
-        this->line = rhs.line;
+        this->wire = rhs.wire;
         this->description = rhs.description;
         *this->measurementValue = *rhs.measurementValue;
     }
@@ -229,29 +229,29 @@ void SpeedwireData::print(FILE* file) const {
 
 
 // pre-defined instances
-const SpeedwireData SpeedwireData::InverterPowerMPP1    (Command::COMMAND_DC_QUERY,     0x00251E00, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterPower(),   Line::MPP1);
-const SpeedwireData SpeedwireData::InverterPowerMPP2    (Command::COMMAND_DC_QUERY,     0x00251E00, 0x02, 0x40, 0, NULL, 0, MeasurementType::InverterPower(),   Line::MPP2);
-const SpeedwireData SpeedwireData::InverterVoltageMPP1  (Command::COMMAND_DC_QUERY,     0x00451F00, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterVoltage(), Line::MPP1);
-const SpeedwireData SpeedwireData::InverterVoltageMPP2  (Command::COMMAND_DC_QUERY,     0x00451F00, 0x02, 0x40, 0, NULL, 0, MeasurementType::InverterVoltage(), Line::MPP2);
-const SpeedwireData SpeedwireData::InverterCurrentMPP1  (Command::COMMAND_DC_QUERY,     0x00452100, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterCurrent(), Line::MPP1);
-const SpeedwireData SpeedwireData::InverterCurrentMPP2  (Command::COMMAND_DC_QUERY,     0x00452100, 0x02, 0x40, 0, NULL, 0, MeasurementType::InverterCurrent(), Line::MPP2);
-const SpeedwireData SpeedwireData::InverterPowerL1      (Command::COMMAND_AC_QUERY,     0x00464000, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterPower(),   Line::L1);
-const SpeedwireData SpeedwireData::InverterPowerL2      (Command::COMMAND_AC_QUERY,     0x00464100, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterPower(),   Line::L2);
-const SpeedwireData SpeedwireData::InverterPowerL3      (Command::COMMAND_AC_QUERY,     0x00464200, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterPower(),   Line::L3);
-const SpeedwireData SpeedwireData::InverterVoltageL1    (Command::COMMAND_AC_QUERY,     0x00464800, 0x01, 0x00, 0, NULL, 0, MeasurementType::InverterVoltage(), Line::L1);    // L1 -> N
-const SpeedwireData SpeedwireData::InverterVoltageL2    (Command::COMMAND_AC_QUERY,     0x00464900, 0x01, 0x00, 0, NULL, 0, MeasurementType::InverterVoltage(), Line::L2);    // L2 -> N
-const SpeedwireData SpeedwireData::InverterVoltageL3    (Command::COMMAND_AC_QUERY,     0x00464a00, 0x01, 0x00, 0, NULL, 0, MeasurementType::InverterVoltage(), Line::L3);    // L3 -> N
-const SpeedwireData SpeedwireData::InverterVoltageL1toL2(Command::COMMAND_AC_QUERY,     0x00464b00, 0x01, 0x00, 0, NULL, 0, MeasurementType::InverterVoltage(), Line::L1);    // L1 -> L2
-const SpeedwireData SpeedwireData::InverterVoltageL2toL3(Command::COMMAND_AC_QUERY,     0x00464c00, 0x01, 0x00, 0, NULL, 0, MeasurementType::InverterVoltage(), Line::L2);    // L2 -> L3
-const SpeedwireData SpeedwireData::InverterVoltageL3toL1(Command::COMMAND_AC_QUERY,     0x00464d00, 0x01, 0x00, 0, NULL, 0, MeasurementType::InverterVoltage(), Line::L3);    // L3 -> L1
-const SpeedwireData SpeedwireData::InverterCurrentL1    (Command::COMMAND_AC_QUERY,     0x00465300, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterCurrent(), Line::L1);
-const SpeedwireData SpeedwireData::InverterCurrentL2    (Command::COMMAND_AC_QUERY,     0x00465400, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterCurrent(), Line::L2);
-const SpeedwireData SpeedwireData::InverterCurrentL3    (Command::COMMAND_AC_QUERY,     0x00465500, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterCurrent(), Line::L3);
-const SpeedwireData SpeedwireData::InverterStatus       (Command::COMMAND_STATUS_QUERY, 0x00214800, 0x01, 0x08, 0, NULL, 0, MeasurementType::InverterStatus(),  Line::DEVICE_OK);
-const SpeedwireData SpeedwireData::InverterRelay        (Command::COMMAND_STATUS_QUERY, 0x00416400, 0x01, 0x08, 0, NULL, 0, MeasurementType::InverterRelay(),   Line::RELAY_ON);
+const SpeedwireData SpeedwireData::InverterPowerMPP1    (Command::COMMAND_DC_QUERY,     0x00251E00, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::MPP1);
+const SpeedwireData SpeedwireData::InverterPowerMPP2    (Command::COMMAND_DC_QUERY,     0x00251E00, 0x02, 0x40, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::MPP2);
+const SpeedwireData SpeedwireData::InverterVoltageMPP1  (Command::COMMAND_DC_QUERY,     0x00451F00, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::MPP1);
+const SpeedwireData SpeedwireData::InverterVoltageMPP2  (Command::COMMAND_DC_QUERY,     0x00451F00, 0x02, 0x40, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::MPP2);
+const SpeedwireData SpeedwireData::InverterCurrentMPP1  (Command::COMMAND_DC_QUERY,     0x00452100, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::MPP1);
+const SpeedwireData SpeedwireData::InverterCurrentMPP2  (Command::COMMAND_DC_QUERY,     0x00452100, 0x02, 0x40, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::MPP2);
+const SpeedwireData SpeedwireData::InverterPowerL1      (Command::COMMAND_AC_QUERY,     0x00464000, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::L1);
+const SpeedwireData SpeedwireData::InverterPowerL2      (Command::COMMAND_AC_QUERY,     0x00464100, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::L2);
+const SpeedwireData SpeedwireData::InverterPowerL3      (Command::COMMAND_AC_QUERY,     0x00464200, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::L3);
+const SpeedwireData SpeedwireData::InverterVoltageL1    (Command::COMMAND_AC_QUERY,     0x00464800, 0x01, 0x00, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L1);    // L1 -> N
+const SpeedwireData SpeedwireData::InverterVoltageL2    (Command::COMMAND_AC_QUERY,     0x00464900, 0x01, 0x00, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L2);    // L2 -> N
+const SpeedwireData SpeedwireData::InverterVoltageL3    (Command::COMMAND_AC_QUERY,     0x00464a00, 0x01, 0x00, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L3);    // L3 -> N
+const SpeedwireData SpeedwireData::InverterVoltageL1toL2(Command::COMMAND_AC_QUERY,     0x00464b00, 0x01, 0x00, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L1);    // L1 -> L2
+const SpeedwireData SpeedwireData::InverterVoltageL2toL3(Command::COMMAND_AC_QUERY,     0x00464c00, 0x01, 0x00, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L2);    // L2 -> L3
+const SpeedwireData SpeedwireData::InverterVoltageL3toL1(Command::COMMAND_AC_QUERY,     0x00464d00, 0x01, 0x00, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L3);    // L3 -> L1
+const SpeedwireData SpeedwireData::InverterCurrentL1    (Command::COMMAND_AC_QUERY,     0x00465300, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::L1);
+const SpeedwireData SpeedwireData::InverterCurrentL2    (Command::COMMAND_AC_QUERY,     0x00465400, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::L2);
+const SpeedwireData SpeedwireData::InverterCurrentL3    (Command::COMMAND_AC_QUERY,     0x00465500, 0x01, 0x40, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::L3);
+const SpeedwireData SpeedwireData::InverterStatus       (Command::COMMAND_STATUS_QUERY, 0x00214800, 0x01, 0x08, 0, NULL, 0, MeasurementType::InverterStatus(),  Wire::DEVICE_OK);
+const SpeedwireData SpeedwireData::InverterRelay        (Command::COMMAND_STATUS_QUERY, 0x00416400, 0x01, 0x08, 0, NULL, 0, MeasurementType::InverterRelay(),   Wire::RELAY_ON);
 
 // pre-defined instances of derived measurement values
-const SpeedwireData SpeedwireData::InverterPowerDCTotal   (0, 0, 0, 0, 0, NULL, 0, MeasurementType::InverterPower(),      Line::MPP_TOTAL);
-const SpeedwireData SpeedwireData::InverterPowerACTotal   (0, 0, 0, 0, 0, NULL, 0, MeasurementType::InverterPower(),      Line::TOTAL);
-const SpeedwireData SpeedwireData::InverterPowerLoss      (0, 0, 0, 0, 0, NULL, 0, MeasurementType::InverterLoss(),       Line::LOSS_TOTAL);
-const SpeedwireData SpeedwireData::InverterPowerEfficiency(0, 0, 0, 0, 0, NULL, 0, MeasurementType::InverterEfficiency(), Line::NO_LINE);
+const SpeedwireData SpeedwireData::InverterPowerDCTotal   (0, 0, 0, 0, 0, NULL, 0, MeasurementType::InverterPower(),      Wire::MPP_TOTAL);
+const SpeedwireData SpeedwireData::InverterPowerACTotal   (0, 0, 0, 0, 0, NULL, 0, MeasurementType::InverterPower(),      Wire::TOTAL);
+const SpeedwireData SpeedwireData::InverterPowerLoss      (0, 0, 0, 0, 0, NULL, 0, MeasurementType::InverterLoss(),       Wire::LOSS_TOTAL);
+const SpeedwireData SpeedwireData::InverterPowerEfficiency(0, 0, 0, 0, 0, NULL, 0, MeasurementType::InverterEfficiency(), Wire::NO_WIRE);

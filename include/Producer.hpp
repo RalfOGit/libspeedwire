@@ -10,7 +10,7 @@
 class Producer {
 public:
     virtual void flush(void) = 0;
-    virtual void produce(const std::string &device, const MeasurementType &type, const Line, const double value) = 0;
+    virtual void produce(const std::string &device, const MeasurementType &type, const Wire, const double value) = 0;
 };
 
 #endif

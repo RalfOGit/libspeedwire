@@ -5,68 +5,95 @@
 #include <string>
 #include <time.h>
 
-
+/**
+ *  Enumeration describing the direction of energy flows.
+ */
 enum class Direction {
-    POSITIVE,
-    NEGATIVE,
-    SIGNED,
-    NO_DIRECTION
+    POSITIVE,           //!< Positive direction - energy is consumed from the grid
+    NEGATIVE,           //!< Negative direction - energy is provided to the grid
+    SIGNED,             //!< Positive and negative direction expressed by a signed value
+    NO_DIRECTION        //!< Direction is not applicable
 };
+
+//! Convert Direction to a string
 std::string toString(const Direction direction);
 
-enum class Line {
-    TOTAL,
-    L1,
-    L2,
-    L3,
-    MPP_TOTAL,
-    MPP1,
-    MPP2,
-    LOSS_TOTAL,
-    DEVICE_OK,
-    RELAY_ON,
-    NO_LINE
-};
-std::string toString(const Line line);
 
-enum class Quantity {
-    POWER,
-    ENERGY,
-    POWER_FACTOR,
-    CURRENT,
-    VOLTAGE,
-    STATUS,
-    EFFICIENCY,
-    NO_QUANTITY
+/**
+ *  Enumeration describing the wire for the energy flow.
+ *  Totals and status values are considered as separate wires.
+ */
+enum class Wire {
+    TOTAL,              //!< Total of L1+L2+L3 of three-phase alternating current
+    L1,                 //!< Phase L1 of three-phase alternating current wire
+    L2,                 //!< Phase L2 of three-phase alternating current wire
+    L3,                 //!< Phase L3 of three-phase alternating current wire
+    MPP_TOTAL,          //!< Total of MPP1+MPP2 direct current
+    MPP1,               //!< MPP1 direct current wire
+    MPP2,               //!< MPP2 direct current wire
+    LOSS_TOTAL,         //!< Total of L1+L2+L3 of three-phase alternating current minus total of MPP1+MPP2 direct current
+    DEVICE_OK,          //!< Device OK status
+    RELAY_ON,           //!< Grid relay switched on
+    NO_WIRE             //!< Wire is not applicable
 };
+
+//! Convert Wire to a string
+std::string toString(const Wire line);
+
+
+/**
+ *  Enumeration describing the physical quantity.
+ */
+enum class Quantity {
+    POWER,              //!< Electrical power
+    ENERGY,             //!< Electrical energy
+    POWER_FACTOR,       //!< Power factor
+    CURRENT,            //!< Electrical current
+    VOLTAGE,            //!< Electrical voltage
+    STATUS,             //!< Device status
+    EFFICIENCY,         //!< Energy efficiency
+    NO_QUANTITY         //!< Quantity is not applicable
+};
+
+//! Convert Quantity to a string
 std::string toString(const Quantity quantity);
+
+//! Returns if the given Quantity is an instantaneous quantity like power, voltage, current, ...; contrary to energy which is an accumulated quantity like energy
 bool isInstantaneous(const Quantity quantity);
 
+
+/**
+ *  Enumeration describing the type of the measurement.
+ */
 enum class Type {
-    ACTIVE,
-    REACTIVE,
-    APPARENT,
-    VERSION,
-    END_OF_DATA,
-    NO_TYPE
+    ACTIVE,              //!< Electrical active power or energy
+    REACTIVE,            //!< Electrical reactive power or energy
+    APPARENT,            //!< Electrical apparent power or energy
+    VERSION,             //!< Software version
+    END_OF_DATA,         //!< End of data marker
+    NO_TYPE              //!< Type is not applicable
 };
+
+//! Convert Type to a string
 std::string toString(const Type type);
 
 
+/**
+ *  Class encapsulating fixed properties of a measurement type.
+ */
 class MeasurementType {
 public:
-    std::string name;
-    std::string unit;       // measurement unit after applying the divisor, e.g. W, kWh
-    unsigned long divisor;  // divide value by divisor to obtain floating point measurements in the given unit
-    bool instaneous;        // true for power measurements, false for energy measurements
-    Direction direction;    // true for consumed from grid, false for provided to the grid
-    Quantity quantity;
-    Type type;
+    std::string name;       //!< Printable name constructed from the Direction, Quantity and Type properties below
+    std::string unit;       //!< Measurement unit after applying the divisor, e.g. W, kWh
+    unsigned long divisor;  //!< Divide value by divisor to obtain floating point measurements in the given unit
+    bool instaneous;        //!< True for power measurements, false for energy measurements
+    Direction direction;    //!< Direction of the energy flow
+    Quantity quantity;      //!< Physical quantity of the measurement
+    Type type;              //!< Type of the measurement
 
-    MeasurementType(const Direction direction, const Type type, const Quantity quantity, 
-                    const std::string &unit, const unsigned long divisor);
+    MeasurementType(const Direction direction, const Type type, const Quantity quantity, const std::string &unit, const unsigned long divisor);
 
-    std::string getFullName(const Line line) const;
+    std::string getFullName(const Wire line) const;
 
 
     // pre-defined instances for emeter measurement types
@@ -102,15 +129,18 @@ public:
 };
 
 
+/**
+ *  Class encapsulating the value and other variable properties of a measurement.
+ */
 class MeasurementValue {
 public:
-    double       value;         // the current measurement
-    std::string  value_string;  // the current measurement, if it is not a numeric value (e.g. software version, etc)
-    uint32_t     timer;         // the current timestamp
-    uint32_t     elapsed;       // time elapsed from previous timestamp to current timestamp
-    double       sumValue;      // the sum of previous and current measurements
-    unsigned int counter;       // the number of measurements included in sumValue
-    bool         initial;
+    double       value;         //!< Value of the current, i.e. most recent measurement
+    std::string  value_string;  //!< Value of the current, i.e. most recent measurement, if it is not a numeric value (e.g. software version, etc)
+    uint32_t     timer;         //!< The current, i.e. most recent timestamp
+    uint32_t     elapsed;       //!< Time elapsed from previous timestamp to current timestamp
+    double       sumValue;      //!< The sum of previous and current measurements
+    unsigned int counter;       //!< The number of measurements included in sumValue
+    bool         initial;       //!< Flag indicating that this instance is new
 
     MeasurementValue(void);
     void setValue(int32_t  raw_value, unsigned long divisor);

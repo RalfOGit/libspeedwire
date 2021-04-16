@@ -108,7 +108,7 @@ void DataProcessor::consume(const SpeedwireData& element) {
             else {
                 value = measurement->value;
             }
-            producer.produce("inverter", element.measurementType, element.line, value);
+            producer.produce("inverter", element.measurementType, element.wire, value);
         }
     }
 }

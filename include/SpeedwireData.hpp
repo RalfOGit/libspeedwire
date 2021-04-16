@@ -42,11 +42,11 @@ class SpeedwireData : public SpeedwireRawData {
 public:
     MeasurementType   measurementType;
     MeasurementValue* measurementValue;
-    Line              line;
+    Wire              wire;
     std::string       description;
 
     SpeedwireData(const uint32_t command, const uint32_t id, const uint8_t conn, const uint8_t type, const time_t time, const void* data, const size_t data_size,
-                        const MeasurementType& mType, const Line _line);
+                        const MeasurementType& mType, const Wire wire);
     SpeedwireData(const SpeedwireData& rhs);
     SpeedwireData(void);
     SpeedwireData& operator=(const SpeedwireData& rhs);

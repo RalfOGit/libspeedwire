@@ -4,6 +4,7 @@
 #include <string>
 #include <deque>
 
+/*! \file */
 /**
  *   Enumeration describing the defined log levels.
  */
@@ -17,17 +18,17 @@ enum class LogLevel {
 };
 
 
-/**< global scope operator for bitwise or'ing two LogLevel enum values */
+/** Global scope operator for bitwise or'ing two LogLevel enum values */
 inline LogLevel operator|(const LogLevel& op1, const LogLevel& op2) {
     return (LogLevel)((int)op1 | (int)op2);
 }
 
-/**< global scope operator for bitwise and'ing two LogLevel enum values */
+/** Global scope operator for bitwise and'ing two LogLevel enum values */
 inline LogLevel operator&(const LogLevel& op1, const LogLevel& op2) {
     return (LogLevel)((int)op1 & (int)op2);
 }
 
-/**< global scope operator for not equal comparison of two LogLevel enum values */
+/** Global scope operator for not equal comparison of two LogLevel enum values */
 inline bool operator!=(const LogLevel& op1, const int& op2) {
     return ((int)op1 != (int)op2);
 }

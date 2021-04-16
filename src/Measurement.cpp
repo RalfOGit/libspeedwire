@@ -1,6 +1,14 @@
 #include <Measurement.hpp>
 
 
+//! Constructor
+/**
+ * @param direction Direction of the energy flow
+ * @param type  Type of the measurement
+ * @param quantity Physical quantity of the measurement
+ * @param unit Measurement unit after applying the divisor, e.g. W, kWh
+ * @param divisor Divide value by divisor to obtain floating point measurements in the given unit
+ */
 MeasurementType::MeasurementType(const Direction direction, const Type type, const Quantity quantity, 
                                  const std::string &unit, const unsigned long divisor) {
     this->direction = direction;
@@ -17,9 +25,10 @@ MeasurementType::MeasurementType(const Direction direction, const Type type, con
     this->name = direction_string.append(type_string).append(quantity_string);
 }
 
-std::string MeasurementType::getFullName(const Line line) const {
-    if (line != Line::TOTAL && line != Line::NO_LINE) {
-        return std::string(name).append("_").append(toString(line));
+//! Get full name of this instance; this is the name concatenated with the Wire string (if wire is a single wire)
+std::string MeasurementType::getFullName(const Wire wire) const {
+    if (wire != Wire::TOTAL && wire != Wire::NO_WIRE) {
+        return std::string(name).append("_").append(toString(wire));
     }
     return name;
 }
@@ -27,6 +36,7 @@ std::string MeasurementType::getFullName(const Line line) const {
 
 /*******************************/
 
+//! Constructor
 MeasurementValue::MeasurementValue(void) {
     value = 0.0;
     value_string = "";
@@ -37,22 +47,27 @@ MeasurementValue::MeasurementValue(void) {
     initial = true;
 }
 
+//! Set the value of this instance to the given raw_value divided by the divisor
 void MeasurementValue::setValue(int32_t raw_value, unsigned long divisor) {
     value = (double)raw_value / (double)divisor;
 }
 
+//! Set the value of this instance to the given raw_value divided by the divisor
 void MeasurementValue::setValue(uint32_t raw_value, unsigned long divisor) {
     value = (double)raw_value / (double)divisor;
 }
 
+//! Set the value of this instance to the given raw_value divided by the divisor
 void MeasurementValue::setValue(uint64_t raw_value, unsigned long divisor) {
     value = (double)raw_value / (double)divisor;
 }
 
+//! Set the value of this instance to the given raw_value
 void MeasurementValue::setValue(const std::string& raw_value) {
     value_string = raw_value;
 }
 
+//! Set the timer of this instance to the given value
 void MeasurementValue::setTimer(uint32_t time) {
     if (initial) {
         initial = false;
@@ -74,21 +89,21 @@ std::string toString(const Direction direction) {
     return "undefined direction";
 }
 
-std::string toString(const Line line) {
-    switch (line) {
-        case Line::TOTAL:     return "total";
-        case Line::L1:        return "l1";
-        case Line::L2:        return "l2";
-        case Line::L3:        return "l3";
-        case Line::MPP_TOTAL: return "mpp_total";
-        case Line::MPP1:      return "mpp1";
-        case Line::MPP2:      return "mpp2";
-        case Line::LOSS_TOTAL:return "loss_total";
-        case Line::DEVICE_OK: return "device_ok";
-        case Line::RELAY_ON:  return "relay_on";
-        case Line::NO_LINE:   return "";
+std::string toString(const Wire wire) {
+    switch (wire) {
+        case Wire::TOTAL:     return "total";
+        case Wire::L1:        return "l1";
+        case Wire::L2:        return "l2";
+        case Wire::L3:        return "l3";
+        case Wire::MPP_TOTAL: return "mpp_total";
+        case Wire::MPP1:      return "mpp1";
+        case Wire::MPP2:      return "mpp2";
+        case Wire::LOSS_TOTAL:return "loss_total";
+        case Wire::DEVICE_OK: return "device_ok";
+        case Wire::RELAY_ON:  return "relay_on";
+        case Wire::NO_WIRE:   return "";
     }
-    return "undefined line";
+    return "undefined wire";
 }
 
 std::string toString(const Quantity quantity) {

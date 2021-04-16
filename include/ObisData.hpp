@@ -39,10 +39,10 @@ class ObisData : public ObisType {
 public:
     MeasurementType   measurementType;
     MeasurementValue *measurementValue;
-    Line              line;
+    Wire              line;
     std::string       description;
 
-    ObisData(const uint8_t channel, const uint8_t index, const uint8_t type, const uint8_t tariff, const MeasurementType &measurementType, const Line &line);
+    ObisData(const uint8_t channel, const uint8_t index, const uint8_t type, const uint8_t tariff, const MeasurementType &measurementType, const Wire &line);
     ObisData(const ObisData &rhs);
     ObisData &operator=(const ObisData &rhs);
     
