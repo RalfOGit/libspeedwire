@@ -3,8 +3,12 @@
 #pragma warning( disable : 4996 )  // disable sscanf_s suggestion
 
 
+//! Constructor
 /**
- *  Class holding an obis data definition used inside speedwire emeter packets
+ *  @param channel         obis measurement channel
+ *  @param index           obis measurement index; i.e. measurement quantity
+ *  @param type            obis measurement type
+ *  @param tariff          obis tariff
  */
 ObisType::ObisType(const uint8_t channel, const uint8_t index, const uint8_t type, const uint8_t tariff) {
     this->channel = channel;
@@ -13,43 +17,60 @@ ObisType::ObisType(const uint8_t channel, const uint8_t index, const uint8_t typ
     this->tariff = tariff;
 }
 
+//! Equals operator - compares this obis instance with another ObisType instance
 bool ObisType::equals(const ObisType &other) const {
     return (channel == other.channel && index == other.index && type == other.type && tariff == other.tariff);
 }
 
+//! Convert this instance to a string
 std::string ObisType::toString(void) const {
     char str[16];
     snprintf(str, sizeof(str), "%d.%02d.%d.%d", channel, index, type, tariff);
     return std::string(str);
 }
 
-void ObisType::print(const uint32_t value, FILE *file) const {
-    fprintf(file, "%s 0x%08lx %lu\n", toString().c_str(), value, value);
+//! Convert this instance augmented by the given uint32 value to a string
+std::string ObisType::toString(const uint32_t value) const {
+    char str[64];
+    snprintf(str, sizeof(str), "%s 0x%08lx %lu", toString().c_str(), value, value);
+    return std::string(str);
 }
 
-void ObisType::print(const uint64_t value, FILE *file) const {
-    fprintf(file, "%s 0x%016llx %llu\n", toString().c_str(), value, value);
+//! Convert this instance augmented by the given uint64 value to a string
+std::string ObisType::toString(const uint64_t value) const {
+    char str[64];
+    snprintf(str, sizeof(str), "%s 0x%016llx %llu", toString().c_str(), value, value);
+    return std::string(str);
 }
 
+//! Convert this instance to its byte encoding; additional 8 bytes are available to encode a 4 byte or 8 byte obis value
 std::array<uint8_t, 12> ObisType::toByteArray(void) const {
     std::array<uint8_t, 12> bytes = { channel, index, type, tariff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
     return bytes;
 }
 
 
+// =================================================================================================
+
+//! Constructor
 /**
- *  Class holding an emeter measurement together with its corresponding obis data definition and measurement type definition
+ *  @param channel         obis measurement channel
+ *  @param index           obis measurement index; i.e. measurement quantity
+ *  @param type            obis measurement type
+ *  @param tariff          obis tariff
+ *  @param mType           measurement type
+ *  @param line_           measurement line
  */
 ObisData::ObisData(const uint8_t channel, const uint8_t index, const uint8_t type, const uint8_t tariff,
-                   const MeasurementType &mType, const Line &lin) : 
+                   const MeasurementType &mType, const Line &line_) : 
     ObisType(channel, index, type, tariff),
     measurementType(mType),
-    line(lin),
-    description(mType.getFullName(lin)) {
+    line(line_),
+    description(mType.getFullName(line_)) {
     measurementValue = new MeasurementValue();
 }
 
-// copy constructor
+//! Copy constructor
 ObisData::ObisData(const ObisData &rhs) :
     ObisData(rhs.channel, rhs.index, rhs.type, rhs.tariff, rhs.measurementType, Line::TOTAL) {
     line = rhs.line;
@@ -57,7 +78,7 @@ ObisData::ObisData(const ObisData &rhs) :
     *measurementValue = *rhs.measurementValue;  // the constructor call above already allocated a new MeasurementValue instance
 }
 
-// assignment operator
+//! Assignment operator
 ObisData &ObisData::operator=(const ObisData &rhs) {
     if (this != &rhs) {
         this->ObisType::operator=(rhs);
@@ -69,7 +90,7 @@ ObisData &ObisData::operator=(const ObisData &rhs) {
     return *this;
 }
 
-// destructor
+//! Destructor
 ObisData::~ObisData(void) {
     if (measurementValue != NULL) {
         delete measurementValue;
@@ -77,12 +98,12 @@ ObisData::~ObisData(void) {
     }
 }
 
-// equals operator - just using information from base class ObisType
+//! Equals operator - compares this instance with the given ObisType instance (i.e. just using information from base class ObisType)
 bool ObisData::equals(const ObisType &other) const {
     return ObisType::equals(other);
 }
 
-// print this instance to file
+//! Print this instance to file
 void ObisData::print(FILE *file) const {
     uint32_t    timer  = (measurementValue != NULL ? measurementValue->timer : 0xfffffffful);
     double      value  = (measurementValue != NULL ? measurementValue->value : -999999.9999);
@@ -95,7 +116,7 @@ void ObisData::print(FILE *file) const {
     }
 }
 
-// convert this instance into its byte array representation according to the obis byte stream definition
+//! Convert this instance into its byte array representation according to the obis byte stream definition
 std::array<uint8_t, 12> ObisData::toByteArray(void) const {
     std::array<uint8_t, 12> byte_array = ObisType::toByteArray();
     switch (type) {
@@ -125,8 +146,7 @@ std::array<uint8_t, 12> ObisData::toByteArray(void) const {
     return byte_array;
 }
 
-// get a vector of all pre-defined ObisData instances
-// they are defined in the order they appear in an emeter packet
+//! Get a vector of all pre-defined ObisData instances - they are defined in the order they appear in an emeter packet
 std::vector<ObisData> ObisData::getAllPredefined(void) {
     std::vector<ObisData> predefined;
 

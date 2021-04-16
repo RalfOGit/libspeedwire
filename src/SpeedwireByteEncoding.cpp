@@ -7,18 +7,18 @@
 #include <SpeedwireByteEncoding.hpp>
 
 
-/** Get a uint8_t value from the given void* address */
+//! Get a uint8_t value from the given void* address
 uint8_t SpeedwireByteEncoding::getUint8(const void* const udp_ptr) {
     return *(const uint8_t* const)udp_ptr;
 }
 
-/** Set a uint8_t value to the given void* address */
+//! Set a uint8_t value to the given void* address
 void SpeedwireByteEncoding::setUint8(void* udp_ptr, const uint8_t value) {
     *(uint8_t*)udp_ptr = value;
 }
 
 
-/** Get a uint16_t value from the given void* address; convert from network to host byte order, i.e. from big endian */
+//! Get a uint16_t value from the given void* address and convert it from big endian
 uint16_t SpeedwireByteEncoding::getUint16BigEndian(const void* const udp_ptr) {
     uint16_t value_in_nbo;
     memcpy(&value_in_nbo, udp_ptr, sizeof(value_in_nbo));
@@ -26,7 +26,7 @@ uint16_t SpeedwireByteEncoding::getUint16BigEndian(const void* const udp_ptr) {
     return value;
 }
 
-/** Get a uint32_t value from the given void* address; convert from network to host byte order, i.e. from big endian */
+//! Get a uint32_t value from the given void* address and convert it from big endian
 uint32_t SpeedwireByteEncoding::getUint32BigEndian(const void* const udp_ptr) {
     uint32_t value_in_nbo;
     memcpy(&value_in_nbo, udp_ptr, sizeof(value_in_nbo));
@@ -34,7 +34,7 @@ uint32_t SpeedwireByteEncoding::getUint32BigEndian(const void* const udp_ptr) {
     return value;
 }
 
-/** Get a uint64_t value from the given void* address; convert from network to host byte order, i.e. from big endian */
+//! Get a uint64_t value from the given void* address and convert it from big endian
 uint64_t SpeedwireByteEncoding::getUint64BigEndian(const void* const udp_ptr) {
     uint64_t hi_value = getUint32BigEndian(udp_ptr);
     uint64_t lo_value = getUint32BigEndian(((uint8_t*)udp_ptr) + sizeof(uint32_t));
@@ -42,19 +42,19 @@ uint64_t SpeedwireByteEncoding::getUint64BigEndian(const void* const udp_ptr) {
     return value;
 }
 
-/** Set a uint16_t value to the given void* address; convert from host to network byte order, i.e. to big endian */
+//! Set a uint16_t value to the given void* address while converting it to big endian
 void SpeedwireByteEncoding::setUint16BigEndian(void* udp_ptr, const uint16_t value) {
     uint16_t value_in_nbo = htons(value);
     memcpy(udp_ptr, &value_in_nbo, sizeof(value_in_nbo));
 }
 
-/** Set a uint32_t value to the given void* address; convert from host to network byte order, i.e. to big endian */
+//! Set a uint32_t value to the given void* address while converting it to big endian
 void SpeedwireByteEncoding::setUint32BigEndian(void* udp_ptr, const uint32_t value) {
     uint32_t value_in_nbo = htonl(value);
     memcpy(udp_ptr, &value_in_nbo, sizeof(value_in_nbo));
 }
 
-/** Set a uint64_t value to the given void* address; convert from host to network byte order, i.e. to big endian */
+//! Set a uint64_t value to the given void* address while converting it to big endian
 void SpeedwireByteEncoding::setUint64BigEndian(void* udp_ptr, const uint64_t value) {
     uint64_t mask32bit = 0x00000000ffffffff;
     uint32_t hi_value = (uint32_t)((value >> (sizeof(uint32_t) * 8)) & mask32bit);
@@ -64,15 +64,14 @@ void SpeedwireByteEncoding::setUint64BigEndian(void* udp_ptr, const uint64_t val
 }
 
 
-
-/** Get a uint16_t value from the given void* address; convert from little endian to host byte order */
+//! Get a uint16_t value from the given void* address and convert it from little endian
 uint16_t SpeedwireByteEncoding::getUint16LittleEndian(const void* const udp_ptr) {
     uint16_t value_in_le = ((unsigned char*)udp_ptr)[0];
     value_in_le |= ((uint16_t)((unsigned char*)udp_ptr)[1]) << 8;
     return value_in_le;
 }
 
-/** Get a uint32_t value from the given void* address; convert from little endian to host byte order */
+//! Get a uint32_t value from the given void* address and convert it from little endian
 uint32_t SpeedwireByteEncoding::getUint32LittleEndian(const void* const udp_ptr) {
     uint32_t value_in_le = ((unsigned char*)udp_ptr)[0];
     value_in_le |= ((uint32_t)((unsigned char*)udp_ptr)[1]) << 8;
@@ -81,7 +80,7 @@ uint32_t SpeedwireByteEncoding::getUint32LittleEndian(const void* const udp_ptr)
     return value_in_le;
 }
 
-/** Get a uint64_t value from the given void* address; convert from little endian to host byte order */
+//! Get a uint64_t value from the given void* address and convert it from little endian
 uint64_t SpeedwireByteEncoding::getUint64LittleEndian(const void* const udp_ptr) {
     uint64_t value_in_le = ((unsigned char*)udp_ptr)[0];
     value_in_le |= ((uint64_t)((unsigned char*)udp_ptr)[1]) << 8;
@@ -94,13 +93,13 @@ uint64_t SpeedwireByteEncoding::getUint64LittleEndian(const void* const udp_ptr)
     return value_in_le;
 }
 
-/** Set a uint16_t value to the given void* address; convert from host byte order to little endian */
+//! Set a uint16_t value to the given void* address while converting it to little endian
 void SpeedwireByteEncoding::setUint16LittleEndian(void* udp_ptr, const uint16_t value) {
     ((unsigned char*)udp_ptr)[0] = value & 0xff;
     ((unsigned char*)udp_ptr)[1] = (value >> 8) & 0xff;
 }
 
-/** Set a uint32_t value to the given void* address; convert from host byte order to little endian */
+//! Set a uint32_t value to the given void* address while converting it to little endian
 void SpeedwireByteEncoding::setUint32LittleEndian(void* udp_ptr, const uint32_t value) {
     ((unsigned char*)udp_ptr)[0] = value & 0xff;
     ((unsigned char*)udp_ptr)[1] = (value >> 8) & 0xff;
@@ -108,7 +107,7 @@ void SpeedwireByteEncoding::setUint32LittleEndian(void* udp_ptr, const uint32_t 
     ((unsigned char*)udp_ptr)[3] = (value >> 24) & 0xff;
 }
 
-/** Set a uint64_t value to the given void* address; convert from host byte order to little endian */
+//! Set a uint64_t value to the given void* address while converting it to little endian
 void SpeedwireByteEncoding::setUint64LittleEndian(void* udp_ptr, const uint64_t value) {
     ((unsigned char*)udp_ptr)[0] = value & 0xff;
     ((unsigned char*)udp_ptr)[1] = (value >> 8) & 0xff;

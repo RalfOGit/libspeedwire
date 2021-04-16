@@ -11,29 +11,29 @@
 
 
 /**
- *  Class holding an obis data definition used inside speedwire emeter packets 
+ *  Class encapsulating an obis data definition used inside speedwire emeter packets 
  */
 class ObisType {
 public:
-    uint8_t channel;
-    uint8_t index;
-    uint8_t type;
-    uint8_t tariff;
- 
+    uint8_t channel;    //!< obis measurement channel
+    uint8_t index;      //!< obis measurement index; i.e. measurement quantity
+    uint8_t type;       //!< obis measurement type
+    uint8_t tariff;     //!< obis tariff
+
     ObisType(const uint8_t channel, const uint8_t index, const uint8_t type, const uint8_t tariff);
 
     bool equals(const ObisType &other) const;
 
     std::string toString(void) const;
-    void print(const uint32_t value, FILE *file) const;
-    void print(const uint64_t value, FILE *file) const;
+    std::string toString(const uint32_t value) const;
+    std::string toString(const uint64_t value) const;
 
     std::array<uint8_t, 12> toByteArray(void) const;
 };
 
 
 /**
- *  Class holding an emeter measurement together with its corresponding obis data definition and measurement type definition
+ *  Class holding an emeter measurement together with its corresponding ObisType definition and its MeasurementType definition
  */
 class ObisData : public ObisType {
 public:
