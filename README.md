@@ -1,9 +1,34 @@
 # speedwire-lib
 Code implementing a SMA Speedwire(TM) access library. It implements a full parser for the sma header and the emeter datagram structure, including obis filtering. In addition, it implements some parsing functionality for inverter query and response datagrams.
 
-A good example on how to use this library can be found in the accompanying repositories https://github.com/RalfOGit/sma-emeter-and-inverter-to-influxdb-cpp and https://github.com/RalfOGit/sma-emeter-simulator. The access library has been separated out, as I am planning to use it for other application projects as well.
+Useful examples on how to use this library can be found in the accompanying repositories:
+- https://github.com/RalfOGit/sma-emeter-and-inverter-to-influxdb-cpp,
+- https://github.com/RalfOGit/sma-emeter-simulator,
+- https://github.com/RalfOGit/speedwire-router.
 
-You can checkout this library into a separate folder and use unix symbolic links (ln -s ...) or ntfs junctions (mklink /J ...) to integrate it as a sub-folder within your projects folder structure.
+The implementation comes with Doxygen comments. Thus you can use Doxygen to create the documentation.
+
+The simplest way to build this library together with your code is to checkout this library into a separate folder and use unix symbolic links (ln -s ...) or ntfs junctions (mklink /J ...) to integrate it as a sub-folder within your projects folder.
+
+For example, if you are developing on a Windows host and your projects reside in C:\workspaces:
+
+    cd C:\workspaces
+    mkdir libspeedwire
+    git clone https://github.com/RalfOGit/libspeedwire
+    cd ..\YOUR_PROJECT_FOLDER
+    mklink /J libspeedwire ..\libspeedwire
+    Now you can start Visual Studio
+    And in Visual Studio open folder YOUR_PROJECT_FOLDER
+
+And if you are developing on a Linux host and your projects reside in /home/YOU/workspaces:
+
+    cd /home/YOU/workspaces
+    mkdir libspeedwire
+    git clone https://github.com/RalfOGit/libspeedwire
+    cd ../YOUR_PROJECT_FOLDER
+    ln -s ../libspeedwire
+    Now you can start VSCode
+    And in VSCode open folder YOUR_PROJECT_FOLDER
 
 The official SMA-Emeter(TM) protocol specification is available here:
 
