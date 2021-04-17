@@ -41,9 +41,7 @@ inline bool operator!=(const LogLevel& op1, const int& op2) {
 class ILogListener {
 
 public:
-    /**
-     *  Virtual destructor
-     */
+    /** Virtual destructor */
     virtual ~ILogListener(void) {}
 
     /**

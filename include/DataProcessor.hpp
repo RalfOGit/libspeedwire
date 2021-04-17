@@ -6,9 +6,7 @@
 #include <SpeedwireData.hpp>
 #include <Measurement.hpp>
 #include <ObisFilter.hpp>
-
-
-class Producer;
+#include <Producer.hpp>
 
 
 class DataProcessor : public ObisConsumer, SpeedwireConsumer {
