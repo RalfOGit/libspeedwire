@@ -6,6 +6,8 @@ Useful examples on how to use this library can be found in the accompanying repo
 - https://github.com/RalfOGit/sma-emeter-simulator,
 - https://github.com/RalfOGit/speedwire-router.
 
+The implementation comes with Doxygen comments. Thus you can use Doxygen to create the documentation.
+
 The simplest way to build this library together with your code is to checkout this library into a separate folder and use unix symbolic links (ln -s ...) or ntfs junctions (mklink /J ...) to integrate it as a sub-folder within your projects folder.
 
 For example, if you are developing on a Windows host and your projects reside in C:\workspaces:
