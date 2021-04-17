@@ -38,15 +38,11 @@ public:
 class ObisData : public ObisType {
 public:
     MeasurementType   measurementType;
-    MeasurementValue *measurementValue;
+    MeasurementValue  measurementValue;
     Wire              line;
     std::string       description;
 
     ObisData(const uint8_t channel, const uint8_t index, const uint8_t type, const uint8_t tariff, const MeasurementType &measurementType, const Wire &line);
-    ObisData(const ObisData &rhs);
-    ObisData &operator=(const ObisData &rhs);
-    
-    ~ObisData(void);
 
     bool equals(const ObisType &other) const;
 

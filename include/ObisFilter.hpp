@@ -8,15 +8,15 @@
 
 class ObisConsumer {
 public:
-    virtual void consume(const ObisData &element) = 0;
+    virtual void consume(ObisData &element) = 0;
 };
 
 
 class ObisFilter {
 
 protected:
-    std::vector<ObisConsumer*>     consumerTable;
-    std::vector<ObisData> filterTable;
+    std::vector<ObisConsumer*> consumerTable;
+    std::vector<ObisData>      filterTable;
 
 public:
     ObisFilter(void);
@@ -30,9 +30,9 @@ public:
     void addConsumer   (ObisConsumer *obisConsumer);
     void removeConsumer(ObisConsumer *obisConsumer);
 
-    bool consume(const void *const obis, const uint32_t timer) const;
-    const ObisData *const filter(const ObisType &element) const;
-    void produce(const ObisData &element) const;
+    bool consume(const void *const obis, const uint32_t timer);
+    ObisData *const filter(const ObisType &element);
+    void produce(ObisData &element);
 };
 
 #endif

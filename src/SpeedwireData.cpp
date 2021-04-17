@@ -78,19 +78,8 @@ SpeedwireData::SpeedwireData(const uint32_t command, const uint32_t id, const ui
     SpeedwireRawData(command, id, conn, type, time, data, data_size),
     measurementType(mType),
     wire(_wire),
-    description(mType.getFullName(_wire)) {
-    measurementValue = new MeasurementValue();
-}
-
-
-/**
- *  Copy constructor
- */
-SpeedwireData::SpeedwireData(const SpeedwireData& rhs) :
-    SpeedwireData(rhs.command, rhs.id, rhs.conn, rhs.type, rhs.time, &rhs.data, rhs.data_size, rhs.measurementType, rhs.wire) {
-    wire = rhs.wire;
-    description = rhs.description;
-    *measurementValue = *rhs.measurementValue;  // the constructor call above already allocated a new MeasurementValue instance
+    description(mType.getFullName(_wire)),
+    measurementValue() {
 }
 
 
@@ -101,34 +90,8 @@ SpeedwireData::SpeedwireData(void) :
     SpeedwireRawData(0, 0, 0, 0, 0, NULL, 0),
     measurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::NO_QUANTITY, "", 0),
     wire(Wire::NO_WIRE),
-    description() {
-    measurementValue = new MeasurementValue();
-}
-
-
-/**
- *  Assignment operator
- */
-SpeedwireData& SpeedwireData::operator=(const SpeedwireData& rhs) {
-    if (this != &rhs) {
-        this->SpeedwireRawData::operator=(rhs);
-        this->measurementType = rhs.measurementType;
-        this->wire = rhs.wire;
-        this->description = rhs.description;
-        *this->measurementValue = *rhs.measurementValue;
-    }
-    return *this;
-}
-
-
-/**
- *  Destructor
- */
-SpeedwireData::~SpeedwireData(void) {
-    if (measurementValue != NULL) {
-        delete measurementValue;
-        measurementValue = NULL;
-    }
+    description(),
+    measurementValue() {
 }
 
 
@@ -139,7 +102,6 @@ bool SpeedwireData::consume(const SpeedwireRawData& data) {
     if (!isSameSignature(data)) return false;
     if (data.data == NULL || data.data_size < 20) return false;
 
-    MeasurementValue* mvalue = measurementValue;
     uint8_t  value1;
     uint32_t value4;
 
@@ -170,8 +132,8 @@ bool SpeedwireData::consume(const SpeedwireRawData& data) {
         if (id == 0x00464b00 || id == 0x00464c00 || id == 0x00464d00) value4 = 0x9b3c;
         if (id == 0x00465300 || id == 0x00465400 || id == 0x00465500) value4 = 0x011e;
 #endif
-        mvalue->setValue(value4, measurementType.divisor);
-        mvalue->setTimer((uint32_t)data.time);
+        measurementValue.setValue(value4, measurementType.divisor);
+        measurementValue.setTimer((uint32_t)data.time);
         time = data.time;
         break;
 
@@ -183,8 +145,8 @@ bool SpeedwireData::consume(const SpeedwireRawData& data) {
         // Response 534d4100000402a000000001004e0010 606513a0 7d0042be283a00a1 7a01842a71b30001 000000000a80 01028051 07000000 07000000 01644108 59c5e95f 33000001 37010000 fdffff00 feffff00 00000000 00000000 00000000 00000000 00000000
         value4 = SpeedwireByteEncoding::getUint32LittleEndian(data.data);
         value1 = (value4 >> 24) & 0xff;
-        mvalue->setValue((uint32_t)value1, measurementType.divisor);
-        mvalue->setTimer((uint32_t)data.time);
+        measurementValue.setValue((uint32_t)value1, measurementType.divisor);
+        measurementValue.setTimer((uint32_t)data.time);
         time = data.time;
         break;
 
@@ -201,8 +163,8 @@ bool SpeedwireData::consume(const SpeedwireRawData& data) {
  *  Print instance to file
  */
 void SpeedwireData::print(FILE* file) const {
-    uint32_t timer = (measurementValue != NULL ? measurementValue->timer : 0xfffffffful);
-    double   value = (measurementValue != NULL ? measurementValue->value : -999999.9999);
+    uint32_t timer = measurementValue.timer;
+    double   value = measurementValue.value;
     fprintf(file, "%-16s  time %lu  %s  => %lf %s\n", description.c_str(), timer, SpeedwireRawData::toString().c_str(), value, measurementType.unit.c_str());
 }
 

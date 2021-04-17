@@ -41,22 +41,17 @@ public:
 class SpeedwireData : public SpeedwireRawData {
 public:
     MeasurementType   measurementType;
-    MeasurementValue* measurementValue;
+    MeasurementValue  measurementValue;
     Wire              wire;
     std::string       description;
 
     SpeedwireData(const uint32_t command, const uint32_t id, const uint8_t conn, const uint8_t type, const time_t time, const void* data, const size_t data_size,
                         const MeasurementType& mType, const Wire wire);
-    SpeedwireData(const SpeedwireData& rhs);
     SpeedwireData(void);
-    SpeedwireData& operator=(const SpeedwireData& rhs);
-
-    ~SpeedwireData(void);
 
     bool consume(const SpeedwireRawData& data);
 
     void print(FILE* file) const;
-
 
     // pre-defined instances
     static const SpeedwireData InverterPowerMPP1;
@@ -92,7 +87,7 @@ public:
  */
 class SpeedwireConsumer {
 public:
-    virtual void consume(const SpeedwireData& element) = 0;
+    virtual void consume(SpeedwireData& element) = 0;
 };
 
 
@@ -108,8 +103,8 @@ public:
     void addValueToTarget(uint32_t key, SpeedwireData& target) const {
         auto iterator = find(key);
         if (iterator != end()) {
-            target.measurementValue->value += iterator->second.measurementValue->value;
-            target.measurementValue->timer  = iterator->second.measurementValue->timer;
+            target.measurementValue.value += iterator->second.measurementValue.value;
+            target.measurementValue.timer  = iterator->second.measurementValue.timer;
             target.time = iterator->second.time;
         }
     }

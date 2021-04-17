@@ -30,8 +30,8 @@ public:
     DataProcessor(const unsigned long averagingTime, Producer& producer);
     ~DataProcessor(void);
 
-    virtual void consume(const ObisData &element);
-    virtual void consume(const SpeedwireData& element);
+    virtual void consume(ObisData &element);
+    virtual void consume(SpeedwireData& element);
 };
 
 #endif

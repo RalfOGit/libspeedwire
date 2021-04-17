@@ -66,36 +66,8 @@ ObisData::ObisData(const uint8_t channel, const uint8_t index, const uint8_t typ
     ObisType(channel, index, type, tariff),
     measurementType(mType),
     line(line_),
-    description(mType.getFullName(line_)) {
-    measurementValue = new MeasurementValue();
-}
-
-//! Copy constructor
-ObisData::ObisData(const ObisData &rhs) :
-    ObisData(rhs.channel, rhs.index, rhs.type, rhs.tariff, rhs.measurementType, Wire::TOTAL) {
-    line = rhs.line;
-    description = rhs.description;
-    *measurementValue = *rhs.measurementValue;  // the constructor call above already allocated a new MeasurementValue instance
-}
-
-//! Assignment operator
-ObisData &ObisData::operator=(const ObisData &rhs) {
-    if (this != &rhs) {
-        this->ObisType::operator=(rhs);
-        this->measurementType = rhs.measurementType;
-        this->line = rhs.line;
-        this->description = rhs.description;
-        *this->measurementValue = *rhs.measurementValue;
-    }
-    return *this;
-}
-
-//! Destructor
-ObisData::~ObisData(void) {
-    if (measurementValue != NULL) {
-        delete measurementValue;
-        measurementValue = NULL;
-    }
+    description(mType.getFullName(line_)),
+    measurementValue() {
 }
 
 //! Equals operator - compares this instance with the given ObisType instance (i.e. just using information from base class ObisType)
@@ -105,9 +77,9 @@ bool ObisData::equals(const ObisType &other) const {
 
 //! Print this instance to file
 void ObisData::print(FILE *file) const {
-    uint32_t    timer  = (measurementValue != NULL ? measurementValue->timer : 0xfffffffful);
-    double      value  = (measurementValue != NULL ? measurementValue->value : -999999.9999);
-    std::string string = (measurementValue != NULL ? measurementValue->value_string : "");
+    uint32_t    timer  = measurementValue.timer;
+    double      value  = measurementValue.value;
+    std::string string = measurementValue.value_string;
     if (string.length() > 0) {
         fprintf(file, "%-31s  %lu  %s  => %s\n", description.c_str(), timer, ObisType::toString().c_str(), string.c_str());
     }
@@ -124,9 +96,9 @@ std::array<uint8_t, 12> ObisData::toByteArray(void) const {
         if (channel == 144) {
             // convert software version
             uint32_t int_array[sizeof(uint32_t)] = { 0xff, 0xff, 0xff, 0xff };
-            int n = sscanf(measurementValue->value_string.c_str(), "%u.%u.%u.%u", &int_array[3], &int_array[2], &int_array[1], &int_array[0]);
+            int n = sscanf(measurementValue.value_string.c_str(), "%u.%u.%u.%u", &int_array[3], &int_array[2], &int_array[1], &int_array[0]);
             if (n != 4) {
-                n = sscanf(measurementValue->value_string.c_str(), "%02x.%02x.%02x.%02x", &int_array[3], &int_array[2], &int_array[1], &int_array[0]);
+                n = sscanf(measurementValue.value_string.c_str(), "%02x.%02x.%02x.%02x", &int_array[3], &int_array[2], &int_array[1], &int_array[0]);
             }
             uint32_t value = int_array[3] << 24 | int_array[2] << 16 | int_array[1] << 8 | int_array[0];
             SpeedwireEmeterProtocol::setObisValue4(byte_array.data(), value);
@@ -137,10 +109,10 @@ std::array<uint8_t, 12> ObisData::toByteArray(void) const {
         break;
     case 4:
     case 7:
-        SpeedwireEmeterProtocol::setObisValue4(byte_array.data(), (uint32_t)(measurementValue->value * measurementType.divisor));
+        SpeedwireEmeterProtocol::setObisValue4(byte_array.data(), (uint32_t)(measurementValue.value * measurementType.divisor));
         break;
     case 8:
-        SpeedwireEmeterProtocol::setObisValue8(byte_array.data(), (uint64_t)(measurementValue->value * measurementType.divisor));
+        SpeedwireEmeterProtocol::setObisValue8(byte_array.data(), (uint64_t)(measurementValue.value * measurementType.divisor));
         break;
     }
     return byte_array;

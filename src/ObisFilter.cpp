@@ -45,32 +45,32 @@ void ObisFilter::removeConsumer(ObisConsumer *obisConsumer) {
     }
 }
 
-bool ObisFilter::consume(const void *const obis, const uint32_t timer) const {
+bool ObisFilter::consume(const void *const obis, const uint32_t timer) {
     ObisType element(SpeedwireEmeterProtocol::getObisChannel(obis),
                      SpeedwireEmeterProtocol::getObisIndex(obis),
                      SpeedwireEmeterProtocol::getObisType(obis),
                      SpeedwireEmeterProtocol::getObisTariff(obis));
 
-    const ObisData *const filteredElement = filter(element);
-    if (filteredElement != NULL && filteredElement->measurementValue != NULL) {
-        MeasurementValue *mvalue = filteredElement->measurementValue;
+    ObisData *const filteredElement = filter(element);
+    if (filteredElement != NULL) {
+        MeasurementValue& mvalue = filteredElement->measurementValue;
         switch (filteredElement->type) {
         case 0:
-            mvalue->setValue(SpeedwireEmeterProtocol::toValueString(obis, false));
+            mvalue.setValue(SpeedwireEmeterProtocol::toValueString(obis, false));
             break;
         case 4:
-            mvalue->setValue((uint32_t)SpeedwireEmeterProtocol::getObisValue4(obis), filteredElement->measurementType.divisor);
+            mvalue.setValue((uint32_t)SpeedwireEmeterProtocol::getObisValue4(obis), filteredElement->measurementType.divisor);
             break;
         case 7:
-            mvalue->setValue((int32_t)SpeedwireEmeterProtocol::getObisValue4(obis), filteredElement->measurementType.divisor);
+            mvalue.setValue((int32_t)SpeedwireEmeterProtocol::getObisValue4(obis), filteredElement->measurementType.divisor);
             break;
         case 8:
-            mvalue->setValue(SpeedwireEmeterProtocol::getObisValue8(obis), filteredElement->measurementType.divisor);
+            mvalue.setValue(SpeedwireEmeterProtocol::getObisValue8(obis), filteredElement->measurementType.divisor);
             break;
         default:
             perror("obis identifier not implemented");
         }
-        mvalue->setTimer(timer);
+        mvalue.setTimer(timer);
         produce(*filteredElement);
 
         return true;
@@ -78,8 +78,8 @@ bool ObisFilter::consume(const void *const obis, const uint32_t timer) const {
     return false;
 }
 
-const ObisData *const ObisFilter::filter(const ObisType &element) const {
-    for (std::vector<ObisData>::const_iterator it = filterTable.begin(); it != filterTable.end(); it++) {
+ObisData *const ObisFilter::filter(const ObisType &element) {
+    for (std::vector<ObisData>::iterator it = filterTable.begin(); it != filterTable.end(); it++) {
         if (it->equals(element)) {
             return &(*it);
         }
@@ -87,8 +87,8 @@ const ObisData *const ObisFilter::filter(const ObisType &element) const {
     return NULL;
 }
 
-void ObisFilter::produce(const ObisData &element) const {
-    for (std::vector<ObisConsumer*>::const_iterator it = consumerTable.begin(); it != consumerTable.end(); it++) {
+void ObisFilter::produce(ObisData &element) {
+    for (std::vector<ObisConsumer*>::iterator it = consumerTable.begin(); it != consumerTable.end(); it++) {
         (*it)->consume(element);
     }
 }
