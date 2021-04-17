@@ -2,10 +2,9 @@
 Code implementing a SMA Speedwire(TM) access library. It implements a full parser for the sma header and the emeter datagram structure, including obis filtering. In addition, it implements some parsing functionality for inverter query and response datagrams.
 
 Useful examples on how to use this library can be found in the accompanying repositories:
-
-    https://github.com/RalfOGit/sma-emeter-and-inverter-to-influxdb-cpp,
-    https://github.com/RalfOGit/sma-emeter-simulator,
-    https://github.com/RalfOGit/speedwire-router.
+- https://github.com/RalfOGit/sma-emeter-and-inverter-to-influxdb-cpp,
+- https://github.com/RalfOGit/sma-emeter-simulator,
+- https://github.com/RalfOGit/speedwire-router.
 
 The simplest way to build this library together with your code is to checkout this library into a separate folder and use unix symbolic links (ln -s ...) or ntfs junctions (mklink /J ...) to integrate it as a sub-folder within your projects folder. This will let you use the included CMakeLists.txt without modifications.
 
