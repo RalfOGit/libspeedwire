@@ -9,34 +9,35 @@
 
 
 /**
- *  Class holding raw data from the speedwire inverter reply packet
+ *  Class holding raw data from the speedwire inverter reply packet.
  */
 class SpeedwireRawData {
 public:
-    uint32_t command;                   // command code
-    uint32_t id;                        // register id
-    uint8_t  conn;                      // connector id (mpp #1, mpp #2, ac #1)
-    uint8_t  type;                      // unknown type
-    time_t   time;                      // timestamp
-    uint8_t  data[40];                  // payload data
-    size_t   data_size;                 // payload data size in bytes
+    uint32_t command;                   //!< command code
+    uint32_t id;                        //!< register id
+    uint8_t  conn;                      //!< connector id (mpp #1, mpp #2, ac #1)
+    uint8_t  type;                      //!< unknown type
+    time_t   time;                      //!< timestamp
+    uint8_t  data[40];                  //!< payload data
+    size_t   data_size;                 //!< payload data size in bytes
 
     SpeedwireRawData(const uint32_t command, const uint32_t id, const uint8_t conn, const uint8_t type, const time_t time, const void* const data, const size_t data_size);
 
     bool equals(const SpeedwireRawData& other) const;
     bool isSameSignature(const SpeedwireRawData& other) const;
 
+    /** Return key for this instance. The key is formed by combining id and conn.
+     *  @return The key for this instance */
     uint32_t toKey(void) const { return id | conn; }
 
     std::string toString(void) const;
-    void print(uint32_t value, FILE* file) const;
-    void print(uint64_t value, FILE* file) const;
+    std::string toString(uint32_t value) const;
+    std::string toString(uint64_t value) const;
 };
 
 
 /**
- *  Class holding data from the speedwire inverter reply packet, enriched by measurement type information 
- *  and the interpreted measurement value
+ *  Class holding data from the speedwire inverter reply packet, enriched by measurement type information and the interpreted measurement value.
  */
 class SpeedwireData : public SpeedwireRawData {
 public:
@@ -45,61 +46,77 @@ public:
     Wire              wire;
     std::string       description;
 
-    SpeedwireData(const uint32_t command, const uint32_t id, const uint8_t conn, const uint8_t type, const time_t time, const void* data, const size_t data_size,
-                        const MeasurementType& mType, const Wire wire);
+    SpeedwireData(const uint32_t command, const uint32_t id, const uint8_t conn, const uint8_t type, const time_t time, 
+                  const void* data, const size_t data_size, const MeasurementType& mType, const Wire wire);
     SpeedwireData(void);
 
     bool consume(const SpeedwireRawData& data);
 
-    void print(FILE* file) const;
+    std::string toString(void) const;
 
-    // pre-defined instances
-    static const SpeedwireData InverterPowerMPP1;
-    static const SpeedwireData InverterPowerMPP2;
-    static const SpeedwireData InverterVoltageMPP1;
-    static const SpeedwireData InverterVoltageMPP2;
-    static const SpeedwireData InverterCurrentMPP1;
-    static const SpeedwireData InverterCurrentMPP2;
-    static const SpeedwireData InverterPowerL1;
-    static const SpeedwireData InverterPowerL2;
-    static const SpeedwireData InverterPowerL3;
-    static const SpeedwireData InverterVoltageL1;       // L1 -> N
-    static const SpeedwireData InverterVoltageL2;       // L2 -> N
-    static const SpeedwireData InverterVoltageL3;       // L3 -> N
-    static const SpeedwireData InverterVoltageL1toL2;   // L1 -> L2
-    static const SpeedwireData InverterVoltageL2toL3;   // L2 -> L3
-    static const SpeedwireData InverterVoltageL3toL1;   // L3 -> L1
-    static const SpeedwireData InverterCurrentL1;
-    static const SpeedwireData InverterCurrentL2;
-    static const SpeedwireData InverterCurrentL3;
-    static const SpeedwireData InverterStatus;
-    static const SpeedwireData InverterRelay;
+    // pre-defined static instances
+    static const SpeedwireData InverterPowerMPP1;          //!< Power on direct current inverter input MPP1
+    static const SpeedwireData InverterPowerMPP2;          //!< Power on direct current inverter input MPP2
+    static const SpeedwireData InverterVoltageMPP1;        //!< Voltage on direct current inverter input MPP1
+    static const SpeedwireData InverterVoltageMPP2;        //!< Voltage on direct current inverter input MPP2
+    static const SpeedwireData InverterCurrentMPP1;        //!< Current on direct current inverter input MPP1
+    static const SpeedwireData InverterCurrentMPP2;        //!< Current on direct current inverter input MPP1
+    static const SpeedwireData InverterPowerL1;            //!< Power on alternating current inverter output phase L1
+    static const SpeedwireData InverterPowerL2;            //!< Power on alternating current inverter output phase L2
+    static const SpeedwireData InverterPowerL3;            //!< Power on alternating current inverter output phase L3
+    static const SpeedwireData InverterVoltageL1;          //!< Voltage on alternating current inverter output phase L1, measured between L1 and N
+    static const SpeedwireData InverterVoltageL2;          //!< Voltage on alternating current inverter output phase L2, measured between L2 and N
+    static const SpeedwireData InverterVoltageL3;          //!< Voltage on alternating current inverter output phase L3, measured between L3 and N
+    static const SpeedwireData InverterVoltageL1toL2;      //!< Voltage on alternating current inverter output phase L1, measured between L1 and L2
+    static const SpeedwireData InverterVoltageL2toL3;      //!< Voltage on alternating current inverter output phase L1, measured between L2 and L3
+    static const SpeedwireData InverterVoltageL3toL1;      //!< Voltage on alternating current inverter output phase L1, measured between L3 and L1
+    static const SpeedwireData InverterCurrentL1;          //!< Current on alternating current inverter output phase L1
+    static const SpeedwireData InverterCurrentL2;          //!< Current on alternating current inverter output phase L2
+    static const SpeedwireData InverterCurrentL3;          //!< Current on alternating current inverter output phase L3
+    static const SpeedwireData InverterStatus;             //!< Inverter operation status
+    static const SpeedwireData InverterRelay;              //!< Grid relay status
 
-    static const SpeedwireData InverterPowerDCTotal;
-    static const SpeedwireData InverterPowerACTotal;
-    static const SpeedwireData InverterPowerLoss;
-    static const SpeedwireData InverterPowerEfficiency;
+    static const SpeedwireData InverterPowerDCTotal;       //!< Total power on direct current inverter inputs MPP1 + MPP2
+    static const SpeedwireData InverterPowerACTotal;       //!< Total power on alternating current inverter outputs L1 + L2 + L3
+    static const SpeedwireData InverterPowerLoss;          //!< Total power loss
+    static const SpeedwireData InverterPowerEfficiency;    //!< Total power efficiency
 };
 
 
 /**
- *  Interface to be implemented by the consumer of speedwire inverter reply data
+ *  Interface to be implemented by the consumer of speedwire inverter reply data. 
  */
 class SpeedwireConsumer {
 public:
+    /** Virtual destructor */
+    virtual ~SpeedwireConsumer(void) {}
+
+    /**
+     *  Consume a speedwire reply data element
+     *  @param element The reply data element
+     */
     virtual void consume(SpeedwireData& element) = 0;
 };
 
 
 /**
- *  Class implementing a query map for speedwire inverter reply data
+ *  Class implementing a query map for speedwire inverter reply data. 
+ *  The class extends std::map<uint32_t, SpeedwireData> and adds functionality to deal with keys derived from 
+    a SpeedwireRawData instance.
  */
 class SpeedwireDataMap : public std::map<uint32_t, SpeedwireData> {
 public:
-    // add a new element to the map of speedwire inverter reply data elements
-    void add(const SpeedwireData& map) { operator[](toKey(map)) = map; }
+    /**
+     *  Add a new element to the map of speedwire inverter reply data elements.
+     *  @param element The SpeedwireData element added to the map
+     */
+    void add(const SpeedwireData& element) { operator[](toKey(element)) = element; }
 
-    // find a speedwire inverter reply data map element by the given key and add its measurement value to the target element
+    /**
+     *  Find a speedwire inverter reply data map element by the given key and add its measurement value to the target element.
+     *  @param key The search key
+     *  @param target The target SpeedwireData element to be modified with the value of the element referenced by the search key
+     */
     void addValueToTarget(uint32_t key, SpeedwireData& target) const {
         auto iterator = find(key);
         if (iterator != end()) {
@@ -109,8 +126,11 @@ public:
         }
     }
 
-    // combine id and conn to form a query map key
-    static uint32_t toKey(const SpeedwireRawData& key) { return key.toKey(); }
+    /**
+     *  Return key for the given SpeedwireRawData element. The key is formed by combining id and conn.
+     *  @return The key for the given element
+     */
+    static uint32_t toKey(const SpeedwireRawData& element) { return element.toKey(); }
 };
 
 #endif

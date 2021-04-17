@@ -1,8 +1,8 @@
 #include <Measurement.hpp>
 
 
-//! Constructor
 /**
+ * Constructor. 
  * @param direction Direction of the energy flow
  * @param type  Type of the measurement
  * @param quantity Physical quantity of the measurement

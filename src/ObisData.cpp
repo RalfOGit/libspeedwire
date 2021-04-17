@@ -3,8 +3,8 @@
 #pragma warning( disable : 4996 )  // disable sscanf_s suggestion
 
 
-//! Constructor
 /**
+ *  Constructor. 
  *  @param channel         obis measurement channel
  *  @param index           obis measurement index; i.e. measurement quantity
  *  @param type            obis measurement type
@@ -52,8 +52,8 @@ std::array<uint8_t, 12> ObisType::toByteArray(void) const {
 
 // =================================================================================================
 
-//! Constructor
 /**
+ *  Constructor. 
  *  @param channel         obis measurement channel
  *  @param index           obis measurement index; i.e. measurement quantity
  *  @param type            obis measurement type

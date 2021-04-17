@@ -8,7 +8,14 @@
  *  Class holding raw data from the speedwire inverter reply packet
  ********************************/
 /**
- *  Constructor
+ *  Constructor.
+ *  @param _command The inverter/battéry command belonging to this raw data reply
+ *  @param _id The register id
+ *  @param _conn The connection number
+ *  @param _type The type
+ *  @param _time The packet time
+ *  @param _data The binary data
+ *  @param _data_size The size of the binary data
  */
 SpeedwireRawData::SpeedwireRawData(const uint32_t _command, const uint32_t _id, const uint8_t _conn, const uint8_t _type, const time_t _time, const void *const _data, const size_t _data_size) :
     command(_command),
@@ -25,7 +32,9 @@ SpeedwireRawData::SpeedwireRawData(const uint32_t _command, const uint32_t _id, 
 
 
 /**
- *  Compare two instances of SpeedwireData with each other
+ *  Compare two instances of SpeedwireRawData with each other.
+ *  @param other The SpeedwireRawData instance to compare with
+ *  @return true if the both instances are identical, false otherwise
  */
 bool SpeedwireRawData::equals(const SpeedwireRawData& other) const {
     return (command == other.command && id == other.id && conn == other.conn && type == other.type && time == other.time && data_size == other.data_size && memcmp(data, other.data, data_size) == 0);
@@ -33,7 +42,10 @@ bool SpeedwireRawData::equals(const SpeedwireRawData& other) const {
 
 
 /**
- *  Compare two instance signatures of SpeedwireData with each other
+ *  Compare the signature of two SpeedwireRawData instances with each other.
+ *  The signature consists of command, id, conn and type.
+ *  @param other The SpeedwireRawData instance to compare with
+ *  @return true if the signature is identical, false otherwise
  */
 bool SpeedwireRawData::isSameSignature(const SpeedwireRawData& other) const {
     return (command == other.command && id == other.id && conn == other.conn && type == other.type);
@@ -41,7 +53,8 @@ bool SpeedwireRawData::isSameSignature(const SpeedwireRawData& other) const {
 
 
 /**
- *  Convert SpeedwireData into a std::string represenation
+ *  Convert this instance into a std::string representation.
+ *  @return A string representation
  */
 std::string SpeedwireRawData::toString(void) const {
     char buff[256];
@@ -55,12 +68,26 @@ std::string SpeedwireRawData::toString(void) const {
     return result;
 }
 
-void SpeedwireRawData::print(uint32_t value, FILE* file) const {
-    fprintf(file, "%s 0x%08lx %lu\n", toString().c_str(), value, value);
+/**
+ *  Convert this instance augmented by the given uint32 value into a std::string representation.
+ *  @param value A measurement value to be printed together with this instance
+ *  @return A string representation
+ */
+std::string SpeedwireRawData::toString(const uint32_t value) const {
+    char str[256];
+    snprintf(str, sizeof(str), "%s 0x%08lx %lu", toString().c_str(), value, value);
+    return std::string(str);
 }
 
-void SpeedwireRawData::print(uint64_t value, FILE* file) const {
-    fprintf(file, "%s 0x%016llx %llu\n", toString().c_str(), value, value);
+/**
+ *  Convert this instance augmented by the given uint64 value into a std::string representation.
+ *  @param value A measurement value to be printed together with this instance
+ *  @return A string representation
+ */
+std::string SpeedwireRawData::toString(const uint64_t value) const {
+    char str[256];
+    snprintf(str, sizeof(str), "%s 0x%016llx %llu", toString().c_str(), value, value);
+    return std::string(str);
 }
 
 
@@ -72,6 +99,15 @@ void SpeedwireRawData::print(uint64_t value, FILE* file) const {
 
 /**
  *  Constructor
+ *  @param _command The inverter/battéry command belonging to this raw data reply
+ *  @param _id The register id
+ *  @param _conn The connection number
+ *  @param _type The type
+ *  @param _time The packet time
+ *  @param _data The binary data
+ *  @param _data_size The size of the binary data
+ *  @param mType The MeasurementType
+ *  @param _wire The Wire
  */
 SpeedwireData::SpeedwireData(const uint32_t command, const uint32_t id, const uint8_t conn, const uint8_t type, const time_t time, const void *const data, const size_t data_size,
                              const MeasurementType& mType, const Wire _wire) :
@@ -84,7 +120,7 @@ SpeedwireData::SpeedwireData(const uint32_t command, const uint32_t id, const ui
 
 
 /**
- *  Default constructor, not very useful, but needed for std::map
+ *  Default constructor; not very useful, but needed for std::map.
  */
 SpeedwireData::SpeedwireData(void) :
     SpeedwireRawData(0, 0, 0, 0, 0, NULL, 0),
@@ -96,7 +132,11 @@ SpeedwireData::SpeedwireData(void) :
 
 
 /**
- *  Consume the given inverter data, i.e. interprete register id and convert to physical values
+ *  Consume the value and timer of the given inverter raw data into this instance.
+ *  This is done by interpreting the register id and converting numeric values to values in physical quantities
+ *  before taking them into this instance.
+ *  @param data The SpeedwireRawData instance to be consumed into this instance
+ *  @result true if the data was successfuly consumed, false otherwise
  */
 bool SpeedwireData::consume(const SpeedwireRawData& data) {
     if (!isSameSignature(data)) return false;
@@ -160,34 +200,14 @@ bool SpeedwireData::consume(const SpeedwireRawData& data) {
 
 
 /**
- *  Print instance to file
+ *  Convert this instance into a std::string representation.
+ *  @return A string representation
  */
-void SpeedwireData::print(FILE* file) const {
-    uint32_t timer = measurementValue.timer;
-    double   value = measurementValue.value;
-    fprintf(file, "%-16s  time %lu  %s  => %lf %s\n", description.c_str(), timer, SpeedwireRawData::toString().c_str(), value, measurementType.unit.c_str());
+std::string SpeedwireData::toString(void) const {
+    char buff[256];
+    snprintf(buff, sizeof(buff), "%-16s  time %lu  %s  => %lf %s\n", description.c_str(), measurementValue.timer, SpeedwireRawData::toString().c_str(), measurementValue.value, measurementType.unit.c_str());
+    return std::string(buff);
 }
-
-
-///**
-// *  Add this instance to the given map, where the key is the command plus conn
-// */
-//void SpeedwireFilterData::addToMap(QueryMap& map) const {
-//    map[id + conn] = *this;
-//}
-//
-//
-///**
-// *  Search in the given map for an entry like the given template and add the entires measurement value to this instance
-// */
-//void SpeedwireFilterData::addValueFromMap(QueryMap& map, const SpeedwireFilterData &_template) {
-//    auto iterator = map.find(_template.id | _template.conn);
-//    if (iterator != map.end()) {
-//        measurementValue->value += iterator->second.measurementValue->value;
-//        measurementValue->timer  = iterator->second.measurementValue->timer;
-//        time = iterator->second.time;
-//    }
-//}
 
 
 // pre-defined instances
