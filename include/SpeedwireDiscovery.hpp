@@ -32,6 +32,10 @@ public:
  *  Class implementing a discovery mechanism for speedwire devices.
  *  Discovery is performed against all potential devices on all local subnets that are connected to the different
  *  network interfaces of this host and against all pre-registered devices that can be located anywhere on the internet.
+ *  The implementation uses a state machine implementing the following sequence of packets:
+ *  - multicast speedwire discovery requests to all interfaces
+ *  - unicast speedwire discovery requests to pre-registered hosts
+ *  - unicast speedwire discovery requests to all hosts on the network (only if the network prefix is >= /16)
  */
 class SpeedwireDiscovery {
 
@@ -43,7 +47,7 @@ protected:
 
     std::vector<SpeedwireInfo> speedwireDevices;
 
-    bool sendDiscoveryPackets(size_t& broadcast_counter, size_t& prereg_counter, size_t& subnet_counter, size_t& socket_counter);
+    bool sendNextDiscoveryPacket(size_t& broadcast_counter, size_t& prereg_counter, size_t& subnet_counter, size_t& socket_counter);
     bool recvDiscoveryPackets(const SpeedwireSocket &socket);
 
 public:

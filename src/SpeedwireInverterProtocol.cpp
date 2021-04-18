@@ -5,11 +5,11 @@
 #include <SpeedwireInverterProtocol.hpp>
 
 
-SpeedwireInverterProtocol::SpeedwireInverterProtocol(const void* const udp_packet, const unsigned long udp_packet_len) {
-    udp = (uint8_t*)udp_packet;
-    size = udp_packet_len;
-    packet_id = 0x8001;
-}
+//SpeedwireInverterProtocol::SpeedwireInverterProtocol(const void* const udp_packet, const unsigned long udp_packet_len) {
+//    udp = (uint8_t*)udp_packet;
+//    size = udp_packet_len;
+//    packet_id = 0x8001;
+//}
 
 SpeedwireInverterProtocol::SpeedwireInverterProtocol(const SpeedwireHeader& prot) {
     udp = prot.getPacketPointer() + prot.getPayloadOffset();

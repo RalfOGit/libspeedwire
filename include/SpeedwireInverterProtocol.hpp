@@ -5,29 +5,38 @@
 #include <SpeedwireHeader.hpp>
 
 
+/**
+ * Class for parsing and assembling of speedwire inverter packets.
+ *
+ * This class provides accessor methods and validity checks for a speedwire inverter packet stored in memory.
+ *
+ * The inverter specific part of the speedwire udp packet starts directly after the control field of the speedwire
+ * packet header. The format is not publicly documented by the manufacturer. Therefore the names and meanings
+ * of data fields can be plainly wrong.
+ */
 class SpeedwireInverterProtocol {
 
 protected:
-    static constexpr unsigned long sma_dst_susy_id_offset       = 0;
-    static constexpr unsigned long sma_dst_serial_number_offset = sma_dst_susy_id_offset + 2;
-    static constexpr unsigned long sma_dst_control_offset       = sma_dst_serial_number_offset + 4;
-    static constexpr unsigned long sma_src_susy_id_offset       = sma_dst_control_offset + 2;
-    static constexpr unsigned long sma_src_serial_number_offset = sma_src_susy_id_offset + 2;
-    static constexpr unsigned long sma_src_control_offset       = sma_src_serial_number_offset + 4;
-    static constexpr unsigned long sma_error_code_offset        = sma_src_control_offset + 2;
-    static constexpr unsigned long sma_fragment_id_offset       = sma_error_code_offset + 2;
-    static constexpr unsigned long sma_packet_id_offset         = sma_fragment_id_offset + 2;
-    static constexpr unsigned long sma_command_id_offset        = sma_packet_id_offset + 2;
-    static constexpr unsigned long sma_first_register_id_offset = sma_command_id_offset + 4;
-    static constexpr unsigned long sma_last_register_id_offset  = sma_first_register_id_offset + 4;
-    static constexpr unsigned long sma_data_offset              = sma_last_register_id_offset + 4;
+    static constexpr unsigned long sma_dst_susy_id_offset       = 0;                                 //!< 
+    static constexpr unsigned long sma_dst_serial_number_offset = sma_dst_susy_id_offset + 2;        //!< 
+    static constexpr unsigned long sma_dst_control_offset       = sma_dst_serial_number_offset + 4;  //!< 
+    static constexpr unsigned long sma_src_susy_id_offset       = sma_dst_control_offset + 2;        //!< 
+    static constexpr unsigned long sma_src_serial_number_offset = sma_src_susy_id_offset + 2;        //!< 
+    static constexpr unsigned long sma_src_control_offset       = sma_src_serial_number_offset + 4;  //!< 
+    static constexpr unsigned long sma_error_code_offset        = sma_src_control_offset + 2;        //!< 
+    static constexpr unsigned long sma_fragment_id_offset       = sma_error_code_offset + 2;         //!< 
+    static constexpr unsigned long sma_packet_id_offset         = sma_fragment_id_offset + 2;        //!< 
+    static constexpr unsigned long sma_command_id_offset        = sma_packet_id_offset + 2;          //!< 
+    static constexpr unsigned long sma_first_register_id_offset = sma_command_id_offset + 4;         //!< 
+    static constexpr unsigned long sma_last_register_id_offset  = sma_first_register_id_offset + 4;  //!< 
+    static constexpr unsigned long sma_data_offset              = sma_last_register_id_offset + 4;   //!< 
 
     uint8_t* udp;
     unsigned long size;
     uint16_t packet_id;
 
 public:
-    SpeedwireInverterProtocol(const void* const udp_packet, const unsigned long udp_packet_size);
+    //SpeedwireInverterProtocol(const void* const udp_packet, const unsigned long udp_packet_size);
     SpeedwireInverterProtocol(const SpeedwireHeader &prot);
     ~SpeedwireInverterProtocol(void);
 
