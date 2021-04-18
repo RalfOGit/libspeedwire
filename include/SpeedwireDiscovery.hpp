@@ -35,7 +35,7 @@ public:
  *  The implementation uses a state machine implementing the following sequence of packets:
  *  - multicast speedwire discovery requests to all interfaces
  *  - unicast speedwire discovery requests to pre-registered hosts
- *  - unicast speedwire discovery requests to all hosts on the network (only if the network prefix is >= /16)
+ *  - unicast speedwire discovery requests to all hosts on the network (only if the network prefix is < /16)
  */
 class SpeedwireDiscovery {
 

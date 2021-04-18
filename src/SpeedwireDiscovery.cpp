@@ -186,7 +186,7 @@ int SpeedwireDiscovery::discoverDevices(void) {
         fds.push_back(pfd);
     }
 
-    // wait for inbound multicast packets
+    // configure state machine for discovery requests
     const uint64_t maxWaitTimeInMillis = 2000u;
     uint64_t startTimeInMillis = localhost.getTickCountInMs();
     size_t broadcast_counter = 0;
@@ -210,7 +210,7 @@ int SpeedwireDiscovery::discoverDevices(void) {
             startTimeInMillis = localhost.getTickCountInMs();
         }
 
-        // wait for a packet on one of the configured sockets
+        // wait for inbound packets on any of the configured sockets
         //fprintf(stdout, "poll() ...\n");
         if (poll(fds.data(), (uint32_t)fds.size(), 10) < 0) {     // timeout 10 ms
             perror("poll failed");
@@ -237,7 +237,7 @@ int SpeedwireDiscovery::discoverDevices(void) {
  *  State machine implementing the following sequence of packets:
  *  - multicast speedwire discovery requests to all interfaces
  *  - unicast speedwire discovery requests to pre-registered hosts
- *  - unicast speedwire discovery requests to all hosts on the network (only if the network prefix is >= /16)
+ *  - unicast speedwire discovery requests to all hosts on the network (only if the network prefix is < /16)
  */
 bool SpeedwireDiscovery::sendNextDiscoveryPacket(size_t& broadcast_counter, size_t& prereg_counter, size_t& subnet_counter, size_t& socket_counter) {
 
@@ -273,16 +273,16 @@ bool SpeedwireDiscovery::sendNextDiscoveryPacket(size_t& broadcast_counter, size
         const std::string& addr = localIPs[socket_counter];
         uint32_t subnet_length = 32 - localhost.getInterfacePrefixLength(addr);
         uint32_t max_subnet_counter = ((uint32_t)1 << subnet_length) - 1;
-        // skip full scan if the local network prefix is >= /16
-        if (max_subnet_counter >= 0xffff) {
+        // skip full scan if the local network prefix is < /16
+        if (max_subnet_counter > 0xffff) {
             subnet_counter = max_subnet_counter;
         }
         if (subnet_counter < max_subnet_counter) {
             // assemble address of the recipient
             struct in_addr inaddr = AddressConversion::toInAddress(addr);
-            uint32_t saddr = ntohl(inaddr.s_addr);  // ip address of the interface
-            saddr = saddr & (~max_subnet_counter);  // mask network mask, such that the subnet part is 0
-            saddr = saddr + subnet_counter;         // add subnet address
+            uint32_t saddr = ntohl(inaddr.s_addr);      // ip address of the interface
+            saddr = saddr & (~max_subnet_counter);      // mask subnet addresses, such that the subnet part is 0
+            saddr = saddr + (uint32_t)subnet_counter;   // add subnet address
             sockaddr_in sockaddr;
             sockaddr.sin_family = AF_INET;
             sockaddr.sin_addr.s_addr = htonl(saddr);
