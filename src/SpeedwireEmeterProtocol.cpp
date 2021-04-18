@@ -11,47 +11,52 @@
 //    size = udp_packet_len;
 //}
 
-SpeedwireEmeterProtocol::SpeedwireEmeterProtocol(const SpeedwireHeader& prot) {
-    udp = prot.getPacketPointer() + prot.getPayloadOffset();
-    size = prot.getPacketSize() - prot.getPayloadOffset();
+/**
+ *  Constructor.
+ *  @param header Reference to the SpeedwireHeader instance that encapsulate the SMA header and the pointers to the entire udp packet.
+ */
+SpeedwireEmeterProtocol::SpeedwireEmeterProtocol(const SpeedwireHeader& header) {
+    udp = header.getPacketPointer() + header.getPayloadOffset();
+    size = header.getPacketSize() - header.getPayloadOffset();
 }
 
+/** Destructor. */
 SpeedwireEmeterProtocol::~SpeedwireEmeterProtocol(void) {
     udp = NULL;
     size = 0;
 }
 
-// get susy id
+/** Get susy id. */
 uint16_t SpeedwireEmeterProtocol::getSusyID(void) const {
     return SpeedwireByteEncoding::getUint16BigEndian(udp + sma_susy_id_offset);
 }
 
-// get serial number
+/** Get serial number. */
 uint32_t SpeedwireEmeterProtocol::getSerialNumber(void) const {
     return SpeedwireByteEncoding::getUint32BigEndian(udp + sma_serial_number_offset);
 }
 
-// get ticker
+/** Get timestamp. */
 uint32_t SpeedwireEmeterProtocol::getTime(void) const {
     return SpeedwireByteEncoding::getUint32BigEndian(udp + sma_time_offset);
 }
 
-// set susy id
+/** Set susy id. */
 void SpeedwireEmeterProtocol::setSusyID(uint16_t susy_id) {
     SpeedwireByteEncoding::setUint16BigEndian(udp + sma_susy_id_offset, susy_id);
 }
 
-// set serial number
+/** Set serial number. */
 void SpeedwireEmeterProtocol::setSerialNumber(uint32_t serial_number) {
     SpeedwireByteEncoding::setUint32BigEndian(udp + sma_serial_number_offset, serial_number);
 }
 
-// set ticker
+/** Set timestamp. */
 void SpeedwireEmeterProtocol::setTime(uint32_t time) {
     SpeedwireByteEncoding::setUint32BigEndian(udp + sma_time_offset, time);
 }
 
-// get pointer to first obis element in udp packet
+/** Get pointer to first obis element in udp packet. */
 void *const SpeedwireEmeterProtocol::getFirstObisElement(void) const {
     uint8_t* first_element = udp + sma_first_obis_offset; // sma_time_offset + sma_time_size;
     if ((std::uintptr_t)(first_element - udp) > size) {
@@ -60,7 +65,7 @@ void *const SpeedwireEmeterProtocol::getFirstObisElement(void) const {
     return first_element;
 }
 
-// get pointer to next obis element starting from the given element
+/** Get pointer to next obis element starting from the given element. */
 void* const SpeedwireEmeterProtocol::getNextObisElement(const void* const current_element) const {
     uint8_t* const next_element = ((uint8_t* const)current_element) + getObisLength(current_element);
     // check if the next element including the 4-byte obis head is inside the udp packet
@@ -74,7 +79,7 @@ void* const SpeedwireEmeterProtocol::getNextObisElement(const void* const curren
     return next_element;
 }
 
-// set given obis element right at location of the given current element
+/** Set given obis element right at location of the given current element. */
 void *const SpeedwireEmeterProtocol::setObisElement(void *const current_element, const void* const obis) {
     const unsigned long obis_length = getObisLength(obis);
     uint8_t *const next_element = ((uint8_t *const)current_element) + obis_length;
@@ -87,31 +92,38 @@ void *const SpeedwireEmeterProtocol::setObisElement(void *const current_element,
 }
 
 
-// methods to get obis information with current_element pointing to the first byte of the obis field
+// methods to get obis information with current_element pointing to the first byte of the obis field. */
+/** Get obis channel field from the given obis element. */
 uint8_t SpeedwireEmeterProtocol::getObisChannel(const void *const current_element) {
     return ((uint8_t*)current_element)[0];
 }
 
+/** Get obis index field from the given obis element. */
 uint8_t SpeedwireEmeterProtocol::getObisIndex(const void *const current_element) {
     return ((uint8_t*)current_element)[1];
 }
 
+/** Get obis type field from the given obis element. */
 uint8_t SpeedwireEmeterProtocol::getObisType(const void *const current_element) {
     return ((uint8_t*)current_element)[2];
 }
 
+/** Get obis tariff field from the given obis element. */
 uint8_t SpeedwireEmeterProtocol::getObisTariff(const void *const current_element) {
     return ((uint8_t*)current_element)[3];
 }
 
+/** Get obis uint32_t data from the given obis element. */
 uint32_t SpeedwireEmeterProtocol::getObisValue4(const void *const current_element) {
     return SpeedwireByteEncoding::getUint32BigEndian(((uint8_t*)current_element)+4);
 }
 
+/** Get obis uint64_t data from the given obis element. */
 uint64_t SpeedwireEmeterProtocol::getObisValue8(const void *const current_element) {
     return SpeedwireByteEncoding::getUint64BigEndian(((uint8_t*)current_element)+4);
 }
 
+/** Get length of the given obis element. */
 unsigned long SpeedwireEmeterProtocol::getObisLength(const void *const current_element) {
     unsigned long type = getObisType(current_element);
     if (getObisChannel(current_element) == sma_firmware_version_channel) {       // the software version has a type of 0, although it has a 4 byte payload
@@ -122,38 +134,46 @@ unsigned long SpeedwireEmeterProtocol::getObisLength(const void *const current_e
 
 
 // methods to set obis information with current_element pointing to the first byte of the given obis field
+/** Set obis channel field in the given obis element. */
 void SpeedwireEmeterProtocol::setObisChannel(const void* current_element, const uint8_t channel) {
     ((uint8_t*)current_element)[0] = channel;
 }
 
+/** Set obis index field in the given obis element. */
 void SpeedwireEmeterProtocol::setObisIndex(const void* current_element, const uint8_t index) {
     ((uint8_t*)current_element)[1] = index;
 }
 
+/** Set obis type field in the given obis element. */
 void SpeedwireEmeterProtocol::setObisType(const void* current_element, const uint8_t type) {
     ((uint8_t*)current_element)[2] = type;
 }
 
+/** Set obis tariff field in the given obis element. */
 void SpeedwireEmeterProtocol::setObisTariff(const void* current_element, const uint8_t tariff) {
     ((uint8_t*)current_element)[3] = tariff;
 }
 
+/** Set obis uint32_t data in the given obis element. */
 void SpeedwireEmeterProtocol::setObisValue4(const void* current_element, const uint32_t value) {
     SpeedwireByteEncoding::setUint32BigEndian(((uint8_t*)current_element) + 4, value);
 }
 
+/** Set obis uint64_t data in the given obis element. */
 void SpeedwireEmeterProtocol::setObisValue8(const void* current_element, const uint64_t value) {
     SpeedwireByteEncoding::setUint64BigEndian(((uint8_t*)current_element) + 4, value);
 }
 
 
 // print methods with current_element pointing to the first byte of the given obis field
+/** Get a string representation of the given obis header fields, this is channel, index, type and tariff. */
 std::string SpeedwireEmeterProtocol::toHeaderString(const void* const current_element) {
     char str[32];
     snprintf(str, sizeof(str), "%d.%d.%d.%d", getObisChannel(current_element), getObisIndex(current_element), getObisType(current_element), getObisTariff(current_element));
     return std::string(str);
 }
 
+/** Get a string representation of the given obis data value. */
 std::string SpeedwireEmeterProtocol::toValueString(const void* const current_element, const bool hex) {
     char str[32];
     uint8_t type = getObisType(current_element);
@@ -184,6 +204,9 @@ std::string SpeedwireEmeterProtocol::toValueString(const void* const current_ele
     return std::string(str);
 }
 
-void SpeedwireEmeterProtocol::printObisElement(const void *const current_element, FILE *file) {
-    fprintf(file, "%s %s %s\n", toHeaderString(current_element).c_str(), toValueString(current_element, true).c_str(), toValueString(current_element, false).c_str());
+/** Get a string representation of the given obis element including header and value. */
+std::string SpeedwireEmeterProtocol::toString(const void* const current_element) {
+    char str[128];
+    snprintf(str, sizeof(str), "%s %s %s\n", toHeaderString(current_element).c_str(), toValueString(current_element, true).c_str(), toValueString(current_element, false).c_str());
+    return std::string(str);
 }

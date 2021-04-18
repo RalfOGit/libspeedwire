@@ -65,7 +65,7 @@ public:
     // print methods with current_element pointing to the first byte of the given obis field
     static std::string toHeaderString(const void* const current_element);
     static std::string toValueString(const void* const current_element, const bool hex);
-    static void printObisElement(const void *const current_element, FILE *file);
+    static std::string toString(const void* const current_element);
 };
 
 #endif
