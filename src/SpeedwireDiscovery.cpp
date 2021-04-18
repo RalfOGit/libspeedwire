@@ -27,15 +27,15 @@
 #include <SpeedwireDiscovery.hpp>
 
 
-// multicast device discovery request packet, according to SMA documentation
-// however, this does not seem to be supported anymore with version 3.x devices
+//! Multicast device discovery request packet, according to SMA documentation.
+//! However, this does not seem to be supported anymore with version 3.x devices
 const unsigned char  SpeedwireDiscovery::multicast_request[] = {
     0x53, 0x4d, 0x41, 0x00, 0x00, 0x04, 0x02, 0xa0,     // sma signature, tag0
     0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x20,     // 0xffffffff group, 0x0000 length, 0x0020 "SMA Net ?", Version ?
     0x00, 0x00, 0x00, 0x00                              // 0x0000 protocol, 0x00 #long words, 0x00 ctrl
 };
 
-// unicast device discovery request packet, according to SMA documentation
+//! Unicast device discovery request packet, according to SMA documentation
 const unsigned char  SpeedwireDiscovery::unicast_request[] = {
     0x53, 0x4d, 0x41, 0x00, 0x00, 0x04, 0x02, 0xa0,     // sma signature, tag0
     0x00, 0x00, 0x00, 0x01, 0x00, 0x26, 0x00, 0x10,     // 0x26 length, 0x0010 "SMA Net 2", Version 0
@@ -52,7 +52,8 @@ const unsigned char  SpeedwireDiscovery::unicast_request[] = {
 
 
 /**
- *  Constructor
+ *  Constructor.
+ *  @param host A reference to the LocalHost instance of this machine.
  */
 SpeedwireDiscovery::SpeedwireDiscovery(LocalHost& host) :
     localhost(host)
@@ -92,7 +93,7 @@ SpeedwireDiscovery::SpeedwireDiscovery(LocalHost& host) :
 
 
 /**
- *  Destructor - clear the device list
+ *  Destructor - clear the device list.
  */
 SpeedwireDiscovery::~SpeedwireDiscovery(void) {
     speedwireDevices.clear();
@@ -100,7 +101,10 @@ SpeedwireDiscovery::~SpeedwireDiscovery(void) {
 
 
 /**
- *  Pre-register a device, i.e. just provide the ip address of the device
+ *  Pre-register a device, i.e. just provide the ip address of the device.
+ *  A pre-registered device is explicitly queried during the device discovery process. As this discovery 
+ *  is based on unicast upd packets, the ip address can be on a different subnet or somewhere on the internet.
+ *  @param peer_ip_address The IP address of the speedwire peer in dot (ipv4) or colon (ipv6) notation.
  */
 bool SpeedwireDiscovery::preRegisterDevice(const std::string peer_ip_address) {
     SpeedwireInfo info;
@@ -111,7 +115,7 @@ bool SpeedwireDiscovery::preRegisterDevice(const std::string peer_ip_address) {
             new_device = false;
         }
     }
-    if (new_device) {
+    if (new_device == true) {
         speedwireDevices.push_back(info);
     }
     return new_device;
@@ -119,7 +123,7 @@ bool SpeedwireDiscovery::preRegisterDevice(const std::string peer_ip_address) {
 
 
 /**
- *  Fully register a device, i.e. provide a full information data set
+ *  Fully register a device, i.e. provide a full information data set of the device.
  */
 bool SpeedwireDiscovery::registerDevice(const SpeedwireInfo& info) {
     bool new_device = true;
@@ -143,7 +147,7 @@ bool SpeedwireDiscovery::registerDevice(const SpeedwireInfo& info) {
 
 
 /**
- *  Unregister a device, i.e. delete it from the device list
+ *  Unregister a device, i.e. delete it from the device list.
  */
 void SpeedwireDiscovery::unregisterDevice(const SpeedwireInfo& info) {
     for (std::vector<SpeedwireInfo>::iterator it = speedwireDevices.begin(); it != speedwireDevices.end(); ) {
@@ -157,7 +161,7 @@ void SpeedwireDiscovery::unregisterDevice(const SpeedwireInfo& info) {
 
 
 /**
- *  Get a vector of all devices
+ *  Get a vector of all known devices.
  */
 const std::vector<SpeedwireInfo>& SpeedwireDiscovery::getDevices(void) const {
     return speedwireDevices;
@@ -165,7 +169,7 @@ const std::vector<SpeedwireInfo>& SpeedwireDiscovery::getDevices(void) const {
 
 
 /**
- *  Try to find SMA devices on the networks connected to this host
+ *  Try to find SMA devices on the networks connected to this host.
  */
 int SpeedwireDiscovery::discoverDevices(void) {
 
@@ -174,14 +178,12 @@ int SpeedwireDiscovery::discoverDevices(void) {
 
     // allocate a pollfd structure for each local ip address and populate it with the socket fds
     std::vector<SpeedwireSocket> sockets = SpeedwireSocketFactory::getInstance(localhost)->getRecvSockets(SpeedwireSocketFactory::ANYCAST, localIPs);
-    struct pollfd* fds = (struct pollfd*)malloc(sizeof(struct pollfd) * sockets.size());
-    if (fds == NULL) {
-        perror("malloc failure");
-        return 0;
-    }
-    int j = 0;
+    std::vector<struct pollfd> fds;
+
     for (auto& socket : sockets) {
-        fds[j++].fd = socket.getSocketFd();
+        struct pollfd pfd;
+        pfd.fd = socket.getSocketFd();
+        fds.push_back(pfd);
     }
 
     // wait for inbound multicast packets
@@ -195,48 +197,46 @@ int SpeedwireDiscovery::discoverDevices(void) {
     while ((localhost.getTickCountInMs() - startTimeInMillis) < maxWaitTimeInMillis) {
 
         // prepare pollfd structure
-        j = 0;
-        for (auto& socket : sockets) {
-            fds[j].events = POLLIN;
-            fds[j++].revents = 0;
+        for (auto& pfd : fds) {
+            pfd.events = POLLIN;
+            pfd.revents = 0;
         }
 
         // send discovery request packet and update counters
         for (int i = 0; i < 10; ++i) {
-            if (sendDiscoveryPackets(broadcast_counter, prereg_counter, subnet_counter, socket_counter)) {
-                startTimeInMillis = localhost.getTickCountInMs();
+            if (sendDiscoveryPackets(broadcast_counter, prereg_counter, subnet_counter, socket_counter) == false) {
+                break;  // done with sending all discovery packets
             }
+            startTimeInMillis = localhost.getTickCountInMs();
         }
 
         // wait for a packet on one of the configured sockets
         //fprintf(stdout, "poll() ...\n");
-        if (poll(fds, (uint32_t)sockets.size(), 10) < 0) {     // timeout 10 ms
+        if (poll(fds.data(), (uint32_t)fds.size(), 10) < 0) {     // timeout 10 ms
             perror("poll failed");
             break;
         }
         //fprintf(stdout, "... done\n");
 
         // determine the socket that received a packet
-        j = 0;
-        for (auto &socket : sockets) {
+        for (int j = 0; j < fds.size(); ++j) {
             if ((fds[j].revents & POLLIN) != 0) {
 
                 // read packet data, analyze it and create a device information record
                 recvDiscoveryPackets(sockets[j]);
             }
-            j++;
         }
     }
 
-    free(fds);
     return 0;
 }
 
 
 /**
- *  Send discovery packets
+ *  Send discovery packets.
  *  State machine implementing the following sequence of packets:
  *  - multicast speedwire discovery requests to all interfaces
+ *  - unicast speedwure discovery requests to pre-registered hosts
  *  - unicast speedwire discovery requests to all hosts on the network
  */
 bool SpeedwireDiscovery::sendDiscoveryPackets(size_t& broadcast_counter, size_t& prereg_counter, size_t& subnet_counter, size_t& socket_counter) {
@@ -298,7 +298,7 @@ bool SpeedwireDiscovery::sendDiscoveryPackets(size_t& broadcast_counter, size_t&
 
 
 /**
- *  Receive a discovery packet, analyze it and create a device information record
+ *  Receive a discovery packet, analyze it and create a device information record.
  */
 bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
     bool result = false;
@@ -329,7 +329,7 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
             // check for emeter protocol
             else if (protocol.isEmeterProtocolID()) {
                 //SpeedwireSocket::hexdump(udp_packet, nbytes);
-                SpeedwireEmeterProtocol emeter(udp_packet + payload_offset, nbytes - payload_offset);
+                SpeedwireEmeterProtocol emeter(protocol);
                 SpeedwireInfo info;
                 info.susyID = emeter.getSusyID();
                 info.serialNumber = emeter.getSerialNumber();
@@ -346,7 +346,7 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
             else if (protocol.isInverterProtocolID() &&
                 (nbytes != sizeof(unicast_request) || memcmp(udp_packet, unicast_request, sizeof(unicast_request)) != 0)) {
                 //SpeedwireSocket::hexdump(udp_packet, nbytes);
-                SpeedwireInverterProtocol inverter(udp_packet + payload_offset, nbytes - payload_offset);
+                SpeedwireInverterProtocol inverter(protocol);
                 SpeedwireInfo info;
                 info.susyID = inverter.getSrcSusyID();
                 info.serialNumber = inverter.getSrcSerialNumber();
@@ -373,14 +373,14 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
 /*====================================*/
 
 /**
- *  Constructor
+ *  Constructor.
  *  Just initialize all member variables to a defined state; set susyId and serialNumber to 0
  */
 SpeedwireInfo::SpeedwireInfo(void) : susyID(0), serialNumber(0), deviceClass(), deviceType(), peer_ip_address(), interface_ip_address() {}
 
 
 /**
- *  Convert speedwire information to a single line string
+ *  Convert speedwire information to a single line string.
  */
 std::string SpeedwireInfo::toString(void) const {
     char buffer[256] = { 0 };
@@ -391,23 +391,23 @@ std::string SpeedwireInfo::toString(void) const {
 
 
 /**
- *  Compare two instances; assume that if SusyID, Serial and IP is the same, it is the same device
+ *  Compare two instances; assume that if SusyID, Serial and IP is the same, it is the same device.
  */
 bool SpeedwireInfo::operator==(const SpeedwireInfo& rhs) const {
     return (susyID == rhs.susyID && serialNumber == rhs.serialNumber && peer_ip_address == rhs.peer_ip_address);
 }
 
 
-/*
- *  Check if this instance is just pre-registered, i.e a device ip address is given
+/**
+ *  Check if this instance is just pre-registered, i.e a device ip address is given.
  */
 bool SpeedwireInfo::isPreRegistered(void) const {
     return (peer_ip_address.length() > 0 && susyID == 0 && serialNumber == 0);
 }
 
 
-/*
- *  Check if this instance is fully registered, i.e all device information is given
+/**
+ *  Check if this instance is fully registered, i.e all device information is given.
  */
 bool SpeedwireInfo::isFullyRegistered(void) const {
     return (susyID != 0 && serialNumber != 0 && deviceClass.length() > 0 && deviceType.length() > 0 && 

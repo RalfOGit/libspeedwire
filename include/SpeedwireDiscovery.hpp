@@ -8,14 +8,17 @@
 #include <SpeedwireSocket.hpp>
 
 
+/**
+ *  Class encapsulating information about a speedwire device.
+ */
 class SpeedwireInfo {
 public:
-    uint16_t    susyID;
-    uint32_t    serialNumber;
-    std::string deviceClass;
-    std::string deviceType;
-    std::string peer_ip_address;
-    std::string interface_ip_address;
+    uint16_t    susyID;                //!< Susy ID of the speedwire device.
+    uint32_t    serialNumber;          //!< Serial number of the speedwire device.
+    std::string deviceClass;           //!< Device class of the speedwire device, i.e. emeter or inverter.
+    std::string deviceType;            //!< Device type of the speedwire device, i.e. emeter or inverter.
+    std::string peer_ip_address;       //!< IP address of the device, either on the local subnet or somewhere else.
+    std::string interface_ip_address;  //!< IP address of the local interface through which the device is reachable.
 
     SpeedwireInfo(void);
     std::string toString(void) const;
@@ -25,6 +28,11 @@ public:
 };
 
 
+/**
+ *  Class implementing a discovery mechanism for speedwire devices.
+ *  Discovery is performed against all potential devices on all local subnets that are connected to the different
+ *  network interfaces of this host and against all pre-registered devices that can be located anywhere on the internet.
+ */
 class SpeedwireDiscovery {
 
 protected:

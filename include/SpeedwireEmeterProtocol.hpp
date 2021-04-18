@@ -7,22 +7,30 @@
 #include <SpeedwireHeader.hpp>
 
 
+/**
+ * Class for parsing and assembling of speedwire emeter packets.
+ *
+ * This class provides accessor methods and validity checks for a speedwire emeter packet stored in memory.
+ *
+ * The emeter specific part of the speedwire udp packet starts directly after the protocol id field of speedwire
+ * packet header. The format is described in a public technical SMA document: "SMA Energy Meter Zählerprotokoll".
+ * The english version is called "SMA Energy Meter Protocol" and can be found here:
+ * https://www.sma.de/fileadmin/content/global/Partner/Documents/SMA_Labs/EMETER-Protokoll-TI-en-10.pdf
+ */
 class SpeedwireEmeterProtocol {
 
 protected:
-    static constexpr unsigned long sma_susy_id_offset       = 0;
-    static constexpr unsigned long sma_susy_id_size         = 2;
-    static constexpr unsigned long sma_serial_number_offset = sma_susy_id_size;
-    static constexpr unsigned long sma_serial_number_size   = 4;
-    static constexpr unsigned long sma_time_offset          = sma_serial_number_offset + sma_serial_number_size;
-    static constexpr unsigned long sma_time_size            = 4;
-    static constexpr uint8_t sma_firmware_version_channel   = 144;
+    static constexpr unsigned long sma_susy_id_offset       = 0;                             //!< Susy ID offset within the emeter specific part of the speedwire udp packet; i.e. this offset is 0.
+    static constexpr unsigned long sma_serial_number_offset = 2;                             //!< Serial number offset within the emeter specific part of the speedwire udp packet.
+    static constexpr unsigned long sma_time_offset          = sma_serial_number_offset + 4;  //!< Timestamp offset within the emeter specific part of the speedwire udp packet.
+    static constexpr unsigned long sma_first_obis_offset    = sma_time_offset + 4;           //!< Offset of the first obis element within the emeter specific part of the speedwire udp packet.
+    static constexpr uint8_t sma_firmware_version_channel   = 144;                           //!< Obis channel used to mark the firmware version obis element.
 
     uint8_t *udp;
     unsigned long size;
 
 public:
-    SpeedwireEmeterProtocol(const void* const udp_packet, const unsigned long udp_packet_size);
+    //SpeedwireEmeterProtocol(const void* const udp_packet, const unsigned long udp_packet_size);
     SpeedwireEmeterProtocol(const SpeedwireHeader &protocol);
     ~SpeedwireEmeterProtocol(void);
 

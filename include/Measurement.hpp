@@ -118,13 +118,13 @@ public:
     static MeasurementType EmeterEndOfData              (void) { return MeasurementType(Direction::NO_DIRECTION, Type::END_OF_DATA, Quantity::NO_QUANTITY,  "",           1); }
 
     // pre-defined instances for inverter measurement types
-    static MeasurementType InverterPower                (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::POWER,         "W",          1); }
-    static MeasurementType InverterVoltage              (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::VOLTAGE,       "V",        100); }
-    static MeasurementType InverterCurrent              (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::CURRENT,       "A",       1000); }
-    static MeasurementType InverterStatus               (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::STATUS,         "",          1); }
-    static MeasurementType InverterRelay                (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::STATUS,         "",          1); }
-    static MeasurementType InverterEfficiency           (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::EFFICIENCY,    "%",          1); }
-    static MeasurementType InverterLoss                 (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::POWER,         "W",          1); }
+    static MeasurementType InverterPower                (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE,     Quantity::POWER,        "W",          1); }
+    static MeasurementType InverterVoltage              (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE,     Quantity::VOLTAGE,      "V",        100); }
+    static MeasurementType InverterCurrent              (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE,     Quantity::CURRENT,      "A",       1000); }
+    static MeasurementType InverterStatus               (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE,     Quantity::STATUS,        "",          1); }
+    static MeasurementType InverterRelay                (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE,     Quantity::STATUS,        "",          1); }
+    static MeasurementType InverterEfficiency           (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE,     Quantity::EFFICIENCY,   "%",          1); }
+    static MeasurementType InverterLoss                 (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE,     Quantity::POWER,        "W",          1); }
 };
 
 

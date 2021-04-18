@@ -6,10 +6,10 @@
 #include <SpeedwireEmeterProtocol.hpp>
 
 
-SpeedwireEmeterProtocol::SpeedwireEmeterProtocol(const void *const udp_packet, const unsigned long udp_packet_len) {
-    udp = (uint8_t *)udp_packet;
-    size = udp_packet_len;
-}
+//SpeedwireEmeterProtocol::SpeedwireEmeterProtocol(const void *const udp_packet, const unsigned long udp_packet_len) {
+//    udp = (uint8_t *)udp_packet;
+//    size = udp_packet_len;
+//}
 
 SpeedwireEmeterProtocol::SpeedwireEmeterProtocol(const SpeedwireHeader& prot) {
     udp = prot.getPacketPointer() + prot.getPayloadOffset();
@@ -53,7 +53,7 @@ void SpeedwireEmeterProtocol::setTime(uint32_t time) {
 
 // get pointer to first obis element in udp packet
 void *const SpeedwireEmeterProtocol::getFirstObisElement(void) const {
-    uint8_t *first_element = udp + sma_time_offset + sma_time_size;
+    uint8_t* first_element = udp + sma_first_obis_offset; // sma_time_offset + sma_time_size;
     if ((std::uintptr_t)(first_element - udp) > size) {
         return NULL;
     }
