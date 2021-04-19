@@ -192,7 +192,7 @@ const uint32_t LocalHost::getInterfacePrefixLength(const std::string& local_ip_a
 
 
 /**
- *  Query the local hostname from the operating system
+ *  Query the local hostname from the operating system.
  */
 const std::string LocalHost::queryHostname(void) {
     char buffer[256];
@@ -205,7 +205,7 @@ const std::string LocalHost::queryHostname(void) {
 
 
 /**
- *  Query all local ipv4 and ipv6 addresses from the operating system
+ *  Query all local ipv4 and ipv6 addresses from the operating system.
  */
 std::vector<std::string> LocalHost::queryLocalIPAddresses(void) {
     std::vector<std::string> interfaces;
@@ -233,7 +233,7 @@ std::vector<std::string> LocalHost::queryLocalIPAddresses(void) {
 
 
 /**
- *  Query information related to all local interfaces from the operating system
+ *  Query information related to all local interfaces from the operating system.
  */
 std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) {
     std::vector<LocalHost::InterfaceInfo> addresses;
@@ -359,7 +359,7 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
 
 
 /**
- *  Platform neutral sleep method
+ *  Platform neutral sleep method.
  */
 void LocalHost::sleep(uint32_t millis) {
 #ifdef _WIN32
@@ -371,7 +371,7 @@ void LocalHost::sleep(uint32_t millis) {
 
 
 /**
- *  Platform neutral method to get a tick count provided in ms ticks; this is useful for timing purposes
+ *  Platform neutral method to get a tick count provided in ms ticks; this is useful for timing purposes.
  */
 uint64_t LocalHost::getTickCountInMs(void) {  // return a tick counter with ms resolution
 #ifdef _WIN32
@@ -387,7 +387,7 @@ uint64_t LocalHost::getTickCountInMs(void) {  // return a tick counter with ms r
 
 
 /**
- *  Platform neutral method to get the unix epoch time in ms
+ *  Platform neutral method to get the unix epoch time in ms.
  */
 uint64_t LocalHost::getUnixEpochTimeInMs(void) {
 #ifdef _WIN32
@@ -404,31 +404,29 @@ uint64_t LocalHost::getUnixEpochTimeInMs(void) {
 }
 
 
-// private helper function
-static std::string::size_type findFirstDifference(const std::string& str1, const std::string& str2) {
-    const std::string s1 = AddressConversion::stripIPAddress(str1);
-    const std::string s2 = AddressConversion::stripIPAddress(str2);
-    const char *c1 = s1.c_str(),  *c2 = s2.c_str();
-    for (std::string::size_type i = 0; c1 != NULL && c2 != NULL; ++i) {
-        if (*c1++ != *c2++)
-            return i;
-    }
-    return std::string::npos;
-}
-
 /**
- *  Match given ip address to longest matching local interface ip address
+ *  Match given ip address to local interface ip address that resides on the same subnet.
  */
 const std::string LocalHost::getMatchingLocalIPAddress(std::string ip_address) const {
-    std::string::size_type index = std::string::npos;
-    std::string::size_type difference = 0;
-    std::string match;
-    for (auto& addr : local_ip_addresses) {
-        std::string::size_type diff = findFirstDifference(ip_address, addr);
-        if (diff > difference) {
-            difference = diff;
-            match = addr;
+    if (AddressConversion::isIpv4(ip_address) == true) {
+        struct in_addr in_ip_address = AddressConversion::toInAddress(ip_address);
+        for (auto& if_addr : local_ipv4_addresses) {
+            struct in_addr in_if_addr = AddressConversion::toInAddress(if_addr);
+            uint32_t if_prefix_length = LocalHost::getInterfacePrefixLength(if_addr);
+            if (AddressConversion::resideOnSameSubnet(in_if_addr, in_ip_address, if_prefix_length) == true) {
+                return if_addr;
+            }
         }
     }
-    return match;
+    else if (AddressConversion::isIpv6(ip_address) == true) {
+        struct in6_addr in_ip_address = AddressConversion::toIn6Address(ip_address);
+        for (auto& if_addr : local_ipv6_addresses) {
+            struct in6_addr in_if_addr = AddressConversion::toIn6Address(if_addr);
+            uint32_t if_prefix_length  = LocalHost::getInterfacePrefixLength(if_addr);
+            if (AddressConversion::resideOnSameSubnet(in_if_addr, in_ip_address, if_prefix_length) == true) {
+                return if_addr;
+            }
+        }
+    }
+    return "";
 }

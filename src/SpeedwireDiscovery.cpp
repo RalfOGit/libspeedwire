@@ -345,6 +345,9 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 info.deviceType = "Emeter";
                 info.peer_ip_address = peer_ip_address;
                 info.interface_ip_address = localhost.getMatchingLocalIPAddress(peer_ip_address);
+                if (info.interface_ip_address == "" && socket.isIpAny() == false) {
+                    info.interface_ip_address = socket.getLocalInterfaceAddress();
+                }
                 if (registerDevice(info)) {
                     printf("%s\n", info.toString().c_str());
                     result = true;
@@ -362,6 +365,9 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 info.deviceType = "Inverter";
                 info.peer_ip_address = peer_ip_address;
                 info.interface_ip_address = localhost.getMatchingLocalIPAddress(peer_ip_address);
+                if (info.interface_ip_address == "" && socket.isIpAny() == false) {
+                    info.interface_ip_address = socket.getLocalInterfaceAddress();
+                }
                 if (registerDevice(info)) {
                     printf("%s\n", info.toString().c_str());
                     result = true;
