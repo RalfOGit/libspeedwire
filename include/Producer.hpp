@@ -17,12 +17,12 @@ public:
 
     /**
      * Callback to produce the given data to the next stage in the processing pipeline.
-     * @param device A string representing the originating device for the data
+     * @param serial_number The serial number of the device generating the data
      * @param type The measurement type of the given data
      * @param wire The Wire enumeration value
      * @param value The data value itself
      */
-    virtual void produce(const std::string &device, const MeasurementType &type, const Wire wire, const double value) = 0;
+    virtual void produce(const uint32_t serial_number, const MeasurementType &type, const Wire wire, const double value) = 0;
 };
 
 #endif

@@ -84,22 +84,6 @@ public:
 
 
 /**
- *  Interface to be implemented by the consumer of speedwire inverter reply data. 
- */
-class SpeedwireConsumer {
-public:
-    /** Virtual destructor */
-    virtual ~SpeedwireConsumer(void) {}
-
-    /**
-     *  Consume a speedwire reply data element
-     *  @param element The reply data element
-     */
-    virtual void consume(SpeedwireData& element) = 0;
-};
-
-
-/**
  *  Class implementing a query map for speedwire inverter reply data. 
  *  The class extends std::map<uint32_t, SpeedwireData> and adds functionality to deal with keys derived from 
     a SpeedwireRawData instance.

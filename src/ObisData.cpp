@@ -62,11 +62,11 @@ std::array<uint8_t, 12> ObisType::toByteArray(void) const {
  *  @param line_           measurement line
  */
 ObisData::ObisData(const uint8_t channel, const uint8_t index, const uint8_t type, const uint8_t tariff,
-                   const MeasurementType &mType, const Wire &line_) : 
+                   const MeasurementType &mType, const Wire &wire_) : 
     ObisType(channel, index, type, tariff),
     measurementType(mType),
-    line(line_),
-    description(mType.getFullName(line_)),
+    wire(wire_),
+    description(mType.getFullName(wire_)),
     measurementValue() {
 }
 

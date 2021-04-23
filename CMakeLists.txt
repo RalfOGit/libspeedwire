@@ -5,8 +5,8 @@ cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD 11)
 
 set(COMMON_SOURCES
-    src/DataProcessor.cpp
     src/AddressConversion.cpp
+    src/AveragingProcessor.cpp
     src/LocalHost.cpp
     src/Logger.cpp
     src/Measurement.cpp
