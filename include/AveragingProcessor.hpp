@@ -34,21 +34,27 @@ protected:
         bool          averagingTimeReached;     //!< Boolean indicating that the averaging time has been reached with this emeter obis packet.
     } AveragingState;
 
-    unsigned long averagingTime;                //!< Averaging time constant.
-    std::vector<AveragingState> states;         //!< Array holding averaging states for alle knowne speedwire devices
-    Producer& producer;                         //!< Reference to the producer receiving averaged data.
+    unsigned long averagingTime;                            //!< Averaging time constant.
+    std::vector<AveragingState> states;                     //!< Array holding averaging states for alle knowne speedwire devices
+    std::vector<ObisConsumer*> obisConsumerTable;           //!< Table of registered ObisConsumer
+    std::vector<SpeedwireConsumer*> speedwireConsumerTable; //!< Table of registered SpeedwireConsumer
 
     int initializeState(const uint32_t serial_number, const DeviceType& device_type);
     int findStateIndex (const uint32_t serial_number);
-    void consume(const uint32_t serial_number, const DeviceType& device_type, MeasurementType& type, MeasurementValue& value, Wire& wire);
+    bool process(const uint32_t serial_number, const DeviceType& device_type, MeasurementType& type, MeasurementValue& value);
 
 public:
 
-    AveragingProcessor(const unsigned long averagingTime, Producer& producer);
+    AveragingProcessor(const unsigned long averagingTime);
     ~AveragingProcessor(void);
+
+    void addConsumer(ObisConsumer& obis_consumer);
+    void addConsumer(SpeedwireConsumer& speedwire_consumer);
 
     virtual void consume(const uint32_t serial_number, ObisData &element);
     virtual void consume(const uint32_t serial_number, SpeedwireData& element);
+    virtual void endOfObisData(const uint32_t serial_number, const uint32_t time);
+    virtual void endOfSpeedwireData(const uint32_t serial_number, const uint32_t time);
 };
 
 #endif

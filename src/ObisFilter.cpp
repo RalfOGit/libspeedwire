@@ -7,12 +7,12 @@ ObisFilter::ObisFilter(void) {
 }
 
 ObisFilter::~ObisFilter(void) {
-    filterTable.clear();
+    filterMap.clear();
     consumerTable.clear();
 }
 
 void ObisFilter::addFilter(const ObisData &entry) {
-    filterTable.push_back(entry);
+    filterMap[entry.toKey()] = entry;
 }
 
 void ObisFilter::addFilter(const std::vector<ObisData> &entries) {
@@ -21,31 +21,28 @@ void ObisFilter::addFilter(const std::vector<ObisData> &entries) {
     }
 }
 
+void ObisFilter::addFilter(const ObisDataMap& entries) {
+    for (const auto& entry : entries) {
+        addFilter(entry.second);
+    }
+}
+
 void ObisFilter::removeFilter(const ObisData &entry) {
-    for (std::vector<ObisData>::iterator it = filterTable.begin(); it != filterTable.end(); it++) {
-        if (it->equals(entry)) {
-            it = filterTable.erase(it);
-        }
-    }
+    filterMap.erase(entry.toKey());
 }
 
-const std::vector<ObisData> &ObisFilter::getFilter(void) const {
-    return filterTable;
+ObisDataMap& ObisFilter::getFilter(void) {
+    return filterMap;
 }
 
-void ObisFilter::addConsumer(ObisConsumer *obisConsumer) {
-    consumerTable.push_back(obisConsumer);
+/**
+ *  Add an obis consumer to receive the result of the ObisFilter.
+ */
+void ObisFilter::addConsumer(ObisConsumer& obisConsumer) {
+    consumerTable.push_back(&obisConsumer);
 }
 
-void ObisFilter::removeConsumer(ObisConsumer *obisConsumer) {
-   for (std::vector<ObisConsumer*>::iterator it = consumerTable.begin(); it != consumerTable.end(); it++) {
-        if (*it == obisConsumer) {
-            it = consumerTable.erase(it);
-        }
-    }
-}
-
-bool ObisFilter::consume(const uint32_t serial, const void *const obis, const uint32_t timer) {
+bool ObisFilter::consume(const uint32_t serial, const void *const obis, const uint32_t time) {
     ObisType element(SpeedwireEmeterProtocol::getObisChannel(obis),
                      SpeedwireEmeterProtocol::getObisIndex(obis),
                      SpeedwireEmeterProtocol::getObisType(obis),
@@ -70,7 +67,7 @@ bool ObisFilter::consume(const uint32_t serial, const void *const obis, const ui
         default:
             perror("obis identifier not implemented");
         }
-        mvalue.setTimer(timer);
+        mvalue.setTimer(time);
         produce(serial, *filteredElement);
 
         return true;
@@ -79,10 +76,9 @@ bool ObisFilter::consume(const uint32_t serial, const void *const obis, const ui
 }
 
 ObisData *const ObisFilter::filter(const uint32_t serial, const ObisType &element) {
-    for (std::vector<ObisData>::iterator it = filterTable.begin(); it != filterTable.end(); it++) {
-        if (it->equals(element)) {
-            return &(*it);
-        }
+    auto& it = filterMap.find(element.toKey());
+    if (it != filterMap.end()) {
+        return &(it->second);
     }
     return NULL;
 }
@@ -90,5 +86,11 @@ ObisData *const ObisFilter::filter(const uint32_t serial, const ObisType &elemen
 void ObisFilter::produce(const uint32_t serial, ObisData &element) {
     for (std::vector<ObisConsumer*>::iterator it = consumerTable.begin(); it != consumerTable.end(); it++) {
         (*it)->consume(serial, element);
+    }
+}
+
+void ObisFilter::endOfObisData(const uint32_t serial, const uint32_t time) {
+    for (std::vector<ObisConsumer*>::iterator it = consumerTable.begin(); it != consumerTable.end(); it++) {
+        (*it)->endOfObisData(serial, time);
     }
 }

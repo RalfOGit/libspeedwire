@@ -6,6 +6,7 @@
 #include <string>
 #include <array>
 #include <vector>
+#include <map>
 #include <Measurement.hpp>
 #include <SpeedwireEmeterProtocol.hpp>
 
@@ -29,6 +30,8 @@ public:
     std::string toString(const uint64_t value) const;
 
     std::array<uint8_t, 12> toByteArray(void) const;
+
+    uint32_t toKey(void) const;
 };
 
 
@@ -42,6 +45,7 @@ public:
     Wire              wire;
     std::string       description;
 
+    ObisData(void);
     ObisData(const uint8_t channel, const uint8_t index, const uint8_t type, const uint8_t tariff, const MeasurementType &measurementType, const Wire &line);
 
     bool equals(const ObisType &other) const;
@@ -118,5 +122,23 @@ public:
     static const ObisData SignedActivePowerL2;
     static const ObisData SignedActivePowerL3;
 };
+
+
+/**
+ *  Class implementing a map for emeter obis data.
+ *  The class extends std::map<uint32_t, ObisData>.
+ */
+class ObisDataMap : public std::map<uint32_t, ObisData> {
+public:
+    //! Serial number of the device that provided this data.
+    uint32_t serial_number;
+
+    /**
+     *  Add a new element to the map of semeter obis data.elements.
+     *  @param element The ObisData element added to the map
+     */
+    void add(const ObisData& element) { operator[](element.toKey()) = element; }
+};
+
 
 #endif

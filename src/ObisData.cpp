@@ -49,11 +49,28 @@ std::array<uint8_t, 12> ObisType::toByteArray(void) const {
     return bytes;
 }
 
+//! Convert this instance into a key that can be used by std::map<uint32_t, ...>.
+uint32_t ObisType::toKey(void) const {
+    uint32_t key = ((uint32_t)channel << 24) | ((uint32_t)index << 16) | ((uint32_t)type << 8) | (uint32_t)tariff;
+    return key;
+}
+
 
 // =================================================================================================
 
 /**
- *  Constructor. 
+ *  Default constructor - not very usefult but required for std::map.
+ */
+ObisData::ObisData(void) :
+    ObisType(0, 0, 0, 0),
+    measurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::NO_QUANTITY, "", 0),
+    wire(Wire::NO_WIRE),
+    description(""),
+    measurementValue() {
+}
+
+/**
+ *  Constructor.
  *  @param channel         obis measurement channel
  *  @param index           obis measurement index; i.e. measurement quantity
  *  @param type            obis measurement type

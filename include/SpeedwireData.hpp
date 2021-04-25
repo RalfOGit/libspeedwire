@@ -94,7 +94,7 @@ public:
      *  Add a new element to the map of speedwire inverter reply data elements.
      *  @param element The SpeedwireData element added to the map
      */
-    void add(const SpeedwireData& element) { operator[](toKey(element)) = element; }
+    void add(const SpeedwireData& element) { operator[](element.toKey()) = element; }
 
     /**
      *  Find a speedwire inverter reply data map element by the given key and add its measurement value to the target element.
@@ -109,12 +109,6 @@ public:
             target.time = iterator->second.time;
         }
     }
-
-    /**
-     *  Return key for the given SpeedwireRawData element. The key is formed by combining id and conn.
-     *  @return The key for the given element
-     */
-    static uint32_t toKey(const SpeedwireRawData& element) { return element.toKey(); }
 };
 
 #endif

@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(COMMON_SOURCES
     src/AddressConversion.cpp
     src/AveragingProcessor.cpp
+    src/CalculatedValueProcessor.cpp
     src/LocalHost.cpp
     src/Logger.cpp
     src/Measurement.cpp

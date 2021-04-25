@@ -20,23 +20,25 @@ class ObisFilter {
 
 protected:
     std::vector<ObisConsumer*> consumerTable;   //!< Table of registered ObisConsumers
-    std::vector<ObisData>      filterTable;     //!< Table of registered ObisData instance
+    ObisDataMap                filterMap;       //!< Map of registered ObisData instance
 
 public:
     ObisFilter(void);
     ~ObisFilter(void);
 
     void addFilter(const ObisData& entry);
-    void addFilter(const std::vector<ObisData> &entries);
+    void addFilter(const std::vector<ObisData>& entries);
+    void addFilter(const ObisDataMap& entries);
     void removeFilter(const ObisData &entry);
-    const std::vector<ObisData> &getFilter(void) const;
+    ObisDataMap& getFilter(void);
 
-    void addConsumer   (ObisConsumer *obisConsumer);
-    void removeConsumer(ObisConsumer *obisConsumer);
+    void addConsumer(ObisConsumer& obisConsumer);
 
-    bool consume(const uint32_t serial, const void *const obis, const uint32_t timer);
+    bool consume(const uint32_t serial, const void *const obis, const uint32_t time);
     ObisData *const filter(const uint32_t serial, const ObisType &element);
     void produce(const uint32_t serial, ObisData &element);
+
+    void endOfObisData(const uint32_t serial, const uint32_t time);
 };
 
 #endif
