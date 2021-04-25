@@ -76,7 +76,7 @@ bool ObisFilter::consume(const uint32_t serial, const void *const obis, const ui
 }
 
 ObisData *const ObisFilter::filter(const uint32_t serial, const ObisType &element) {
-    auto& it = filterMap.find(element.toKey());
+    const auto& it = filterMap.find(element.toKey());
     if (it != filterMap.end()) {
         return &(it->second);
     }
