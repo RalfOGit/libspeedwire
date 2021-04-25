@@ -317,9 +317,7 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
                 info.mac_address = mac_addr;
             }
             size_t len = sizeof(struct ifreq);
-#else
-            size_t len = IFNAMSIZ + ifr->ifr_addr.sa_len;
-#endif
+
             /* try to get network mask */
             uint32_t prefix = 0;
             if (ioctl(s, SIOCGIFNETMASK, &buffer) == 0) {
@@ -345,6 +343,9 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
             }
             info.ip_address_prefix_lengths[ip_name] = prefix;
             fprintf(stdout, "address: %28.*s  prefixlength: %d  mac: %s  name: \"%s\"\n", (int)ip_name.length(), ip_name.c_str(), prefix, info.mac_address.c_str(), info.if_name.c_str());
+#else
+            size_t len = IFNAMSIZ + ifr->ifr_addr.sa_len;
+#endif
             addresses.push_back(info);
 
             ifr = (struct ifreq*)((char*)ifr + len);
