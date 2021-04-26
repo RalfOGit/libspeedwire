@@ -124,8 +124,8 @@ void CalculatedValueProcessor::endOfSpeedwireData(const uint32_t serial_number, 
         producer.produce(0xcafebabe, SpeedwireData::HouseholdPowerTotal.measurementType, SpeedwireData::HouseholdPowerTotal.wire, household);
 
         // calculate monetary income from grid feed and savings from self-consumption
-        double feed_in          = neg->second.measurementValue.value * 0.09;
-        double self_consumption = (ac_total - neg->second.measurementValue.value) * 0.30;
+        double feed_in          = neg->second.measurementValue.value * (0.09 / 1000.0);             // assuming  9 cents per kWh
+        double self_consumption = (ac_total - neg->second.measurementValue.value) * (0.30 / 1000);  // assuming 30 cents per kWh
         double total            = feed_in + self_consumption;
         producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeFeedIn.measurementType,          SpeedwireData::HouseholdIncomeFeedIn.wire, feed_in);
         producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeSelfConsumption.measurementType, SpeedwireData::HouseholdIncomeSelfConsumption.wire, self_consumption);
