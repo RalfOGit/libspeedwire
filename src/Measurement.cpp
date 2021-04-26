@@ -91,17 +91,19 @@ std::string toString(const Direction direction) {
 
 std::string toString(const Wire wire) {
     switch (wire) {
-        case Wire::TOTAL:     return "total";
-        case Wire::L1:        return "l1";
-        case Wire::L2:        return "l2";
-        case Wire::L3:        return "l3";
-        case Wire::MPP_TOTAL: return "mpp_total";
-        case Wire::MPP1:      return "mpp1";
-        case Wire::MPP2:      return "mpp2";
-        case Wire::LOSS_TOTAL:return "loss_total";
-        case Wire::DEVICE_OK: return "device_ok";
-        case Wire::RELAY_ON:  return "relay_on";
-        case Wire::NO_WIRE:   return "";
+        case Wire::TOTAL:            return "total";
+        case Wire::L1:               return "l1";
+        case Wire::L2:               return "l2";
+        case Wire::L3:               return "l3";
+        case Wire::MPP_TOTAL:        return "mpp_total";
+        case Wire::MPP1:             return "mpp1";
+        case Wire::MPP2:             return "mpp2";
+        case Wire::LOSS_TOTAL:       return "loss_total";
+        case Wire::DEVICE_OK:        return "device_ok";
+        case Wire::RELAY_ON:         return "relay_on";
+        case Wire::FEED_IN:          return "feed_in";
+        case Wire::SELF_CONSUMPTION: return "self_consumption";
+        case Wire::NO_WIRE:          return "";
     }
     return "undefined wire";
 }
@@ -115,6 +117,7 @@ std::string toString(const Quantity quantity) {
         case Quantity::CURRENT:      return "current";
         case Quantity::STATUS:       return "status";
         case Quantity::EFFICIENCY:   return "efficiency";
+        case Quantity::CURRENCY:     return "currency";
         case Quantity::NO_QUANTITY:  return "";
     }
     return "undefined quantity";

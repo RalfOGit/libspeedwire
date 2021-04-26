@@ -120,8 +120,16 @@ void CalculatedValueProcessor::endOfSpeedwireData(const uint32_t serial_number, 
     ObisDataMap::const_iterator pos, neg;
     if ((pos = obis_data_map.find(ObisData::PositiveActivePowerTotal.toKey())) != obis_data_map.end() &&
         (neg = obis_data_map.find(ObisData::NegativeActivePowerTotal.toKey())) != obis_data_map.end()) {
-        double household_total = pos->second.measurementValue.value + ac_total - neg->second.measurementValue.value;
-        producer.produce(0xcafebabe, SpeedwireData::InverterPowerACTotal.measurementType, SpeedwireData::InverterPowerACTotal.wire, household_total);
+        double household = pos->second.measurementValue.value + ac_total - neg->second.measurementValue.value;
+        producer.produce(0xcafebabe, SpeedwireData::HouseholdPowerTotal.measurementType, SpeedwireData::HouseholdPowerTotal.wire, household);
+
+        // calculate monetary income from grid feed and savings from self-consumption
+        double feed_in          = neg->second.measurementValue.value * 0.09;
+        double self_consumption = (ac_total - neg->second.measurementValue.value) * 0.30;
+        double total            = feed_in + self_consumption;
+        producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeFeedIn.measurementType,          SpeedwireData::HouseholdIncomeFeedIn.wire, feed_in);
+        producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeSelfConsumption.measurementType, SpeedwireData::HouseholdIncomeSelfConsumption.wire, self_consumption);
+        producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeTotal.measurementType,           SpeedwireData::HouseholdIncomeTotal.wire, total);
     }
 
     producer.flush();

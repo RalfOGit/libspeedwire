@@ -80,6 +80,12 @@ public:
     static const SpeedwireData InverterPowerACTotal;       //!< Total power on alternating current inverter outputs L1 + L2 + L3
     static const SpeedwireData InverterPowerLoss;          //!< Total power loss
     static const SpeedwireData InverterPowerEfficiency;    //!< Total power efficiency
+
+    static const SpeedwireData HouseholdPowerTotal;            //!< Total power consumption of the household
+    static const SpeedwireData HouseholdIncomeTotal;           //!< Income generated
+    static const SpeedwireData HouseholdIncomeFeedIn;          //!< Income generated from grid feed-in
+    static const SpeedwireData HouseholdIncomeSelfConsumption; //!< Income generated from self-consumption
+
 };
 
 

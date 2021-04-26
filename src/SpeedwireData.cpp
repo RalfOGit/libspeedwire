@@ -237,3 +237,9 @@ const SpeedwireData SpeedwireData::InverterPowerDCTotal   (0, 0, 0, 0, 0, NULL, 
 const SpeedwireData SpeedwireData::InverterPowerACTotal   (0, 0, 0, 0, 0, NULL, 0, MeasurementType::InverterPower(),      Wire::TOTAL);
 const SpeedwireData SpeedwireData::InverterPowerLoss      (0, 0, 0, 0, 0, NULL, 0, MeasurementType::InverterLoss(),       Wire::LOSS_TOTAL);
 const SpeedwireData SpeedwireData::InverterPowerEfficiency(0, 0, 0, 0, 0, NULL, 0, MeasurementType::InverterEfficiency(), Wire::NO_WIRE);
+
+// pre-defined instances for miscellaneous measurement types
+const SpeedwireData SpeedwireData::HouseholdPowerTotal           (0, 0, 0, 0, 0, NULL, 0, MeasurementType::InverterPower(), Wire::TOTAL);
+const SpeedwireData SpeedwireData::HouseholdIncomeTotal          (0, 0, 0, 0, 0, NULL, 0, MeasurementType::Currency(),      Wire::TOTAL);
+const SpeedwireData SpeedwireData::HouseholdIncomeFeedIn         (0, 0, 0, 0, 0, NULL, 0, MeasurementType::Currency(),      Wire::FEED_IN);
+const SpeedwireData SpeedwireData::HouseholdIncomeSelfConsumption(0, 0, 0, 0, 0, NULL, 0, MeasurementType::Currency(),      Wire::SELF_CONSUMPTION);

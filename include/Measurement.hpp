@@ -20,21 +20,23 @@ std::string toString(const Direction direction);
 
 
 /**
- *  Enumeration describing the wire for the energy flow.
+ *  Enumeration describing the wire for the energy or information flow.
  *  Totals and status values are considered as separate wires.
  */
 enum class Wire {
-    TOTAL,              //!< Total of L1+L2+L3 of three-phase alternating current
-    L1,                 //!< Phase L1 of three-phase alternating current wire
-    L2,                 //!< Phase L2 of three-phase alternating current wire
-    L3,                 //!< Phase L3 of three-phase alternating current wire
-    MPP_TOTAL,          //!< Total of MPP1+MPP2 direct current
-    MPP1,               //!< MPP1 direct current wire
-    MPP2,               //!< MPP2 direct current wire
-    LOSS_TOTAL,         //!< Total of L1+L2+L3 of three-phase alternating current minus total of MPP1+MPP2 direct current
-    DEVICE_OK,          //!< Device OK status
-    RELAY_ON,           //!< Grid relay switched on
-    NO_WIRE             //!< Wire is not applicable
+    TOTAL,             //!< Total of L1+L2+L3 of three-phase alternating current
+    L1,                //!< Phase L1 of three-phase alternating current wire
+    L2,                //!< Phase L2 of three-phase alternating current wire
+    L3,                //!< Phase L3 of three-phase alternating current wire
+    MPP_TOTAL,         //!< Total of MPP1+MPP2 direct current
+    MPP1,              //!< MPP1 direct current wire
+    MPP2,              //!< MPP2 direct current wire
+    LOSS_TOTAL,        //!< Total of L1+L2+L3 of three-phase alternating current minus total of MPP1+MPP2 direct current
+    DEVICE_OK,         //!< Device OK status
+    RELAY_ON,          //!< Grid relay switched on
+    FEED_IN,           //!< Monetary income from grid feed-in
+    SELF_CONSUMPTION,  //!< Monetary savings from self-consumption
+    NO_WIRE            //!< Wire is not applicable
 };
 
 //! Convert Wire to a string
@@ -52,6 +54,7 @@ enum class Quantity {
     VOLTAGE,            //!< Electrical voltage
     STATUS,             //!< Device status
     EFFICIENCY,         //!< Energy efficiency
+    CURRENCY,           //!< Monetary amount
     NO_QUANTITY         //!< Quantity is not applicable
 };
 
@@ -125,6 +128,9 @@ public:
     static MeasurementType InverterRelay                (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE,     Quantity::STATUS,        "",          1); }
     static MeasurementType InverterEfficiency           (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE,     Quantity::EFFICIENCY,   "%",          1); }
     static MeasurementType InverterLoss                 (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE,     Quantity::POWER,        "W",          1); }
+
+    // pre-defined instances for miscellaneous measurement types
+    static MeasurementType Currency                     (void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE,     Quantity::CURRENCY,     "Eur",        1); }
 };
 
 
