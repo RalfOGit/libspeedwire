@@ -1,4 +1,5 @@
 #include <CalculatedValueProcessor.hpp>
+#include <LocalHost.hpp>
 
 CalculatedValueProcessor::CalculatedValueProcessor(ObisDataMap& obis_map, SpeedwireDataMap& speedwire_map, Producer& _producer) :
     obis_data_map(obis_map),
@@ -83,53 +84,71 @@ void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const
  * @param serial The serial number of the originating inverter device.
  * @param time The timestamp associated with the just finished inverter packet.
  */
-void CalculatedValueProcessor::endOfSpeedwireData(const uint32_t serial_number, const uint32_t time) {
+void CalculatedValueProcessor::endOfSpeedwireData(const uint32_t serial_number, const uint32_t timestamp) {
     SpeedwireDataMap::const_iterator value1, value2, value3, end = speedwire_data_map.end();
     SpeedwireDataMap::iterator result;
     double dc_total = 0.0;
     double ac_total = 0.0;
+    const uint32_t max_age = 120;       // maximum age of data in seconds
+    uint32_t       dc_age  = max_age;
+    uint32_t       ac_age  = max_age;
 
-    // FIXME: THIS NEEDS TO CHECK IF THE VALUES FROM THE MAP ARE TEMPORALLY CLOSE TO TIME
+    // get current time to check the age of data
+    uint64_t current_time  = LocalHost::getUnixEpochTimeInMs();
+    uint32_t inverter_time = (uint32_t)(current_time / 1000);   // inverter timestamps are in seconds
+    uint32_t emeter_time   = (uint32_t)current_time;            // emeter timestamps are in milliseconds
 
     // calculate total dc power
     if ((value1 = speedwire_data_map.find(SpeedwireData::InverterPowerMPP1.toKey())) != end &&
         (value2 = speedwire_data_map.find(SpeedwireData::InverterPowerMPP2.toKey())) != end) {
-        dc_total = value1->second.measurementValue.value + value2->second.measurementValue.value;
-        producer.produce(serial_number, SpeedwireData::InverterPowerDCTotal.measurementType, SpeedwireData::InverterPowerDCTotal.wire, dc_total);
+        dc_age = inverter_time - value1->second.measurementValue.timer;
+        if (dc_age < max_age) {
+            dc_total = value1->second.measurementValue.value + value2->second.measurementValue.value;
+            producer.produce(serial_number, SpeedwireData::InverterPowerDCTotal.measurementType, SpeedwireData::InverterPowerDCTotal.wire, dc_total);
+        }
     }
 
     // calculate total ac power
     if ((value1 = speedwire_data_map.find(SpeedwireData::InverterPowerL1.toKey())) != end &&
         (value2 = speedwire_data_map.find(SpeedwireData::InverterPowerL2.toKey())) != end &&
         (value3 = speedwire_data_map.find(SpeedwireData::InverterPowerL3.toKey())) != end) {
-        ac_total = value1->second.measurementValue.value + value2->second.measurementValue.value + value3->second.measurementValue.value;
-        producer.produce(serial_number, SpeedwireData::InverterPowerACTotal.measurementType, SpeedwireData::InverterPowerACTotal.wire, ac_total);
+        ac_age = inverter_time - value1->second.measurementValue.timer;
+        if (ac_age < max_age) {
+            ac_total = value1->second.measurementValue.value + value2->second.measurementValue.value + value3->second.measurementValue.value;
+            producer.produce(serial_number, SpeedwireData::InverterPowerACTotal.measurementType, SpeedwireData::InverterPowerACTotal.wire, ac_total);
+        }
     }
 
-    // calculate total power loss
-    double loss = dc_total - ac_total;
-    //if (loss.time != 0)
-    producer.produce(serial_number, SpeedwireData::InverterPowerLoss.measurementType, SpeedwireData::InverterPowerLoss.wire, loss);
+    if (dc_age < max_age && ac_age < max_age) {
 
-    // calculate total power efficiency
-    double efficiency = (dc_total > 0 ? (ac_total / dc_total) * 100.0 : 0.0);
-    //if (loss.time != 0)
-    producer.produce(serial_number, SpeedwireData::InverterPowerEfficiency.measurementType, SpeedwireData::InverterPowerEfficiency.wire, efficiency);
+        // calculate total power loss
+        double loss = dc_total - ac_total;
+        producer.produce(serial_number, SpeedwireData::InverterPowerLoss.measurementType, SpeedwireData::InverterPowerLoss.wire, loss);
 
-    // calculate total power consumption of the house: positive power from grid + inverter power - negative power to grid
+        // calculate total power efficiency
+        double efficiency = (dc_total > 0 ? (ac_total / dc_total) * 100.0 : 0.0);
+        producer.produce(serial_number, SpeedwireData::InverterPowerEfficiency.measurementType, SpeedwireData::InverterPowerEfficiency.wire, efficiency);
+    }
+
     ObisDataMap::const_iterator pos, neg;
     if ((pos = obis_data_map.find(ObisData::PositiveActivePowerTotal.toKey())) != obis_data_map.end() &&
         (neg = obis_data_map.find(ObisData::NegativeActivePowerTotal.toKey())) != obis_data_map.end()) {
-        double household = pos->second.measurementValue.value + ac_total - neg->second.measurementValue.value;
-        producer.produce(0xcafebabe, SpeedwireData::HouseholdPowerTotal.measurementType, SpeedwireData::HouseholdPowerTotal.wire, household);
+        uint32_t grid_age = emeter_time - pos->second.measurementValue.timer;
+        if (grid_age < max_age*1000) {
 
-        // calculate monetary income from grid feed and savings from self-consumption
-        double feed_in          = neg->second.measurementValue.value * (0.09 / 1000.0);             // assuming  9 cents per kWh
-        double self_consumption = (ac_total - neg->second.measurementValue.value) * (0.30 / 1000);  // assuming 30 cents per kWh
-        double total            = feed_in + self_consumption;
-        producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeFeedIn.measurementType,          SpeedwireData::HouseholdIncomeFeedIn.wire, feed_in);
-        producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeSelfConsumption.measurementType, SpeedwireData::HouseholdIncomeSelfConsumption.wire, self_consumption);
-        producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeTotal.measurementType,           SpeedwireData::HouseholdIncomeTotal.wire, total);
+            // calculate total power consumption of the house: positive power from grid + inverter power - negative power to grid
+            double household = pos->second.measurementValue.value + ac_total - neg->second.measurementValue.value;
+            if (household < 0.0) household = 0.0;  // this can happen if there is a steep change in solar production or energy consumption and measurements are taken at different points in time
+            producer.produce(0xcafebabe, SpeedwireData::HouseholdPowerTotal.measurementType, SpeedwireData::HouseholdPowerTotal.wire, household);
+
+            // calculate monetary income from grid feed and savings from self-consumption
+            double feed_in          = neg->second.measurementValue.value * (0.09 / 1000.0);             // assuming  9 cents per kWh
+            double self_consumption = (ac_total - neg->second.measurementValue.value) * (0.30 / 1000);  // assuming 30 cents per kWh
+            double total            = feed_in + self_consumption;
+            producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeFeedIn.measurementType,          SpeedwireData::HouseholdIncomeFeedIn.wire,          feed_in);
+            producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeSelfConsumption.measurementType, SpeedwireData::HouseholdIncomeSelfConsumption.wire, self_consumption);
+            producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeTotal.measurementType,           SpeedwireData::HouseholdIncomeTotal.wire,           total);
+        }
     }
 
     producer.flush();
