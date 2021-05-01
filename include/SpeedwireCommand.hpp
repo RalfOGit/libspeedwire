@@ -23,12 +23,12 @@ enum Command : uint32_t {
  *  Struct SpeedwireCommandToken is used to match command replies with their corresponding command queries.
  */
 typedef struct {
-    uint16_t    susyid;
-    uint32_t    serialnumber;
-    uint16_t    packetid;
-    std::string peer_ip_address;
-    uint32_t    command;
-    uint32_t    create_time;
+    uint16_t    susyid;             //!< Susyid of the speedwire device the query was send to
+    uint32_t    serialnumber;       //!< Serial number of the speedwire device the query was send to
+    uint16_t    packetid;           //!< Packet identifier of the query packet
+    std::string peer_ip_address;    //!< IP address of the speedwire device the query was send to
+    uint32_t    command;            //!< Command identifier of the query
+    uint32_t    create_time;        //!< Creation time of the query as lower 32-bit of unix epoch timestamp
 } SpeedwireCommandToken;
 
 
@@ -62,8 +62,8 @@ protected:
 class SpeedwireCommand {
 
 protected:
-    static constexpr uint16_t local_susy_id   = 0x007d;         // arbitrarily choosen susy id
-    static constexpr uint32_t local_serial_id = 0x3a28be42;     // arbitrarily choosen serial number
+    static constexpr uint16_t local_susy_id   = 0x007d;         // arbitrarily choosen local susy id
+    static constexpr uint32_t local_serial_id = 0x3a28be42;     // arbitrarily choosen local serial number
 
     const LocalHost& localhost;
     const std::vector<SpeedwireInfo> &devices;

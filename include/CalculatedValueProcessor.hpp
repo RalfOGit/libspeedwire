@@ -19,9 +19,9 @@ class CalculatedValueProcessor : public ObisConsumer, SpeedwireConsumer {
 
 protected:
 
-    ObisDataMap&       obis_data_map;
-    SpeedwireDataMap&  speedwire_data_map;
-    Producer&          producer;
+    ObisDataMap&       obis_data_map;       //!< Reference to the data map, where all received obis values reside
+    SpeedwireDataMap&  speedwire_data_map;  //!< Reference to the data map, where all received inverter values reside
+    Producer&          producer;            //!< Reference to producer to receive the consumed and calculated values
 
 public:
 

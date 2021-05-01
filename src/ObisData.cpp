@@ -4,11 +4,11 @@
 
 
 /**
- *  Constructor. 
- *  @param channel         obis measurement channel
- *  @param index           obis measurement index; i.e. measurement quantity
- *  @param type            obis measurement type
- *  @param tariff          obis tariff
+ *  Constructor.
+ *  @param channel obis measurement channel
+ *  @param index   obis measurement index; i.e. measurement quantity
+ *  @param type    obis measurement type
+ *  @param tariff  obis tariff
  */
 ObisType::ObisType(const uint8_t channel, const uint8_t index, const uint8_t type, const uint8_t tariff) {
     this->channel = channel;
@@ -71,12 +71,12 @@ ObisData::ObisData(void) :
 
 /**
  *  Constructor.
- *  @param channel         obis measurement channel
- *  @param index           obis measurement index; i.e. measurement quantity
- *  @param type            obis measurement type
- *  @param tariff          obis tariff
- *  @param mType           measurement type
- *  @param line_           measurement line
+ *  @param channel obis measurement channel
+ *  @param index   obis measurement index; i.e. measurement quantity
+ *  @param type    obis measurement type
+ *  @param tariff  obis tariff
+ *  @param mType   measurement type
+ *  @param wire_   measurement wire
  */
 ObisData::ObisData(const uint8_t channel, const uint8_t index, const uint8_t type, const uint8_t tariff,
                    const MeasurementType &mType, const Wire &wire_) : 

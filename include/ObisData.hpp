@@ -12,7 +12,7 @@
 
 
 /**
- *  Class encapsulating an obis data definition used inside speedwire emeter packets 
+ *  Class encapsulating an obis data definition used inside speedwire emeter packets.
  */
 class ObisType {
 public:
@@ -36,7 +36,7 @@ public:
 
 
 /**
- *  Class holding an emeter measurement together with its corresponding ObisType definition and its MeasurementType definition
+ *  Class holding an emeter measurement together with its corresponding ObisType definition and its MeasurementType definition.
  */
 class ObisData : public ObisType {
 public:

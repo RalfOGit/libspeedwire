@@ -15,17 +15,17 @@ public:
 
     /**
      * Callback to produce the given obis data to the next stage in the processing pipeline.
-     * @param serial The serial number of the originating emeter device.
+     * @param serial_number The serial number of the originating emeter device.
      * @param element A reference to a received ObisData instance, holding output data of the ObisFilter.
      */
-    virtual void consume(const uint32_t serial, ObisData& element) = 0;
+    virtual void consume(const uint32_t serial_number, ObisData& element) = 0;
 
     /**
      * Callboack to notify that the last obis data in the emeter packet has been processed.
-     * @param serial The serial number of the originating emeter device.
-     * @param time The timestamp associated with the just finished emeter packet.
+     * @param serial_number The serial number of the originating emeter device.
+     * @param timestamp The timestamp associated with the just finished emeter packet.
      */
-    virtual void endOfObisData(const uint32_t serial_number, const uint32_t time) {}
+    virtual void endOfObisData(const uint32_t serial_number, const uint32_t timestamp) {}
 };
 
 
@@ -39,17 +39,17 @@ public:
 
     /**
      * Consume a speedwire reply data element
-     * @param serial The serial number of the originating inverter device.
+     * @param serial_number The serial number of the originating inverter device.
      * @param element A reference to a received SpeedwireData instance.
      */
-    virtual void consume(const uint32_t serial, SpeedwireData& element) = 0;
+    virtual void consume(const uint32_t serial_number, SpeedwireData& element) = 0;
 
     /**
      * Callboack to notify that the last data in the inverter packet has been processed.
-     * @param serial The serial number of the originating inverter device.
-     * @param time The timestamp associated with the just finished inverter packet.
+     * @param serial_number The serial number of the originating inverter device.
+     * @param timestamp The timestamp associated with the just finished inverter packet.
      */
-    virtual void endOfSpeedwireData(const uint32_t serial_number, const uint32_t time) {}
+    virtual void endOfSpeedwireData(const uint32_t serial_number, const uint32_t timestamp) {}
 };
 
 #endif

@@ -17,11 +17,14 @@ static Logger logger("SpeedwireReceiveDispatcher");
 
 
 /**
- *  Constructor and destructor
+ * Constructor.
  */
 SpeedwireReceiveDispatcher::SpeedwireReceiveDispatcher(LocalHost& _localhost)
   : localhost(_localhost) {}
 
+/**
+ * Destructor. Clears all receivers and pollfds.
+ */
 SpeedwireReceiveDispatcher::~SpeedwireReceiveDispatcher(void) {
     receivers.clear();
     pollfds.clear();
@@ -29,7 +32,14 @@ SpeedwireReceiveDispatcher::~SpeedwireReceiveDispatcher(void) {
 
 
 /**
- *  Dispatch method - polls on all given sockets and dispatches to registered receivers
+ * Dispatch method - polls on all given sockets and dispatches received packets to their corresponding registered receivers.
+ * The implementation is implemented as a synchronous receive methods. A timeout can be provided to cancel the receive after
+ * some given time period. After receiving a packet it is checked to make sure it starts with a valid sma speedwire packet
+ * header followed by either valid emeter data or inverter data. Depending on the protocol id, the packet is then forwarded
+ * to any registered corresponding receiver. Packets failing the validity check are silently ignored.
+ * @param sockets Reference to an array of sockets
+ * @param poll_timeout_in_ms Poll timeout in milliseconds
+ * @return Returns the number of received packets, or 0 in case of timeout.
  */
 int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& sockets, const int poll_timeout_in_ms) {
     int npackets = 0;
@@ -144,19 +154,28 @@ int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& so
 
 
 /**
- *  Registration methods for receivers
+ * Register a receiver for speedwire packets belonging to protocol id 0x0000.
+ * @param receiver Reference to the packet receiver instance.
  */
-void SpeedwireReceiveDispatcher::registerReceiver(SpeedwirePacketReceiverBase *receiver) {
-    receiver->protocolID = 0x0000;
-    receivers.push_back(receiver);
+void SpeedwireReceiveDispatcher::registerReceiver(SpeedwirePacketReceiverBase& receiver) {
+    receiver.protocolID = 0x0000;
+    receivers.push_back(&receiver);
 }
 
-void SpeedwireReceiveDispatcher::registerReceiver(EmeterPacketReceiverBase *receiver) {
-    receiver->protocolID = SpeedwireHeader::sma_emeter_protocol_id;
-    receivers.push_back(receiver);
+/**
+ * Register a receiver for speedwire emeter packets belonging to protocol id SpeedwireHeader::sma_emeter_protocol_id.
+ * @param receiver Reference to the packet receiver instance.
+ */
+void SpeedwireReceiveDispatcher::registerReceiver(EmeterPacketReceiverBase& receiver) {
+    receiver.protocolID = SpeedwireHeader::sma_emeter_protocol_id;
+    receivers.push_back(&receiver);
 }
 
-void SpeedwireReceiveDispatcher::registerReceiver(InverterPacketReceiverBase *receiver) {
-    receiver->protocolID = SpeedwireHeader::sma_inverter_protocol_id;
-    receivers.push_back(receiver);
+/**
+ * Register a receiver for speedwire inverter packets belonging to protocol id SpeedwireHeader::sma_inverter_protocol_id.
+ * @param receiver Reference to the packet receiver instance.
+ */
+void SpeedwireReceiveDispatcher::registerReceiver(InverterPacketReceiverBase& receiver) {
+    receiver.protocolID = SpeedwireHeader::sma_inverter_protocol_id;
+    receivers.push_back(&receiver);
 }

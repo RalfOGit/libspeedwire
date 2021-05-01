@@ -5,9 +5,8 @@
 
 
 /**
- * Constructor of the DataProcesor instance.
- * @param averagingTime Constant averaging time for data received from any of the emeter or inverter data inputs.
- * @param producer Reference to the data producer that will receive the data after processing it in this instance.
+ * Constructor of the AveragingProcessor instance.
+ * @param averaging_time Constant averaging time for data received from any of the emeter or inverter data inputs.
  */
 AveragingProcessor::AveragingProcessor(const unsigned long averaging_time) :
     averagingTime(averaging_time) {}
@@ -21,7 +20,8 @@ AveragingProcessor::~AveragingProcessor(void) {}
 
 /**
  * Initialize/add a block of state keeping variables for averaging measurement value of the given device.
- * @param device The device identifier.
+ * @param serial_number The serial number of the device.
+ * @param device_type The device identifier.
  * @return Index of the newly initialized/added variable block in vector states.
  */
 int AveragingProcessor::initializeState(const uint32_t serial_number, const DeviceType& device_type) {
@@ -39,7 +39,7 @@ int AveragingProcessor::initializeState(const uint32_t serial_number, const Devi
 
 /**
  * Find block of state keeping variables for averaging measurement value of the given device.
- * @param device The device identifier.
+ * @param serial_number The serial number of the device.
  * @return Index of the variable block in vector states, or -1 if there is none.
  */
 int AveragingProcessor::findStateIndex(const uint32_t serial_number) {
@@ -53,15 +53,17 @@ int AveragingProcessor::findStateIndex(const uint32_t serial_number) {
 
 
 /**
- *  Add an obis consumer to receive the result of the AveragingProcessor.
+ * Add an obis consumer to receive the result of the AveragingProcessor.
+ * @param obis_consumer Reference to the ObisConsumer.
  */
-void AveragingProcessor::addConsumer(ObisConsumer& obisConsumer) {
-    obisConsumerTable.push_back(&obisConsumer);
+void AveragingProcessor::addConsumer(ObisConsumer& obis_consumer) {
+    obisConsumerTable.push_back(&obis_consumer);
 }
 
 
 /**
- *  Add an obis consumer to receive the result of the AveragingProcessor.
+ * Add an speedwire consumer to receive the result of the AveragingProcessor.
+ * @param speedwire_consumer Reference to the SpeedwireConsumer.
  */
 void AveragingProcessor::addConsumer(SpeedwireConsumer& speedwire_consumer) {
     speedwireConsumerTable.push_back(&speedwire_consumer);
@@ -70,10 +72,10 @@ void AveragingProcessor::addConsumer(SpeedwireConsumer& speedwire_consumer) {
 
 /**
  * Internal implementation for temporal averaging of emeter obis values or inverter values.
- * @param device The device identifier.
+ * @param serial_number The serial number of the device.
+ * @param device_type The device type.
  * @param type The measurement type.
  * @param measurement The measurement value.
- * @param wire The wire identifier.
  * @return true if the averaging time perios has elapsed, false otherwise.
  */
 bool AveragingProcessor::process(const uint32_t serial_number, const DeviceType& device_type, MeasurementType& type, MeasurementValue& measurement) {
@@ -128,7 +130,7 @@ bool AveragingProcessor::process(const uint32_t serial_number, const DeviceType&
 
 /**
  * Callback to consume the given obis data element - implements the temporal averaging of obis values.
- * @param serial The serial number of the originating emeter device.
+ * @param serial_number The serial number of the originating emeter device.
  * @param element A reference to an ObisData instance, holding output data of the ObisFilter.
  */
 void AveragingProcessor::consume(const uint32_t serial_number, ObisData &element) {
@@ -143,7 +145,7 @@ void AveragingProcessor::consume(const uint32_t serial_number, ObisData &element
 
 /**
  * Callback to consume the given inverter reply data element - implements the temporal averaging of inverter values.
- * @param serial The serial number of the originating inverter device.
+ * @param serial_number The serial number of the originating inverter device.
  * @param element A reference to an SpeedwireData instance.
  */
 void AveragingProcessor::consume(const uint32_t serial_number, SpeedwireData& element) {
@@ -158,7 +160,7 @@ void AveragingProcessor::consume(const uint32_t serial_number, SpeedwireData& el
 
 /**
  * Callback to notify that the last obis data in the emeter packet has been processed.
- * @param serial The serial number of the originating emeter device.
+ * @param serial_number The serial number of the originating emeter device.
  * @param time The timestamp associated with the just finished emeter packet.
  */
 void AveragingProcessor::endOfObisData(const uint32_t serial_number, const uint32_t time) {
@@ -174,7 +176,7 @@ void AveragingProcessor::endOfObisData(const uint32_t serial_number, const uint3
 
 /**
  * Callback to notify that the last obis data in the inverter packet has been processed.
- * @param serial The serial number of the originating inverter device.
+ * @param serial_number The serial number of the originating inverter device.
  * @param time The timestamp associated with the just finished inverter packet.
  */
 void AveragingProcessor::endOfSpeedwireData(const uint32_t serial_number, const uint32_t time) {

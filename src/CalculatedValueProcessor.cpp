@@ -1,18 +1,29 @@
 #include <CalculatedValueProcessor.hpp>
 #include <LocalHost.hpp>
 
+
+/**
+ * Constructor of the CalculatedValueProcessor instance.
+ * @param obis_map       Reference to the data map, where all received obis values reside.
+ * @param speedwire_map  Reference to the data map, where all received inverter values reside.
+ * @param _producer      Reference to producer to receive the consumed and calculated values.
+ */
 CalculatedValueProcessor::CalculatedValueProcessor(ObisDataMap& obis_map, SpeedwireDataMap& speedwire_map, Producer& _producer) :
     obis_data_map(obis_map),
     speedwire_data_map(speedwire_map),
     producer(_producer) {
 }
 
+
+/**
+ * Destructor.
+ */
 CalculatedValueProcessor::~CalculatedValueProcessor(void) { }
 
 
 /**
  * Callback to produce the given obis data to the next stage in the processing pipeline.
- * @param serial The serial number of the originating emeter device.
+ * @param serial_number The serial number of the originating emeter device.
  * @param element A reference to a received ObisData instance, holding output data of the ObisFilter.
  */
 void CalculatedValueProcessor::consume(const uint32_t serial_number, ObisData& element) {
@@ -22,7 +33,7 @@ void CalculatedValueProcessor::consume(const uint32_t serial_number, ObisData& e
 
 /**
  * Consume a speedwire reply data element
- * @param serial The serial number of the originating inverter device.
+ * @param serial_number The serial number of the originating inverter device.
  * @param element A reference to a received SpeedwireData instance.
  */
 void CalculatedValueProcessor::consume(const uint32_t serial_number, SpeedwireData& element) {
@@ -32,10 +43,10 @@ void CalculatedValueProcessor::consume(const uint32_t serial_number, SpeedwireDa
 
 /**
  * Callback to notify that the last obis data in the emeter packet has been processed.
- * @param serial The serial number of the originating emeter device.
- * @param time The timestamp associated with the just finished emeter packet.
+ * @param serial_number The serial number of the originating emeter device.
+ * @param timestamp The timestamp associated with the just finished emeter packet.
  */
-void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const uint32_t time) {
+void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const uint32_t timestamp) {
     ObisDataMap::const_iterator pos, neg, end = obis_data_map.end();
     ObisDataMap::iterator sig;
 
@@ -44,7 +55,7 @@ void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const
         (neg = obis_data_map.find(ObisData::NegativeActivePowerL1.toKey())) != end &&
         (sig = obis_data_map.find(ObisData::SignedActivePowerL1.toKey())) != end) {
         sig->second.measurementValue.value = pos->second.measurementValue.value - neg->second.measurementValue.value;
-        sig->second.measurementValue.timer = time;
+        sig->second.measurementValue.timer = timestamp;
         producer.produce(serial_number, ObisData::SignedActivePowerL1.measurementType, ObisData::SignedActivePowerL1.wire, sig->second.measurementValue.value);
     }
 
@@ -53,7 +64,7 @@ void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const
         (neg = obis_data_map.find(ObisData::NegativeActivePowerL2.toKey())) != end &&
         (sig = obis_data_map.find(ObisData::SignedActivePowerL2.toKey())) != end) {
         sig->second.measurementValue.value = pos->second.measurementValue.value - neg->second.measurementValue.value;
-        sig->second.measurementValue.timer = time;
+        sig->second.measurementValue.timer = timestamp;
         producer.produce(serial_number, ObisData::SignedActivePowerL2.measurementType, ObisData::SignedActivePowerL2.wire, sig->second.measurementValue.value);
     }
 
@@ -62,7 +73,7 @@ void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const
         (neg = obis_data_map.find(ObisData::NegativeActivePowerL3.toKey())) != end &&
         (sig = obis_data_map.find(ObisData::SignedActivePowerL3.toKey())) != end) {
         sig->second.measurementValue.value = pos->second.measurementValue.value - neg->second.measurementValue.value;
-        sig->second.measurementValue.timer = time;
+        sig->second.measurementValue.timer = timestamp;
         producer.produce(serial_number, ObisData::SignedActivePowerL3.measurementType, ObisData::SignedActivePowerL3.wire, sig->second.measurementValue.value);
     }
 
@@ -71,7 +82,7 @@ void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const
         (neg = obis_data_map.find(ObisData::NegativeActivePowerTotal.toKey())) != end &&
         (sig = obis_data_map.find(ObisData::SignedActivePowerTotal.toKey())) != end) {
         sig->second.measurementValue.value = pos->second.measurementValue.value - neg->second.measurementValue.value;
-        sig->second.measurementValue.timer = time;
+        sig->second.measurementValue.timer = timestamp;
         producer.produce(serial_number, ObisData::SignedActivePowerTotal.measurementType, ObisData::SignedActivePowerTotal.wire, sig->second.measurementValue.value);
     }
 
@@ -81,8 +92,8 @@ void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const
 
 /**
  * Callback to notify that the last data in the inverter packet has been processed.
- * @param serial The serial number of the originating inverter device.
- * @param time The timestamp associated with the just finished inverter packet.
+ * @param serial_number The serial number of the originating inverter device.
+ * @param timestamp The timestamp associated with the just finished inverter packet.
  */
 void CalculatedValueProcessor::endOfSpeedwireData(const uint32_t serial_number, const uint32_t timestamp) {
     SpeedwireDataMap::const_iterator value1, value2, value3, end = speedwire_data_map.end();

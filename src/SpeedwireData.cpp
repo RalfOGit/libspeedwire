@@ -99,13 +99,13 @@ std::string SpeedwireRawData::toString(const uint64_t value) const {
 
 /**
  *  Constructor
- *  @param _command The inverter/battéry command belonging to this raw data reply
- *  @param _id The register id
- *  @param _conn The connection number
- *  @param _type The type
- *  @param _time The packet time
- *  @param _data The binary data
- *  @param _data_size The size of the binary data
+ *  @param command The inverter/battéry command belonging to this raw data reply
+ *  @param id The register id
+ *  @param conn The connection number
+ *  @param type The type
+ *  @param time The packet time
+ *  @param data The binary data
+ *  @param data_size The size of the binary data
  *  @param mType The MeasurementType
  *  @param _wire The Wire
  */
