@@ -14,13 +14,13 @@ SpeedwireSocketFactory* SpeedwireSocketFactory::getInstance(const LocalHost& loc
     // choose a socket strategy depending on the host operating system
 #ifdef _WIN32
     // for windows hosts, the following strategies will work
-    //Strategy strategy = SocketStrategy::ONE_SOCKET_FOR_EACH_INTERFACE;
+    //SocketStrategy strategy = SocketStrategy::ONE_SOCKET_FOR_EACH_INTERFACE;
     SocketStrategy strategy = SocketStrategy::ONE_MULTICAST_SOCKET_AND_ONE_UNICAST_SOCKET_FOR_EACH_INTERFACE;
-    //Strategy strategy = SocketStrategy::ONE_SINGLE_SOCKET;
+    //SocketStrategy strategy = SocketStrategy::ONE_SINGLE_SOCKET;
 #else 
     // for linux hosts, the following strategies will work
-    Strategy strategy = SocketStrategy::ONE_MULTICAST_SOCKET_AND_ONE_UNICAST_SOCKET_FOR_EACH_INTERFACE;
-    //Strategy strategy = SocketStrategy::ONE_SINGLE_SOCKET;
+    SocketStrategy strategy = SocketStrategy::ONE_MULTICAST_SOCKET_AND_ONE_UNICAST_SOCKET_FOR_EACH_INTERFACE;
+    //SocketStrategy strategy = SocketStrategy::ONE_SINGLE_SOCKET;
 #endif
     return getInstance(localhost, strategy);
 }
