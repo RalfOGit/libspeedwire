@@ -32,7 +32,7 @@ SpeedwireCommand::SpeedwireCommand(const LocalHost &_localhost, const std::vecto
         // check if there is already a map entry for the interface ip address
         if (socket_map.find(device.interface_ip_address) == socket_map.end()) {
             // create and open a socket for the interface
-            SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getRecvSocket(SpeedwireSocketFactory::UNICAST, device.interface_ip_address);
+            SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getRecvSocket(SpeedwireSocketFactory::SocketType::UNICAST, device.interface_ip_address);
             if (socket.getSocketFd() >= 0) {
                 // add it to the map
                 socket_map[device.interface_ip_address] = (SocketIndex)sockets.size();
