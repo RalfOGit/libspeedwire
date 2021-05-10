@@ -1,6 +1,8 @@
 # speedwire-lib
 Code implementing a SMA Speedwire(TM) access library. It implements a full parser for the sma header and the emeter datagram structure, including obis filtering. In addition, it implements some parsing functionality for inverter query and response datagrams.
 
+The software comes as is. No warrantees whatsoever are given and no responsibility is assumed in case of failure or damage being caused to your wallbox.
+
 Useful examples on how to use this library can be found in the accompanying repositories:
 - https://github.com/RalfOGit/sma-emeter-and-inverter-to-influxdb-cpp,
 - https://github.com/RalfOGit/sma-emeter-simulator,
