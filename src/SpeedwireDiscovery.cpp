@@ -25,6 +25,7 @@
 #include <SpeedwireSocket.hpp>
 #include <SpeedwireSocketFactory.hpp>
 #include <SpeedwireDiscovery.hpp>
+using namespace libspeedwire;
 
 
 //! Multicast device discovery request packet, according to SMA documentation.

@@ -2,6 +2,7 @@
 #include <cstdarg>
 #include <Logger.hpp>
 #include <LocalHost.hpp>
+using namespace libspeedwire;
 
 //#define PRINT_TIMESTAMP
 

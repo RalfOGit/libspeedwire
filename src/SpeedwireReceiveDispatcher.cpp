@@ -12,6 +12,7 @@
 #include <AddressConversion.hpp>
 #include <Logger.hpp>
 #include <SpeedwireReceiveDispatcher.hpp>
+using namespace libspeedwire;
 
 static Logger logger("SpeedwireReceiveDispatcher");
 

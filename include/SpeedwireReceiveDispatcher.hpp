@@ -1,5 +1,5 @@
-#ifndef __SPEEDWIRERECEIVEDISPATCHER_HPP__
-#define __SPEEDWIRERECEIVEDISPATCHER_HPP__
+#ifndef __LIBSPEEDWIRE_SPEEDWIRERECEIVEDISPATCHER_HPP__
+#define __LIBSPEEDWIRE_SPEEDWIRERECEIVEDISPATCHER_HPP__
 
 #include <vector>
 #include <LocalHost.hpp>
@@ -8,96 +8,99 @@
 #include <SpeedwireInverterProtocol.hpp>
 #include <SpeedwireSocket.hpp>
 
-
-/**
- * Interface to be implemented by any packet receiver.
- */
-class SpeedwirePacketReceiverBase {
-public:
-    uint16_t protocolID;        //!< Protocol ID that the receiver is convrigured to receive
+namespace libspeedwire {
 
     /**
-     * Constructor - must be overridden; it initialzes protocolID to 0x0000.
-     * @param host Reference to LocalHost instance.
+     * Interface to be implemented by any packet receiver.
      */
-    SpeedwirePacketReceiverBase(LocalHost& host) : protocolID(0x0000) {}
+    class SpeedwirePacketReceiverBase {
+    public:
+        uint16_t protocolID;        //!< Protocol ID that the receiver is convrigured to receive
+
+        /**
+         * Constructor - must be overridden; it initialzes protocolID to 0x0000.
+         * @param host Reference to LocalHost instance.
+         */
+        SpeedwirePacketReceiverBase(LocalHost& host) : protocolID(0x0000) {}
+
+        /**
+         * Virtual receive method - must be overriden.
+         * @param packet Reference to a packet instance that was received from the socket.
+         * @param src Reference to a socket address with the ip address and port of the packet sender.
+         */
+        virtual void receive(SpeedwireHeader& packet, struct sockaddr& src) = 0;
+    };
+
 
     /**
-     * Virtual receive method - must be overriden.
-     * @param packet Reference to a packet instance that was received from the socket.
-     * @param src Reference to a socket address with the ip address and port of the packet sender.
+     * Interface to beimplemented by emeter packet receivers.
      */
-    virtual void receive(SpeedwireHeader& packet, struct sockaddr& src) = 0;
-};
+    class EmeterPacketReceiverBase : public SpeedwirePacketReceiverBase {
+    public:
 
+        /**
+         * Constructor - it initialzes protocolID to SpeedwireHeader::sma_emeter_protocol_id.
+         * @param host Reference to LocalHost instance.
+         */
+        EmeterPacketReceiverBase(LocalHost& host) : SpeedwirePacketReceiverBase(host) {
+            protocolID = SpeedwireHeader::sma_emeter_protocol_id;
+        }
 
-/**
- * Interface to beimplemented by emeter packet receivers.
- */
-class EmeterPacketReceiverBase : public SpeedwirePacketReceiverBase {
-public:
+        /**
+         * Virtual receive method - must be overriden.
+         * @param packet Reference to a packet instance that was received from the socket.
+         * @param src Reference to a socket address with the ip address and port of the packet sender.
+         */
+        virtual void receive(SpeedwireHeader& packet, struct sockaddr& src) = 0;
+    };
+
 
     /**
-     * Constructor - it initialzes protocolID to SpeedwireHeader::sma_emeter_protocol_id.
-     * @param host Reference to LocalHost instance.
+     * Interface to beimplemented by inverter packet receivers.
      */
-    EmeterPacketReceiverBase(LocalHost& host) : SpeedwirePacketReceiverBase(host) {
-        protocolID = SpeedwireHeader::sma_emeter_protocol_id;
-    }
+    class InverterPacketReceiverBase : public SpeedwirePacketReceiverBase {
+    public:
+
+        /**
+         * Constructor - it initialzes protocolID to SpeedwireHeader::sma_inverter_protocol_id.
+         * @param host Reference to LocalHost instance.
+         */
+        InverterPacketReceiverBase(LocalHost& host) : SpeedwirePacketReceiverBase(host) {
+            protocolID = SpeedwireHeader::sma_inverter_protocol_id;
+        }
+
+        /**
+         * Virtual receive method - must be overriden.
+         * @param packet Reference to a packet instance that was received from the socket.
+         * @param src Reference to a socket address with the ip address and port of the packet sender.
+         */
+        virtual void receive(SpeedwireHeader& packet, struct sockaddr& src) = 0;
+    };
+
 
     /**
-     * Virtual receive method - must be overriden.
-     * @param packet Reference to a packet instance that was received from the socket.
-     * @param src Reference to a socket address with the ip address and port of the packet sender.
+     * Class implementing a receiver and dispatcher for speedwire packets.
+     * Classes interested in receiving speedwire packets can register themselves to this class. Calls to
+     * the dispatch method poll all given sockets, receive packet data, check its validity and dispatches
+     * the packet to any corresponding registered receiver.
      */
-    virtual void receive(SpeedwireHeader& packet, struct sockaddr& src) = 0;
-};
+    class SpeedwireReceiveDispatcher {
+    protected:
+        LocalHost& localhost;
+        std::vector<SpeedwirePacketReceiverBase*> receivers;
+        std::vector<struct pollfd> pollfds;
 
+    public:
+        SpeedwireReceiveDispatcher(LocalHost& localhost);
+        ~SpeedwireReceiveDispatcher(void);
 
-/**
- * Interface to beimplemented by inverter packet receivers.
- */
-class InverterPacketReceiverBase : public SpeedwirePacketReceiverBase {
-public:
+        int  dispatch(const std::vector<SpeedwireSocket>& sockets, const int poll_timeout_in_ms);
 
-    /**
-     * Constructor - it initialzes protocolID to SpeedwireHeader::sma_inverter_protocol_id.
-     * @param host Reference to LocalHost instance.
-     */
-    InverterPacketReceiverBase(LocalHost& host) : SpeedwirePacketReceiverBase(host) {
-        protocolID = SpeedwireHeader::sma_inverter_protocol_id;
-    }
+        void registerReceiver(SpeedwirePacketReceiverBase& receiver);
+        void registerReceiver(EmeterPacketReceiverBase& receiver);
+        void registerReceiver(InverterPacketReceiverBase& receiver);
+    };
 
-    /**
-     * Virtual receive method - must be overriden.
-     * @param packet Reference to a packet instance that was received from the socket.
-     * @param src Reference to a socket address with the ip address and port of the packet sender.
-     */
-    virtual void receive(SpeedwireHeader& packet, struct sockaddr& src) = 0;
-};
-
-
-/**
- * Class implementing a receiver and dispatcher for speedwire packets.
- * Classes interested in receiving speedwire packets can register themselves to this class. Calls to
- * the dispatch method poll all given sockets, receive packet data, check its validity and dispatches
- * the packet to any corresponding registered receiver.
- */
-class SpeedwireReceiveDispatcher {
-protected:
-    LocalHost& localhost;
-    std::vector<SpeedwirePacketReceiverBase*> receivers;
-    std::vector<struct pollfd> pollfds;
-
-public:
-    SpeedwireReceiveDispatcher(LocalHost& localhost);
-    ~SpeedwireReceiveDispatcher(void);
-
-    int  dispatch(const std::vector<SpeedwireSocket>& sockets, const int poll_timeout_in_ms);
-
-    void registerReceiver(SpeedwirePacketReceiverBase& receiver);
-    void registerReceiver(EmeterPacketReceiverBase&    receiver);
-    void registerReceiver(InverterPacketReceiverBase&  receiver);
-};
+}   // namespace libspeedwire
 
 #endif

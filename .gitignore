@@ -4,3 +4,4 @@ doc/
 .vs/
 .vscode/
 *.tar
+CMakeSettings.json

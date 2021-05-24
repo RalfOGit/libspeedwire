@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <SpeedwireByteEncoding.hpp>
 #include <SpeedwireEmeterProtocol.hpp>
+using namespace libspeedwire;
 
 
 //SpeedwireEmeterProtocol::SpeedwireEmeterProtocol(const void *const udp_packet, const unsigned long udp_packet_len) {

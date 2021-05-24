@@ -22,6 +22,7 @@
 #include <LocalHost.hpp>
 #include <AddressConversion.hpp>
 #include <SpeedwireSocketSimple.hpp>
+using namespace libspeedwire;
 
 
 const char      *SpeedwireSocketSimple::multicast_group = "239.12.255.254";

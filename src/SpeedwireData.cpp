@@ -2,6 +2,7 @@
 #include <SpeedwireByteEncoding.hpp>
 #include <SpeedwireData.hpp>
 #include <SpeedwireCommand.hpp>
+using namespace libspeedwire;
 
 
 /*******************************

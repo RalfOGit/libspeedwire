@@ -5,6 +5,7 @@
 #endif
 #include <memory.h>         // for memcpy()
 #include <SpeedwireByteEncoding.hpp>
+using namespace libspeedwire;
 
 
 //! Get a uint8_t value from the given void* address

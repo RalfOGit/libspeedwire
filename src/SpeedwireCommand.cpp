@@ -20,6 +20,7 @@
 #include <SpeedwireSocket.hpp>
 #include <SpeedwireSocketFactory.hpp>
 #include <SpeedwireCommand.hpp>
+using namespace libspeedwire;
 
 static Logger logger("SpeedwireCommand");
 

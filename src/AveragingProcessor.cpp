@@ -2,6 +2,7 @@
 #include <AveragingProcessor.hpp>
 #include <Measurement.hpp>
 #include <Producer.hpp>
+using namespace libspeedwire;
 
 
 /**

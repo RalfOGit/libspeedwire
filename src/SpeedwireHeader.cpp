@@ -1,6 +1,7 @@
 #include <memory.h>
 #include <SpeedwireByteEncoding.hpp>
 #include <SpeedwireHeader.hpp>
+using namespace libspeedwire;
 
 const uint8_t  SpeedwireHeader::sma_signature[4] = { 0x53, 0x4d, 0x41, 0x00 };     //!< SMA signature: 0x53, 0x4d, 0x41, 0x00 <=> "SMA\0"
 const uint8_t  SpeedwireHeader::sma_tag0[4]      = { 0x00, 0x04, 0x02, 0xa0 };     //!< SMA tag0: 0x00, 0x04, 0x02, 0xa0 <=> length: 0x0004  tag: 0x02a0;

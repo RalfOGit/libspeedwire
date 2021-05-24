@@ -1,4 +1,5 @@
 #include <Measurement.hpp>
+using namespace libspeedwire;
 
 
 /**
@@ -81,7 +82,7 @@ void MeasurementValue::setTimer(uint32_t time) {
 
 /*******************************/
 
-std::string toString(const Direction direction) {
+std::string libspeedwire::toString(const Direction direction) {
     if (direction == Direction::POSITIVE) return "positive";
     if (direction == Direction::NEGATIVE) return "negative";
     if (direction == Direction::SIGNED)   return "signed";
@@ -89,7 +90,7 @@ std::string toString(const Direction direction) {
     return "undefined direction";
 }
 
-std::string toString(const Wire wire) {
+std::string libspeedwire::toString(const Wire wire) {
     switch (wire) {
         case Wire::TOTAL:            return "total";
         case Wire::L1:               return "l1";
@@ -108,7 +109,7 @@ std::string toString(const Wire wire) {
     return "undefined wire";
 }
 
-std::string toString(const Quantity quantity) {
+std::string libspeedwire::toString(const Quantity quantity) {
     switch (quantity) {
         case Quantity::POWER:        return "power";
         case Quantity::ENERGY:       return "energy";
@@ -123,11 +124,11 @@ std::string toString(const Quantity quantity) {
     return "undefined quantity";
 }
 
-bool isInstantaneous(const Quantity quantity) {
+bool libspeedwire::isInstantaneous(const Quantity quantity) {
     return (quantity != Quantity::ENERGY);
 }
 
-std::string toString(const Type type) {
+std::string libspeedwire::toString(const Type type) {
     switch(type) {
         case Type::ACTIVE:      return "active";
         case Type::REACTIVE:    return "reactive";

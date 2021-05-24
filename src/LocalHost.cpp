@@ -22,6 +22,7 @@
 
 #include <LocalHost.hpp>
 #include <AddressConversion.hpp>
+using namespace libspeedwire;
 
 LocalHost *LocalHost::instance = NULL;
 

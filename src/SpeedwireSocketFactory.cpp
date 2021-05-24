@@ -1,4 +1,5 @@
 #include <SpeedwireSocketFactory.hpp>
+using namespace libspeedwire;
 
 
 //! The static instance variable

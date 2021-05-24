@@ -4,6 +4,7 @@
 #include <vector>
 #include <SpeedwireSocket.hpp>
 #include <AddressConversion.hpp>
+using namespace libspeedwire;
 
 
 /**

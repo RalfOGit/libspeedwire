@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <SpeedwireByteEncoding.hpp>
 #include <SpeedwireInverterProtocol.hpp>
+using namespace libspeedwire;
 
 
 //SpeedwireInverterProtocol::SpeedwireInverterProtocol(const void* const udp_packet, const unsigned long udp_packet_len) {

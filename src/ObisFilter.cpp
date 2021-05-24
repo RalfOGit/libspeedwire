@@ -1,5 +1,6 @@
 #include <ObisFilter.hpp>
 #include <SpeedwireEmeterProtocol.hpp>
+using namespace libspeedwire;
 
 
 ObisFilter::ObisFilter(void) {

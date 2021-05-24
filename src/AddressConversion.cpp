@@ -20,6 +20,7 @@
 #endif
 
 #include <AddressConversion.hpp>
+using namespace libspeedwire;
 
 
 /**

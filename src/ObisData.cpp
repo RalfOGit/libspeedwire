@@ -1,6 +1,7 @@
 #include <ObisData.hpp>
 #include <SpeedwireEmeterProtocol.hpp>
 #pragma warning( disable : 4996 )  // disable sscanf_s suggestion
+using namespace libspeedwire;
 
 
 /**

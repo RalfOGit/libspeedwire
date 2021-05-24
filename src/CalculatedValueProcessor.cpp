@@ -1,5 +1,6 @@
 #include <CalculatedValueProcessor.hpp>
 #include <LocalHost.hpp>
+using namespace libspeedwire;
 
 
 /**
