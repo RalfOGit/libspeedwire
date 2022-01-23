@@ -1,13 +1,12 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <cstring>
 #include <stdio.h>
-#include <time.h>
+#include <chrono>
 
 #ifdef _WIN32
 #include <Winsock2.h>
 #include <Ws2tcpip.h>
 #include <iphlpapi.h>
-#include <chrono>
 #else
 #include <unistd.h>
 #include <sys/types.h>
@@ -376,14 +375,21 @@ void LocalHost::sleep(uint32_t millis) {
  *  Platform neutral method to get a tick count provided in ms ticks; this is useful for timing purposes.
  */
 uint64_t LocalHost::getTickCountInMs(void) {  // return a tick counter with ms resolution
-#ifdef _WIN32
+#if 1
+    std::chrono::steady_clock::time_point time = std::chrono::steady_clock::now();
+    auto time_in_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(time);
+    return time_in_ms.time_since_epoch().count();   // this is not relative to the unix epoch(!)
+#else
+    // fallback code, in case std::chrono cannot be used
+#ifdef WIN32
     return GetTickCount64();
 #else
     struct timespec spec;
     if (clock_gettime(CLOCK_MONOTONIC, &spec) == -1) {
-        abort();
+        perror("clock_gettime(CLOCK_MONOTONIC,) failure");
     }
-    return spec.tv_sec * 1000 + spec.tv_nsec / 1e6;
+    return spec.tv_sec * 1000 + spec.tv_nsec / 1000000;
+#endif
 #endif
 }
 
@@ -392,17 +398,28 @@ uint64_t LocalHost::getTickCountInMs(void) {  // return a tick counter with ms r
  *  Platform neutral method to get the unix epoch time in ms.
  */
 uint64_t LocalHost::getUnixEpochTimeInMs(void) {
-#ifdef _WIN32
+#if 1
     std::chrono::system_clock::duration time = std::chrono::system_clock::now().time_since_epoch();
-    std::chrono::system_clock::period period = std::chrono::system_clock::period();
-    return (time.count() * period.num) / (period.den/1000);
+    std::chrono::milliseconds time_in_ms = std::chrono::duration_cast<std::chrono::milliseconds>(time);
+    return time_in_ms.count();
 #else
+    // fallback code, in case std::chrono cannot be used
     struct timespec spec;
     if (clock_gettime(CLOCK_REALTIME, &spec) == -1) {
-        abort();
+        perror("clock_gettime(CLOCK_REALTIME,) failure");
     }
-    return spec.tv_sec * 1000 + spec.tv_nsec / 1e6;
+    return spec.tv_sec * 1000 + spec.tv_nsec / 1000000;
 #endif
+}
+
+
+/**
+ *  Calculate the absolute time difference between time1 and time2
+ */
+uint64_t LocalHost::calculateAbsTimeDifference(uint64_t time1, uint64_t time2) {
+    int64_t signed_diff = (int64_t)(time1 - time2);
+    uint64_t abs_diff = (signed_diff >= 0 ? signed_diff : -signed_diff);
+    return abs_diff;
 }
 
 

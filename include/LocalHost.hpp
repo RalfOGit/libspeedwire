@@ -77,6 +77,9 @@ namespace libspeedwire {
 
         // platform neutral get unix epoch time in ms
         static uint64_t getUnixEpochTimeInMs(void);
+
+        // Calculate the absolute time difference between time1 and time2
+        static uint64_t calculateAbsTimeDifference(uint64_t time1, uint64_t time2);
     };
 
 }   // namespace libspeedwire
