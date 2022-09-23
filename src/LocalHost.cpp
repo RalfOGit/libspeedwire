@@ -376,12 +376,12 @@ void LocalHost::sleep(uint32_t millis) {
  */
 uint64_t LocalHost::getTickCountInMs(void) {  // return a tick counter with ms resolution
 #if 1
-    std::chrono::steady_clock::time_point time = std::chrono::steady_clock::now();
-    auto time_in_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(time);
-    return time_in_ms.time_since_epoch().count();   // this is not relative to the unix epoch(!)
+    std::chrono::steady_clock::duration time = std::chrono::steady_clock::now().time_since_epoch();  // this is not relative to the unix epoch(!)
+    std::chrono::milliseconds time_in_ms = std::chrono::duration_cast<std::chrono::milliseconds>(time);
+    return time_in_ms.count();
 #else
     // fallback code, in case std::chrono cannot be used
-#ifdef WIN32
+#ifdef _WIN32
     return GetTickCount64();
 #else
     struct timespec spec;
