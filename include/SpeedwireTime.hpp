@@ -57,9 +57,7 @@ namespace libspeedwire {
          * @return the unix epoch time in ms
          */
         static uint64_t convertEmeterTimeToUnixEpochTime(const uint32_t emeter_time) {
-            uint64_t current_time_in_ms = LocalHost::getUnixEpochTimeInMs();
-            uint64_t expanded_emeter_time = expandTimeTo64(current_time_in_ms, emeter_time);
-            return expanded_emeter_time;
+            return expandTimeTo64(LocalHost::getUnixEpochTimeInMs(), emeter_time);
         }
 
         /**
@@ -70,7 +68,6 @@ namespace libspeedwire {
          * @return the unix epoch time in ms
          */
         static uint64_t convertInverterTimeToUnixEpochTime(const uint32_t inverter_time) {
-            // get unix epoch time, convert it to seconds and split it into lower and higher 32 bits
             uint64_t current_time_in_sec = LocalHost::getUnixEpochTimeInMs() / (uint64_t)1000;
             uint64_t expanded_inverter_time = expandTimeTo64(current_time_in_sec, inverter_time);
             return expanded_inverter_time * (uint64_t)1000;    // convert back to ms
