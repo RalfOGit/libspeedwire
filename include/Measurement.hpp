@@ -141,12 +141,13 @@ namespace libspeedwire {
      */
     class MeasurementValue {
     public:
-        double       value;         //!< Value of the current, i.e. most recent measurement
-        std::string  value_string;  //!< Value of the current, i.e. most recent measurement, if it is not a numeric value (e.g. software version, etc)
+        double       value;         //!< Value of the current measurement, which can be the most recent measurement or an average value
+        std::string  value_string;  //!< Value of the current measurement, if it is not a numeric value (e.g. software version, etc)
         uint32_t     timer;         //!< The current, i.e. most recent timestamp
         uint32_t     elapsed;       //!< Time elapsed from previous timestamp to current timestamp
         double       sumValue;      //!< The sum of previous and current measurements
         unsigned int counter;       //!< The number of measurements included in sumValue
+        double       lastValue;     //!< Value of the most recent measurement
         bool         initial;       //!< Flag indicating that this instance is new
 
         MeasurementValue(void);

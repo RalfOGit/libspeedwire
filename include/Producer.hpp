@@ -22,8 +22,9 @@ namespace libspeedwire {
          * @param type The measurement type of the given data
          * @param wire The Wire enumeration value
          * @param value The data value itself
+         * @param time_in_ms The measurement timestamp in ms since unix epoch start
          */
-        virtual void produce(const uint32_t serial_number, const MeasurementType& type, const Wire wire, const double value) = 0;
+        virtual void produce(const uint32_t serial_number, const MeasurementType& type, const Wire wire, const double value, const uint32_t time_in_ms = 0) = 0;
     };
 
 }   // namespace libspeedwire

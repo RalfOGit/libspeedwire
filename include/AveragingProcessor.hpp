@@ -29,13 +29,15 @@ namespace libspeedwire {
         typedef struct {
             uint32_t      serialNumber;             //!< Serial number of the speedwire device.
             DeviceType    deviceType;               //!< Device type.
-            unsigned long remainder;                //!< Remainding time for averaging emeter obis packets.
-            uint32_t      currentTimestamp;         //!< Timestamp of the most recently received emeter obis packet.
+            unsigned long averagingTime;            //!< Averaging time for data packets.
+            unsigned long remainder;                //!< Remainding time for averaging data packets.
+            uint32_t      currentTimestamp;         //!< Timestamp of the most recently received data packet.
             bool          currentTimestampIsValid;  //!< The current emeter timestamp has been initialized.
             bool          averagingTimeReached;     //!< Boolean indicating that the averaging time has been reached with this emeter obis packet.
         } AveragingState;
 
-        unsigned long averagingTime;                            //!< Averaging time constant.
+        unsigned long averagingTimeObisData;                    //!< Averaging time constant for obis data.
+        unsigned long averagingTimeSpeedwireData;               //!< Averaging time constant for speedwire data.
         std::vector<AveragingState> states;                     //!< Array holding averaging states for alle knowne speedwire devices
         std::vector<ObisConsumer*> obisConsumerTable;           //!< Table of registered ObisConsumer
         std::vector<SpeedwireConsumer*> speedwireConsumerTable; //!< Table of registered SpeedwireConsumer
@@ -46,7 +48,7 @@ namespace libspeedwire {
 
     public:
 
-        AveragingProcessor(const unsigned long averagingTime);
+        AveragingProcessor(const unsigned long averagingTimeObisData, const unsigned long averagingTimeSpeedwireData);
         ~AveragingProcessor(void);
 
         void addConsumer(ObisConsumer& obis_consumer);

@@ -45,6 +45,7 @@ MeasurementValue::MeasurementValue(void) {
     elapsed = 0;
     sumValue = 0;
     counter = 0;
+    lastValue = 0.0;
     initial = true;
 }
 

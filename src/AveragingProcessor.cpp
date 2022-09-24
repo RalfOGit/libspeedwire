@@ -9,8 +9,9 @@ using namespace libspeedwire;
  * Constructor of the AveragingProcessor instance.
  * @param averaging_time Constant averaging time for data received from any of the emeter or inverter data inputs.
  */
-AveragingProcessor::AveragingProcessor(const unsigned long averaging_time) :
-    averagingTime(averaging_time) {}
+AveragingProcessor::AveragingProcessor(const unsigned long averaging_time_obis_data, const unsigned long averaging_time_speedwire_data) :
+    averagingTimeObisData(averaging_time_obis_data),
+    averagingTimeSpeedwireData(averaging_time_speedwire_data) {}
 
 
 /**
@@ -33,6 +34,13 @@ int AveragingProcessor::initializeState(const uint32_t serial_number, const Devi
     device_state.currentTimestamp        = 0;
     device_state.currentTimestampIsValid = false;
     device_state.averagingTimeReached    = false;
+    device_state.averagingTime           = 0;
+    if (device_type == DeviceType::EMETER) {
+        device_state.averagingTime = averagingTimeObisData;
+    }
+    else if (device_type == DeviceType::INVERTER) {
+        device_state.averagingTime = averagingTimeSpeedwireData / 1000;
+    }
     states.push_back(device_state);
     return (int)states.size() - 1;
 }
@@ -88,6 +96,17 @@ bool AveragingProcessor::process(const uint32_t serial_number, const DeviceType&
     }
     AveragingState& state = states[index];
 
+    // keep the most recent value before averaging takes place
+    measurement.lastValue = measurement.value;
+
+    // if no averaging is intended, leave the measurement value as is
+    if (state.averagingTime == 0) {
+        state.averagingTimeReached = true;
+        state.currentTimestampIsValid = true;
+        state.currentTimestamp = measurement.timer;
+        return true;
+    }
+
     // initialize current timestamp
     if (state.currentTimestampIsValid == false) {
         state.currentTimestampIsValid = true;
@@ -95,14 +114,10 @@ bool AveragingProcessor::process(const uint32_t serial_number, const DeviceType&
     // check if this is the first measurement of a new measurement block
     else if (measurement.timer != state.currentTimestamp) {
         state.remainder += measurement.elapsed;
-        switch (state.deviceType) {
-        case DeviceType::EMETER:    state.averagingTimeReached = (state.remainder >= averagingTime); break;
-        case DeviceType::INVERTER:
-        default:                    state.averagingTimeReached = (state.remainder >= (averagingTime / 1000)); break;
-        }
+        state.averagingTimeReached = (state.remainder >= state.averagingTime);
         //printf("averagingTimeReached %d\n", state.averagingTimeReached);
         if (state.averagingTimeReached == true) {
-            state.remainder %= averagingTime;
+            state.remainder %= state.averagingTime;
         }
     }
     state.currentTimestamp = measurement.timer;
