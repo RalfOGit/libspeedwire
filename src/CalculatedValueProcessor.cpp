@@ -28,7 +28,7 @@ CalculatedValueProcessor::~CalculatedValueProcessor(void) { }
  * @param element A reference to a received ObisData instance, holding output data of the ObisFilter.
  */
 void CalculatedValueProcessor::consume(const uint32_t serial_number, ObisData& element) {
-    producer.produce(serial_number, element.measurementType, element.wire, element.measurementValue.value);
+    producer.produce(serial_number, element.measurementType, element.wire, element.measurementValue.value, element.measurementValue.timer);
 }
 
 
@@ -38,7 +38,7 @@ void CalculatedValueProcessor::consume(const uint32_t serial_number, ObisData& e
  * @param element A reference to a received SpeedwireData instance.
  */
 void CalculatedValueProcessor::consume(const uint32_t serial_number, SpeedwireData& element) {
-    producer.produce(serial_number, element.measurementType, element.wire, element.measurementValue.value);
+    producer.produce(serial_number, element.measurementType, element.wire, element.measurementValue.value, element.measurementValue.timer);
 }
 
 
@@ -57,7 +57,7 @@ void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const
         (sig = obis_data_map.find(ObisData::SignedActivePowerL1.toKey())) != end) {
         sig->second.measurementValue.value = pos->second.measurementValue.value - neg->second.measurementValue.value;
         sig->second.measurementValue.timer = timestamp;
-        producer.produce(serial_number, ObisData::SignedActivePowerL1.measurementType, ObisData::SignedActivePowerL1.wire, sig->second.measurementValue.value);
+        producer.produce(serial_number, ObisData::SignedActivePowerL1.measurementType, ObisData::SignedActivePowerL1.wire, sig->second.measurementValue.value, timestamp);
     }
 
     // calculate signed power L2
@@ -66,7 +66,7 @@ void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const
         (sig = obis_data_map.find(ObisData::SignedActivePowerL2.toKey())) != end) {
         sig->second.measurementValue.value = pos->second.measurementValue.value - neg->second.measurementValue.value;
         sig->second.measurementValue.timer = timestamp;
-        producer.produce(serial_number, ObisData::SignedActivePowerL2.measurementType, ObisData::SignedActivePowerL2.wire, sig->second.measurementValue.value);
+        producer.produce(serial_number, ObisData::SignedActivePowerL2.measurementType, ObisData::SignedActivePowerL2.wire, sig->second.measurementValue.value, timestamp);
     }
 
     // calculate signed power L3
@@ -75,7 +75,7 @@ void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const
         (sig = obis_data_map.find(ObisData::SignedActivePowerL3.toKey())) != end) {
         sig->second.measurementValue.value = pos->second.measurementValue.value - neg->second.measurementValue.value;
         sig->second.measurementValue.timer = timestamp;
-        producer.produce(serial_number, ObisData::SignedActivePowerL3.measurementType, ObisData::SignedActivePowerL3.wire, sig->second.measurementValue.value);
+        producer.produce(serial_number, ObisData::SignedActivePowerL3.measurementType, ObisData::SignedActivePowerL3.wire, sig->second.measurementValue.value, timestamp);
     }
 
     // calculate signed total power
@@ -84,7 +84,7 @@ void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const
         (sig = obis_data_map.find(ObisData::SignedActivePowerTotal.toKey())) != end) {
         sig->second.measurementValue.value = pos->second.measurementValue.value - neg->second.measurementValue.value;
         sig->second.measurementValue.timer = timestamp;
-        producer.produce(serial_number, ObisData::SignedActivePowerTotal.measurementType, ObisData::SignedActivePowerTotal.wire, sig->second.measurementValue.value);
+        producer.produce(serial_number, ObisData::SignedActivePowerTotal.measurementType, ObisData::SignedActivePowerTotal.wire, sig->second.measurementValue.value, timestamp);
     }
 
     producer.flush();
@@ -117,7 +117,7 @@ void CalculatedValueProcessor::endOfSpeedwireData(const uint32_t serial_number, 
         dc_age = (uint32_t)LocalHost::calculateAbsTimeDifference(inverter_time, value1->second.measurementValue.timer);
         //if (dc_age < max_age) {
             dc_total = value1->second.measurementValue.value + value2->second.measurementValue.value;
-            producer.produce(serial_number, SpeedwireData::InverterPowerDCTotal.measurementType, SpeedwireData::InverterPowerDCTotal.wire, dc_total);
+            producer.produce(serial_number, SpeedwireData::InverterPowerDCTotal.measurementType, SpeedwireData::InverterPowerDCTotal.wire, dc_total, value1->second.measurementValue.timer);
         //}
     }
 
@@ -130,19 +130,18 @@ void CalculatedValueProcessor::endOfSpeedwireData(const uint32_t serial_number, 
         ac_age = (uint32_t)LocalHost::calculateAbsTimeDifference(inverter_time, value1->second.measurementValue.timer);
         //if (ac_age < max_age) {
             ac_total = value1->second.measurementValue.value + value2->second.measurementValue.value + value3->second.measurementValue.value;
-            producer.produce(serial_number, SpeedwireData::InverterPowerACTotal.measurementType, SpeedwireData::InverterPowerACTotal.wire, ac_total);
+            producer.produce(serial_number, SpeedwireData::InverterPowerACTotal.measurementType, SpeedwireData::InverterPowerACTotal.wire, ac_total, value1->second.measurementValue.timer);
         //}
-    }
 
-    if(LocalHost::calculateAbsTimeDifference(dc_age, ac_age) <= 2) {
+        if (LocalHost::calculateAbsTimeDifference(dc_age, ac_age) <= 2) {
+            // calculate total power loss
+            double loss = dc_total - ac_total;
+            producer.produce(serial_number, SpeedwireData::InverterPowerLoss.measurementType, SpeedwireData::InverterPowerLoss.wire, loss, value1->second.measurementValue.timer);
 
-        // calculate total power loss
-        double loss = dc_total - ac_total;
-        producer.produce(serial_number, SpeedwireData::InverterPowerLoss.measurementType, SpeedwireData::InverterPowerLoss.wire, loss);
-
-        // calculate total power efficiency
-        double efficiency = (dc_total > 0 ? (ac_total / dc_total) * 100.0 : 0.0);
-        producer.produce(serial_number, SpeedwireData::InverterPowerEfficiency.measurementType, SpeedwireData::InverterPowerEfficiency.wire, efficiency);
+            // calculate total power efficiency
+            double efficiency = (dc_total > 0 ? (ac_total / dc_total) * 100.0 : 0.0);
+            producer.produce(serial_number, SpeedwireData::InverterPowerEfficiency.measurementType, SpeedwireData::InverterPowerEfficiency.wire, efficiency, value1->second.measurementValue.timer);
+        }
     }
 
     ObisDataMap::const_iterator pos, neg;
@@ -166,9 +165,9 @@ void CalculatedValueProcessor::endOfSpeedwireData(const uint32_t serial_number, 
             double feed_in          = neg->second.measurementValue.value * (0.09 / 1000.0);             // assuming  9 cents per kWh
             double self_consumption = (ac_total - neg->second.measurementValue.value) * (0.30 / 1000);  // assuming 30 cents per kWh
             double total            = feed_in + self_consumption;
-            producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeFeedIn.measurementType,          SpeedwireData::HouseholdIncomeFeedIn.wire,          feed_in);
-            producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeSelfConsumption.measurementType, SpeedwireData::HouseholdIncomeSelfConsumption.wire, self_consumption);
-            producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeTotal.measurementType,           SpeedwireData::HouseholdIncomeTotal.wire,           total);
+            producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeFeedIn.measurementType,          SpeedwireData::HouseholdIncomeFeedIn.wire,          feed_in, neg->second.measurementValue.timer);
+            producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeSelfConsumption.measurementType, SpeedwireData::HouseholdIncomeSelfConsumption.wire, self_consumption, neg->second.measurementValue.timer);
+            producer.produce(0xcafebabe, SpeedwireData::HouseholdIncomeTotal.measurementType,           SpeedwireData::HouseholdIncomeTotal.wire,           total, neg->second.measurementValue.timer);
         }
     }
 

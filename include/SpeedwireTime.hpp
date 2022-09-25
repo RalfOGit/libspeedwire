@@ -70,7 +70,7 @@ namespace libspeedwire {
         static uint64_t convertInverterTimeToUnixEpochTime(const uint32_t inverter_time) {
             uint64_t current_time_in_sec = LocalHost::getUnixEpochTimeInMs() / (uint64_t)1000;
             uint64_t expanded_inverter_time = expandTimeTo64(current_time_in_sec, inverter_time);
-            return expanded_inverter_time * (uint64_t)1000;    // convert back to ms
+            return expanded_inverter_time * (uint64_t)1000;    // convert to ms
         }
 
         /**
