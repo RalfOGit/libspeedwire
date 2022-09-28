@@ -8,6 +8,7 @@
 #include <vector>
 #include <map>
 #include <Measurement.hpp>
+#include <MeasurementType.hpp>
 #include <SpeedwireEmeterProtocol.hpp>
 
 namespace libspeedwire {

@@ -6,7 +6,6 @@
 #include <ObisData.hpp>
 #include <ObisFilter.hpp>
 #include <SpeedwireData.hpp>
-#include <Measurement.hpp>
 #include <Producer.hpp>
 
 namespace libspeedwire {

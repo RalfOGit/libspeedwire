@@ -1,7 +1,7 @@
 #ifndef __LIBSPEEDWIRE_PRODUCER_HPP__
 #define __LIBSPEEDWIRE_PRODUCER_HPP__
 
-#include <Measurement.hpp>
+#include <MeasurementType.hpp>
 
 namespace libspeedwire {
 

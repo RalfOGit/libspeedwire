@@ -11,6 +11,7 @@ set(COMMON_SOURCES
     src/LocalHost.cpp
     src/Logger.cpp
     src/Measurement.cpp
+    src/MeasurementType.cpp
     src/ObisData.cpp
     src/ObisFilter.cpp
     src/SpeedwireByteEncoding.cpp

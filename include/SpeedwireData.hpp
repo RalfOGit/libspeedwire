@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <map>
 #include <Measurement.hpp>
+#include <MeasurementType.hpp>
 
 namespace libspeedwire {
 
