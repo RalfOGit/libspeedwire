@@ -22,7 +22,7 @@ namespace libspeedwire {
          *  @param mType   measurement type
          *  @param wire_   measurement wire
          */
-        Measurement::Measurement(const MeasurementType& mType, const Wire& mWire) :
+        Measurement(const MeasurementType& mType, const Wire& mWire) :
             measurementType(mType),
             wire(mWire),
             description(mType.getFullName(mWire)),
