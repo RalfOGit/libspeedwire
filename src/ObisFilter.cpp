@@ -13,7 +13,9 @@ ObisFilter::~ObisFilter(void) {
 }
 
 void ObisFilter::addFilter(const ObisData &entry) {
-    filterMap[entry.toKey()] = entry;
+    ObisData& filter_entry = filterMap[entry.toKey()];
+    filter_entry = entry;
+    filter_entry.measurementValues.setMaximumNumberOfMeasurements(entry.measurementValues.getMaximumNumberOfMeasurements());
 }
 
 void ObisFilter::addFilter(const std::vector<ObisData> &entries) {
@@ -51,24 +53,22 @@ bool ObisFilter::consume(const uint32_t serial, const void *const obis, const ui
 
     ObisData *const filteredElement = filter(serial, element);
     if (filteredElement != NULL) {
-        MeasurementValue& mvalue = filteredElement->measurementValue;
         switch (filteredElement->type) {
         case 0:
-            mvalue.setValue(SpeedwireEmeterProtocol::toValueString(obis, false));
+            filteredElement->measurementValues.value_string = SpeedwireEmeterProtocol::toValueString(obis, false);
             break;
         case 4:
-            mvalue.setValue((uint32_t)SpeedwireEmeterProtocol::getObisValue4(obis), filteredElement->measurementType.divisor);
+            filteredElement->measurementValues.addMeasurement((uint32_t)SpeedwireEmeterProtocol::getObisValue4(obis), filteredElement->measurementType.divisor, time);
             break;
         case 7:
-            mvalue.setValue((int32_t)SpeedwireEmeterProtocol::getObisValue4(obis), filteredElement->measurementType.divisor);
+            filteredElement->measurementValues.addMeasurement((int32_t)SpeedwireEmeterProtocol::getObisValue4(obis), filteredElement->measurementType.divisor, time);
             break;
         case 8:
-            mvalue.setValue(SpeedwireEmeterProtocol::getObisValue8(obis), filteredElement->measurementType.divisor);
+            filteredElement->measurementValues.addMeasurement(SpeedwireEmeterProtocol::getObisValue8(obis), filteredElement->measurementType.divisor, time);
             break;
         default:
             perror("obis identifier not implemented");
         }
-        mvalue.setTimer(time);
         produce(serial, *filteredElement);
 
         return true;

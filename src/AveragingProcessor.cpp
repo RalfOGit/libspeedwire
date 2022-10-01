@@ -87,7 +87,7 @@ void AveragingProcessor::addConsumer(SpeedwireConsumer& speedwire_consumer) {
  * @param measurement The measurement value.
  * @return true if the averaging time perios has elapsed, false otherwise.
  */
-bool AveragingProcessor::process(const uint32_t serial_number, const DeviceType& device_type, MeasurementType& type, MeasurementValue& measurement) {
+bool AveragingProcessor::process(const uint32_t serial_number, const DeviceType& device_type, Measurement& measurement) {
 
     // find device
     int index = findStateIndex(serial_number);
@@ -96,51 +96,33 @@ bool AveragingProcessor::process(const uint32_t serial_number, const DeviceType&
     }
     AveragingState& state = states[index];
 
-    // keep the most recent value before averaging takes place
-    measurement.lastValue = measurement.value;
+    // get the most recent measurement timestamp
+    uint32_t measurementTime = measurement.measurementValues.getMostRecentMeasurement().time;
 
     // if no averaging is intended, leave the measurement value as is
     if (state.averagingTime == 0) {
         state.averagingTimeReached = true;
-        state.currentTimestampIsValid = true;
-        state.currentTimestamp = measurement.timer;
-        return true;
     }
-
-    // initialize current timestamp
-    if (state.currentTimestampIsValid == false) {
-        state.currentTimestampIsValid = true;
-    }
-    // check if this is the first measurement of a new measurement block
-    else if (measurement.timer != state.currentTimestamp) {
-        state.remainder += measurement.elapsed;
-        state.averagingTimeReached = (state.remainder >= state.averagingTime);
-        //printf("averagingTimeReached %d\n", state.averagingTimeReached);
-        if (state.averagingTimeReached == true) {
-            state.remainder %= state.averagingTime;
-        }
-    }
-    state.currentTimestamp = measurement.timer;
-
-    // if less than the defined averaging time has elapsed, sum up values
-    if (state.averagingTimeReached == false) {
-        if (isInstantaneous(type.quantity) == true) {
-            measurement.sumValue += measurement.value;
-            measurement.counter++;
-        }
-    }
-    // if the averaging time has elapsed, prepare a field for the influxdb consumer
+    // if averaging is intended, run averaging timer state-machine
     else {
-        if (isInstantaneous(type.quantity) == true) {
-            if (measurement.counter > 0) {
-                measurement.value = measurement.sumValue / measurement.counter;
-            }
-            measurement.sumValue = 0;
-            measurement.counter = 0;
+        // initialize current timestamp
+        if (state.currentTimestampIsValid == false) {
+            state.averagingTimeReached = false;
         }
-        return true;
+        // check if this is the first measurement of a new measurement block
+        else if (measurementTime != state.currentTimestamp) {
+            state.remainder += measurementTime - state.currentTimestamp;
+            state.averagingTimeReached = (state.remainder >= state.averagingTime);
+            //printf("averagingTimeReached %d\n", state.averagingTimeReached);
+            if (state.averagingTimeReached == true) {
+                state.remainder %= state.averagingTime;
+            }
+        }
     }
-    return false;
+    state.currentTimestamp = measurementTime;
+    state.currentTimestampIsValid = true;
+
+    return state.averagingTimeReached;
 }
 
 
@@ -151,7 +133,7 @@ bool AveragingProcessor::process(const uint32_t serial_number, const DeviceType&
  */
 void AveragingProcessor::consume(const uint32_t serial_number, ObisData &element) {
     //element.print(stdout);
-    if (process(serial_number, DeviceType::EMETER, element.measurementType, element.measurementValue) == true) {
+    if (process(serial_number, DeviceType::EMETER, element) == true) {
         for (int i = 0; i < obisConsumerTable.size(); ++i) {
             obisConsumerTable[i]->consume(serial_number, element);
         }
@@ -166,7 +148,7 @@ void AveragingProcessor::consume(const uint32_t serial_number, ObisData &element
  */
 void AveragingProcessor::consume(const uint32_t serial_number, SpeedwireData& element) {
     //element.print(stdout); fprintf(stdout, "speedwire_currentTimestamp %ld\n", speedwire_currentTimestamp);
-    if (process(serial_number, DeviceType::INVERTER, element.measurementType, element.measurementValue) == true) {
+    if (process(serial_number, DeviceType::INVERTER, element) == true) {
         for (int i = 0; i < speedwireConsumerTable.size(); ++i) {
             speedwireConsumerTable[i]->consume(serial_number, element);
         }

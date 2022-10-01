@@ -10,7 +10,6 @@ set(COMMON_SOURCES
     src/CalculatedValueProcessor.cpp
     src/LocalHost.cpp
     src/Logger.cpp
-    src/Measurement.cpp
     src/MeasurementType.cpp
     src/ObisData.cpp
     src/ObisFilter.cpp

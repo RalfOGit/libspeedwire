@@ -6,6 +6,7 @@
 #include <ObisData.hpp>
 #include <ObisFilter.hpp>
 #include <SpeedwireData.hpp>
+#include <Measurement.hpp>
 #include <Producer.hpp>
 
 namespace libspeedwire {
@@ -43,7 +44,7 @@ namespace libspeedwire {
 
         int initializeState(const uint32_t serial_number, const DeviceType& device_type);
         int findStateIndex(const uint32_t serial_number);
-        bool process(const uint32_t serial_number, const DeviceType& device_type, MeasurementType& type, MeasurementValue& value);
+        bool process(const uint32_t serial_number, const DeviceType& device_type, Measurement& measurement);
 
     public:
 

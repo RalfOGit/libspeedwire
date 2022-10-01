@@ -1,6 +1,8 @@
 #include <MeasurementType.hpp>
+#include <MeasurementValues.hpp>
 using namespace libspeedwire;
 
+TimestampDoublePair TimestampDoublePair::defaultPair = TimestampDoublePair(0.0, 0);
 
 /**
 * Constructor.

@@ -60,14 +60,12 @@ uint32_t ObisType::toKey(void) const {
 // =================================================================================================
 
 /**
- *  Default constructor - not very usefult but required for std::map.
+ *  Default constructor - not very useful but required for std::map.
  */
 ObisData::ObisData(void) :
     ObisType(0, 0, 0, 0),
-    measurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::NO_QUANTITY, "", 0),
-    wire(Wire::NO_WIRE),
-    description(""),
-    measurementValue() {
+    Measurement(MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::NO_QUANTITY, "", 0), Wire::NO_WIRE) {
+    description = "";
 }
 
 /**
@@ -82,10 +80,7 @@ ObisData::ObisData(void) :
 ObisData::ObisData(const uint8_t channel, const uint8_t index, const uint8_t type, const uint8_t tariff,
                    const MeasurementType &mType, const Wire &wire_) : 
     ObisType(channel, index, type, tariff),
-    measurementType(mType),
-    wire(wire_),
-    description(mType.getFullName(wire_)),
-    measurementValue() {
+    Measurement(mType, wire_) {
 }
 
 //! Equals operator - compares this instance with the given ObisType instance (i.e. just using information from base class ObisType)
@@ -95,9 +90,10 @@ bool ObisData::equals(const ObisType &other) const {
 
 //! Print this instance to file
 void ObisData::print(FILE *file) const {
-    uint32_t    timer  = measurementValue.timer;
+    TimestampDoublePair measurementValue = measurementValues.getMostRecentMeasurement();
+    uint32_t    timer  = measurementValue.time;
     double      value  = measurementValue.value;
-    std::string string = measurementValue.value_string;
+    std::string string = measurementValues.value_string;
     if (string.length() > 0) {
         fprintf(file, "%-31s  %lu  %s  => %s\n", description.c_str(), timer, ObisType::toString().c_str(), string.c_str());
     }
@@ -108,15 +104,16 @@ void ObisData::print(FILE *file) const {
 
 //! Convert this instance into its byte array representation according to the obis byte stream definition
 std::array<uint8_t, 12> ObisData::toByteArray(void) const {
+    TimestampDoublePair measurementValue = measurementValues.getMostRecentMeasurement();
     std::array<uint8_t, 12> byte_array = ObisType::toByteArray();
     switch (type) {
     case 0:
         if (channel == 144) {
             // convert software version
             uint32_t int_array[sizeof(uint32_t)] = { 0xff, 0xff, 0xff, 0xff };
-            int n = sscanf(measurementValue.value_string.c_str(), "%u.%u.%u.%u", &int_array[3], &int_array[2], &int_array[1], &int_array[0]);
+            int n = sscanf(measurementValues.value_string.c_str(), "%u.%u.%u.%u", &int_array[3], &int_array[2], &int_array[1], &int_array[0]);
             if (n != 4) {
-                n = sscanf(measurementValue.value_string.c_str(), "%02x.%02x.%02x.%02x", &int_array[3], &int_array[2], &int_array[1], &int_array[0]);
+                n = sscanf(measurementValues.value_string.c_str(), "%02x.%02x.%02x.%02x", &int_array[3], &int_array[2], &int_array[1], &int_array[0]);
             }
             uint32_t value = int_array[3] << 24 | int_array[2] << 16 | int_array[1] << 8 | int_array[0];
             SpeedwireEmeterProtocol::setObisValue4(byte_array.data(), value);

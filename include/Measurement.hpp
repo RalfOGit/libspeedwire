@@ -1,31 +1,33 @@
 #ifndef __LIBSPEEDWIRE_MEASUREMENT_HPP__
 #define __LIBSPEEDWIRE_MEASUREMENT_HPP__
 
-#include <cstdint>
 #include <string>
+#include <MeasurementType.hpp>
+#include <MeasurementValues.hpp>
 
 namespace libspeedwire {
 
     /**
-     *  Class encapsulating the value and other variable properties of a measurement.
+     *  Class holding measurement values together with their corresponding measurement type definition.
      */
-    class MeasurementValue {
+    class Measurement {
     public:
-        double       value;         //!< Value of the current measurement, which can be the most recent measurement or an average value
-        std::string  value_string;  //!< Value of the current measurement, if it is not a numeric value (e.g. software version, etc)
-        uint32_t     timer;         //!< The current, i.e. most recent timestamp
-        uint32_t     elapsed;       //!< Time elapsed from previous timestamp to current timestamp
-        double       sumValue;      //!< The sum of previous and current measurements
-        unsigned int counter;       //!< The number of measurements included in sumValue
-        double       lastValue;     //!< Value of the most recent measurement
-        bool         initial;       //!< Flag indicating that this instance is new
+        MeasurementType   measurementType;
+        MeasurementValues measurementValues;
+        Wire              wire;
+        std::string       description;
 
-        MeasurementValue(void);
-        void setValue(int32_t  raw_value, unsigned long divisor);
-        void setValue(uint32_t raw_value, unsigned long divisor);
-        void setValue(uint64_t raw_value, unsigned long divisor);
-        void setValue(const std::string& raw_value);
-        void setTimer(uint32_t timer);
+        /**
+         *  Constructor.
+         *  @param mType   measurement type
+         *  @param wire_   measurement wire
+         */
+        Measurement::Measurement(const MeasurementType& mType, const Wire& mWire) :
+            measurementType(mType),
+            wire(mWire),
+            description(mType.getFullName(mWire)),
+            measurementValues(0) {
+        }
     };
 
 }   // namespace libspeedwire

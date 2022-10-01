@@ -113,10 +113,7 @@ std::string SpeedwireRawData::toString(const uint64_t value) const {
 SpeedwireData::SpeedwireData(const uint32_t command, const uint32_t id, const uint8_t conn, const uint8_t type, const time_t time, const void *const data, const size_t data_size,
                              const MeasurementType& mType, const Wire _wire) :
     SpeedwireRawData(command, id, conn, type, time, data, data_size),
-    measurementType(mType),
-    wire(_wire),
-    description(mType.getFullName(_wire)),
-    measurementValue() {
+    Measurement(mType, _wire) {
 }
 
 
@@ -125,10 +122,8 @@ SpeedwireData::SpeedwireData(const uint32_t command, const uint32_t id, const ui
  */
 SpeedwireData::SpeedwireData(void) :
     SpeedwireRawData(0, 0, 0, 0, 0, NULL, 0),
-    measurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::NO_QUANTITY, "", 0),
-    wire(Wire::NO_WIRE),
-    description(),
-    measurementValue() {
+    Measurement(MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::NO_QUANTITY, "", 0), Wire::NO_WIRE) {
+    description = "";
 }
 
 
@@ -173,8 +168,7 @@ bool SpeedwireData::consume(const SpeedwireRawData& data) {
         if (id == 0x00464b00 || id == 0x00464c00 || id == 0x00464d00) value4 = 0x9b3c;
         if (id == 0x00465300 || id == 0x00465400 || id == 0x00465500) value4 = 0x011e;
 #endif
-        measurementValue.setValue(value4, measurementType.divisor);
-        measurementValue.setTimer((uint32_t)data.time);
+        measurementValues.addMeasurement(value4, measurementType.divisor, (uint32_t)data.time);
         time = data.time;
         break;
 
@@ -186,8 +180,7 @@ bool SpeedwireData::consume(const SpeedwireRawData& data) {
         // Response 534d4100000402a000000001004e0010 606513a0 7d0042be283a00a1 7a01842a71b30001 000000000a80 01028051 07000000 07000000 01644108 59c5e95f 33000001 37010000 fdffff00 feffff00 00000000 00000000 00000000 00000000 00000000
         value4 = SpeedwireByteEncoding::getUint32LittleEndian(data.data);
         value1 = (value4 >> 24) & 0xff;
-        measurementValue.setValue((uint32_t)value1, measurementType.divisor);
-        measurementValue.setTimer((uint32_t)data.time);
+        measurementValues.addMeasurement((uint32_t)value1, measurementType.divisor, (uint32_t)data.time);
         time = data.time;
         break;
 
@@ -205,8 +198,9 @@ bool SpeedwireData::consume(const SpeedwireRawData& data) {
  *  @return A string representation
  */
 std::string SpeedwireData::toString(void) const {
+    TimestampDoublePair measurementValue = measurementValues.getMostRecentMeasurement();
     char buff[256];
-    snprintf(buff, sizeof(buff), "%-16s  time %lu  %s  => %lf %s\n", description.c_str(), measurementValue.timer, SpeedwireRawData::toString().c_str(), measurementValue.value, measurementType.unit.c_str());
+    snprintf(buff, sizeof(buff), "%-16s  time %lu  %s  => %lf %s\n", description.c_str(), measurementValue.time, SpeedwireRawData::toString().c_str(), measurementValue.value, measurementType.unit.c_str());
     return std::string(buff);
 }
 

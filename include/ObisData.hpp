@@ -9,6 +9,7 @@
 #include <map>
 #include <Measurement.hpp>
 #include <MeasurementType.hpp>
+#include <MeasurementValues.hpp>
 #include <SpeedwireEmeterProtocol.hpp>
 
 namespace libspeedwire {
@@ -40,12 +41,8 @@ namespace libspeedwire {
     /**
      *  Class holding an emeter measurement together with its corresponding ObisType definition and its MeasurementType definition.
      */
-    class ObisData : public ObisType {
+    class ObisData : public ObisType, public Measurement {
     public:
-        MeasurementType   measurementType;
-        MeasurementValue  measurementValue;
-        Wire              wire;
-        std::string       description;
 
         ObisData(void);
         ObisData(const uint8_t channel, const uint8_t index, const uint8_t type, const uint8_t tariff, const MeasurementType& measurementType, const Wire& line);
