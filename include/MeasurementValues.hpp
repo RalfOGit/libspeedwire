@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <LocalHost.hpp>
 
 namespace libspeedwire {
 
@@ -112,14 +113,35 @@ namespace libspeedwire {
             if (values.size() > 0) {
                 return values[values.size() - 1];
             }
-            return TimestampDoublePair::defaultPair;    // this is just to avoid an exception
+            return TimestampDoublePair::defaultPair;    // this is to avoid an exception
+        }
+
+        /**
+         *  Get a reference to the measurement in the ring buffer with the measurement time closest to the given time.
+         *  @param the time to compare with
+         *  @return reference to TimestampDoublePair
+         */
+        const TimestampDoublePair& findClosestMeasurement(const uint32_t time) const {
+            if (values.size() > 0) {
+                uint64_t min_diff = LocalHost::calculateAbsTimeDifference(time, values[0].time);
+                size_t min_index = 0;
+                for (size_t i = 1; i < values.size(); ++i) {
+                    uint64_t diff = LocalHost::calculateAbsTimeDifference(time, values[i].time);
+                    if (diff < min_diff) {
+                        min_diff = diff;
+                        min_index = i;
+                    }
+                }
+                return values[min_index];
+            }
+            return TimestampDoublePair::defaultPair;    // this is to avoid an exception
         }
 
         /**
          *  Calculate the average value of all measurements in the ring buffer.
          *  @return average value
          */
-        double getAverageValue(void) const {
+        double calculateAverageValue(void) const {
             double sum = 0.0;
             for (size_t i = 0; i < values.size(); ++i) {
                 sum += values[i].value;

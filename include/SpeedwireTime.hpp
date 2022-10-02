@@ -54,10 +54,11 @@ namespace libspeedwire {
          * This uses the current 64-bit epoch time to fill the missing msb bits of the 32-bit timestamp.
          * This only works if the given 32-bit inverter time is no older than 12 days.
          * @param emeter_time the given emeter time
+         * @param unix_epoch_time_in_ms the current 64-bit unix epoch time in milliseconds
          * @return the unix epoch time in ms
          */
-        static uint64_t convertEmeterTimeToUnixEpochTime(const uint32_t emeter_time) {
-            return expandTimeTo64(LocalHost::getUnixEpochTimeInMs(), emeter_time);
+        static uint64_t convertEmeterTimeToUnixEpochTime(const uint32_t emeter_time, const uint64_t unix_epoch_time_in_ms = LocalHost::getUnixEpochTimeInMs()) {
+            return expandTimeTo64(emeter_time, unix_epoch_time_in_ms);
         }
 
         /**
@@ -65,23 +66,50 @@ namespace libspeedwire {
          * This uses the current 64-bit epoch time to fill the missing msb bits of the 32-bit timestamp.
          * This only works if the given 32-bit inverter time is no older than 12000 days.
          * @param inverter_time the given inverter time
+         * @param unix_epoch_time_in_ms the current 64-bit unix epoch time in milliseconds
          * @return the unix epoch time in ms
          */
-        static uint64_t convertInverterTimeToUnixEpochTime(const uint32_t inverter_time) {
-            uint64_t current_time_in_sec = LocalHost::getUnixEpochTimeInMs() / (uint64_t)1000;
-            uint64_t expanded_inverter_time = expandTimeTo64(current_time_in_sec, inverter_time);
+        static uint64_t convertInverterTimeToUnixEpochTime(const uint32_t inverter_time, const uint64_t unix_epoch_time_in_ms = LocalHost::getUnixEpochTimeInMs()) {
+            const uint64_t current_time_in_sec = unix_epoch_time_in_ms / (uint64_t)1000;
+            const uint64_t expanded_inverter_time = expandTimeTo64(inverter_time, current_time_in_sec);
             return expanded_inverter_time * (uint64_t)1000;    // convert to ms
+        }
+
+        /**
+         * Convert the given emeter time to an inverter time.
+         * This uses the current 64-bit epoch time to fill the missing msb bits of the 32-bit timestamp.
+         * This only works if the given 32-bit inverter time is no older than 12 days.
+         * @param emeter_time the given emeter time
+         * @param unix_epoch_time_in_ms the current 64-bit unix epoch time in milliseconds
+         * @return the inverter time
+         */
+        static uint32_t convertEmeterToInverterTime(const uint32_t emeter_time, const uint64_t unix_epoch_time_in_ms = LocalHost::getUnixEpochTimeInMs()) {
+            const uint64_t emeter_time64 = convertEmeterTimeToUnixEpochTime(emeter_time, unix_epoch_time_in_ms);
+            return convertUnixEpochTimeToInverterTimer(emeter_time64);
+        }
+
+        /**
+         * Convert the given inverter time to an emeter time.
+         * This uses the current 64-bit epoch time to fill the missing msb bits of the 32-bit timestamp.
+         * This only works if the given 32-bit inverter time is no older than 12000 days.
+         * @param inverter_time the given inverter time
+         * @param unix_epoch_time_in_ms the current 64-bit unix epoch time in milliseconds
+         * @return the emeter time
+         */
+        static uint32_t convertInverterToEmeterTime(const uint32_t inverter_time, const uint64_t unix_epoch_time_in_ms = LocalHost::getUnixEpochTimeInMs()) {
+            const uint64_t inverter_time64 = convertInverterTimeToUnixEpochTime(inverter_time, unix_epoch_time_in_ms);
+            return convertUnixEpochTimeToEmeterTimer(inverter_time64);
         }
 
         /**
          * Expand the given 32-bit timestamp to a 64-bit unix epoch time.
          * This uses the given 64-bit epoch time to fill the missing msb bits of the 32-bit timestamp.
          * This only works if the given 32-bit time is no older than 12 days.
-         * @param current_time64 the 64-bit unix epoch time, typically the current time
          * @param truncated_time32 a 32-bit timestamp, like an emeter or inverter timestamp
+         * @param current_time64 the 64-bit unix epoch time, typically the current time
          * @return the unix epoch time in ms
          */
-        static uint64_t expandTimeTo64(const uint64_t current_time64, const uint32_t truncated_time32) {
+        static uint64_t expandTimeTo64(const uint32_t truncated_time32, const uint64_t current_time64 = LocalHost::getUnixEpochTimeInMs()) {
             // split the 64-bit current time into 32-bit msb and lsb parts
             uint64_t current_time_msbs = (current_time64 >> 32u) & 0xffffffff;
             uint64_t current_time_lsbs = (current_time64) & 0xffffffff;
