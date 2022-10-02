@@ -6,7 +6,7 @@
 namespace libspeedwire {
 
     /**
-     *  Class implementing platform neutral conversions for bsd internet and socket addresses
+     *  Class implementing speedwire timer related accessors and conversions.
      */
     class SpeedwireTime {
     public:
@@ -116,14 +116,14 @@ namespace libspeedwire {
 
             // join the upper 32 bits of the unix epoch time with the lower 32 bits from the truncated timestamp
             uint64_t expanded_time64 = (current_time_msbs << 32u) | truncated_time32;
-            uint64_t delta = LocalHost::calculateAbsTimeDifference(current_time64, expanded_time64);
+            uint64_t delta = calculateAbsTimeDifference(current_time64, expanded_time64);
 
             // check if the lsbs are in the upper half of the value range
             if ((current_time_lsbs & 0x80000000) != 0) {
                 // if so, calculate an expanded time with the mbs incremented by 1 and compare the absolute difference
                 // choose the expanded time closest to the current time
                 uint64_t expanded_time64_p1 = ((current_time_msbs + 1) << 32u) | truncated_time32;
-                uint64_t delta_p1 = LocalHost::calculateAbsTimeDifference(current_time64, expanded_time64_p1);
+                uint64_t delta_p1 = calculateAbsTimeDifference(current_time64, expanded_time64_p1);
                 if (delta_p1 <= delta) {
                     expanded_time64 = expanded_time64_p1;
                 }
@@ -132,7 +132,7 @@ namespace libspeedwire {
                 // if so, calculate an expanded time with the msbs decremented by 1 and compare the absolute difference
                 // choose the expanded time closest to the current time
                 uint64_t expanded_time64_m1 = ((current_time_msbs - 1) << 32u) | truncated_time32;
-                uint64_t delta_m1 = LocalHost::calculateAbsTimeDifference(current_time64, expanded_time64_m1);
+                uint64_t delta_m1 = calculateAbsTimeDifference(current_time64, expanded_time64_m1);
                 if (delta_m1 <= delta) {
                     expanded_time64 = expanded_time64_m1;
                 }
@@ -140,6 +140,35 @@ namespace libspeedwire {
             return expanded_time64;
         }
 
+        /**
+         *  Calculate the signed time difference between time1 and time2
+         */
+        static int32_t calculateTimeDifference(uint32_t time1, uint32_t time2) {
+            return (int32_t)(time1 - time2);  // rely on an inherent 2's complement property that also works for unsigned ints
+        }
+
+        /**
+         *  Calculate the signed time difference between time1 and time2
+         */
+        static int64_t calculateTimeDifference(uint64_t time1, uint64_t time2) {
+            return (int64_t)(time1 - time2);  // rely on an inherent 2's complement property that also works for unsigned ints
+        }
+
+        /**
+         *  Calculate the absolute time difference between time1 and time2
+         */
+        static uint32_t calculateAbsTimeDifference(uint32_t time1, uint32_t time2) {
+            int32_t signed_diff = calculateTimeDifference(time1, time2);
+            return (signed_diff >= 0 ? signed_diff : -signed_diff);
+        }
+
+        /**
+         *  Calculate the absolute time difference between time1 and time2
+         */
+        static uint64_t calculateAbsTimeDifference(uint64_t time1, uint64_t time2) {
+            int64_t signed_diff = calculateTimeDifference(time1, time2);
+            return (signed_diff >= 0 ? signed_diff : -signed_diff);
+        }
     };
 
 }   // namespace libspeedwire

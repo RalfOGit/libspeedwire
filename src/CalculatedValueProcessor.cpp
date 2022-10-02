@@ -126,8 +126,8 @@ void CalculatedValueProcessor::endOfSpeedwireData(const uint32_t serial_number, 
         (value2 = speedwire_data_map.find(SpeedwireData::InverterPowerMPP2.toKey())) != end &&
         (value1_time = value1->second.measurementValues.getMostRecentMeasurement().time, 
          value2_time = value2->second.measurementValues.getMostRecentMeasurement().time,
-         LocalHost::calculateAbsTimeDifference(value1_time, value2_time) <= 1)) {
-        dc_age = (uint32_t)LocalHost::calculateAbsTimeDifference(inverter_time, value1_time);
+         SpeedwireTime::calculateAbsTimeDifference(value1_time, value2_time) <= 1)) {
+        dc_age = (uint32_t)SpeedwireTime::calculateAbsTimeDifference(inverter_time, value1_time);
         dc_time = value1_time;
         //if (dc_age < max_age) {
             dc_total = value1->second.measurementValues.calculateAverageValue() + value2->second.measurementValues.calculateAverageValue();
@@ -142,16 +142,16 @@ void CalculatedValueProcessor::endOfSpeedwireData(const uint32_t serial_number, 
         (value1_time = value1->second.measurementValues.getMostRecentMeasurement().time,
          value2_time = value2->second.measurementValues.getMostRecentMeasurement().time,
          value3_time = value3->second.measurementValues.getMostRecentMeasurement().time,
-         LocalHost::calculateAbsTimeDifference(value1_time, value2_time) <= 1 &&
-         LocalHost::calculateAbsTimeDifference(value1_time, value3_time) <= 1)) {
-        ac_age = (uint32_t)LocalHost::calculateAbsTimeDifference(inverter_time, value1_time);
+         SpeedwireTime::calculateAbsTimeDifference(value1_time, value2_time) <= 1 &&
+         SpeedwireTime::calculateAbsTimeDifference(value1_time, value3_time) <= 1)) {
+        ac_age = (uint32_t)SpeedwireTime::calculateAbsTimeDifference(inverter_time, value1_time);
         ac_time = value1_time;
         //if (ac_age < max_age) {
             ac_total = value1->second.measurementValues.calculateAverageValue() + value2->second.measurementValues.calculateAverageValue() + value3->second.measurementValues.calculateAverageValue();
             producer.produce(serial_number, SpeedwireData::InverterPowerACTotal.measurementType, SpeedwireData::InverterPowerACTotal.wire, ac_total, value1_time);
         //}
 
-        if (LocalHost::calculateAbsTimeDifference(dc_age, ac_age) <= 2) {
+        if (SpeedwireTime::calculateAbsTimeDifference(dc_age, ac_age) <= 2) {
             // calculate total power loss
             double loss = dc_total - ac_total;
             producer.produce(serial_number, SpeedwireData::InverterPowerLoss.measurementType, SpeedwireData::InverterPowerLoss.wire, loss, value1_time);
@@ -176,7 +176,8 @@ void CalculatedValueProcessor::endOfSpeedwireData(const uint32_t serial_number, 
                 household = pos->second.measurementValues.calculateAverageValue() - neg_average_value;
             } else {
                 uint32_t ac_time_emeter = SpeedwireTime::convertInverterToEmeterTime(ac_time, current_time);
-                household = pos->second.measurementValues.findClosestMeasurement(ac_time_emeter).value + ac_total - neg->second.measurementValues.findClosestMeasurement(ac_time_emeter).value;
+                //household = pos->second.measurementValues.findClosestMeasurement(ac_time_emeter).value + ac_total - neg->second.measurementValues.findClosestMeasurement(ac_time_emeter).value;
+                household = pos->second.measurementValues.interpolateClosestValues(ac_time_emeter) + ac_total - neg->second.measurementValues.interpolateClosestValues(ac_time_emeter);
                 if (household < 0.0) household = 0.0;  // this can happen if there is a steep change in solar production or energy consumption and measurements are taken at different points in time
             }
             producer.produce(0xcafebabe, SpeedwireData::HouseholdPowerTotal.measurementType, SpeedwireData::HouseholdPowerTotal.wire, household, feed_in_time);

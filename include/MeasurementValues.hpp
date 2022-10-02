@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <LocalHost.hpp>
+#include <SpeedwireTime.hpp>
 
 namespace libspeedwire {
 
@@ -117,24 +117,61 @@ namespace libspeedwire {
         }
 
         /**
-         *  Get a reference to the measurement in the ring buffer with the measurement time closest to the given time.
-         *  @param the time to compare with
-         *  @return reference to TimestampDoublePair
+         *  Get the index in the ring buffer time-wise closest to the given time.
+         *  @return index in ring buffer
          */
-        const TimestampDoublePair& findClosestMeasurement(const uint32_t time) const {
+        const size_t findClosestIndex(const uint32_t time) const {
             if (values.size() > 0) {
-                uint64_t min_diff = LocalHost::calculateAbsTimeDifference(time, values[0].time);
+                uint64_t min_diff = (uint64_t)-1;
                 size_t min_index = 0;
-                for (size_t i = 1; i < values.size(); ++i) {
-                    uint64_t diff = LocalHost::calculateAbsTimeDifference(time, values[i].time);
+                for (size_t i = 0; i < values.size(); ++i) {
+                    uint64_t diff = SpeedwireTime::calculateAbsTimeDifference(time, values[i].time);
                     if (diff < min_diff) {
                         min_diff = diff;
                         min_index = i;
                     }
                 }
-                return values[min_index];
+                return min_index;
+            }
+            return (size_t)-1;
+        }
+
+        /**
+         *  Get a reference to the measurement in the ring buffer time-wise closest to the given time.
+         *  @param the time to compare with
+         *  @return reference to TimestampDoublePair
+         */
+        const TimestampDoublePair& findClosestMeasurement(const uint32_t time) const {
+            const size_t closest_index = findClosestIndex(time);
+            if (closest_index != (size_t)-1) {
+                return values[closest_index];
             }
             return TimestampDoublePair::defaultPair;    // this is to avoid an exception
+        }
+
+        /**
+         *  Interpolate the two measurement values time-wise closest to the given time.
+         *  @param the time to compare with
+         *  @return the interpolated measurement value
+         */
+        const double interpolateClosestValues(const uint32_t time) const {
+            const size_t index_center = findClosestIndex(time);
+            if (index_center != (size_t)-1) {
+                const size_t num_measurements = getNumberOfMeasurements();
+                if (num_measurements > 1) {
+                    const size_t index_before = (index_center > 0 ? (index_center - 1) : (num_measurements - 1));
+                    const size_t index_after  = (index_center < (num_measurements - 1) ? (index_center + 1) : 0);
+                    const uint64_t diff_before = SpeedwireTime::calculateAbsTimeDifference(time, values[index_before].time);
+                    const uint64_t diff_center = SpeedwireTime::calculateAbsTimeDifference(time, values[index_center].time);
+                    const uint64_t diff_after  = SpeedwireTime::calculateAbsTimeDifference(time, values[index_after].time);
+                    if (diff_before <= diff_after) {
+                        return (diff_center * values[index_before].value + diff_before * values[index_center].value) / (diff_before + diff_center);
+                    }
+                    return (diff_after * values[index_center].value + diff_center * values[index_after].value) / (diff_center + diff_after);
+                }
+                return values[index_center].value;
+            }
+            return 0.0;
         }
 
         /**
