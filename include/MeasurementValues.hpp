@@ -46,6 +46,7 @@ namespace libspeedwire {
          */
         void clear(void) {
             values.clear();
+            write_pointer = 0;
         }
 
         /**
@@ -82,7 +83,7 @@ namespace libspeedwire {
          *  @param time the measurement time
          */
         void addMeasurement(const double value, const uint32_t time) {
-            TimestampDoublePair pair(value, time);
+            const TimestampDoublePair pair(value, time);
             if (values.size() > write_pointer) {
                 values[write_pointer] = pair;
             }
@@ -180,8 +181,8 @@ namespace libspeedwire {
          */
         double calculateAverageValue(void) const {
             double sum = 0.0;
-            for (size_t i = 0; i < values.size(); ++i) {
-                sum += values[i].value;
+            for (const auto& m : values) {
+                sum += m.value;
             }
             return sum / values.size();
         }
