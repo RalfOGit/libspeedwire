@@ -52,7 +52,7 @@ namespace libspeedwire {
         /**
          * Convert the given emeter time to an unix epoch time in ms.
          * This uses the current 64-bit epoch time to fill the missing msb bits of the 32-bit timestamp.
-         * This only works if the given 32-bit inverter time is no older than 12 days.
+         * This only works if the given 32-bit inverter time is no older than 24 days.
          * @param emeter_time the given emeter time
          * @param unix_epoch_time_in_ms the current 64-bit unix epoch time in milliseconds
          * @return the unix epoch time in ms
@@ -64,7 +64,7 @@ namespace libspeedwire {
         /**
          * Convert the given inverter time to an unix epoch time in ms.
          * This uses the current 64-bit epoch time to fill the missing msb bits of the 32-bit timestamp.
-         * This only works if the given 32-bit inverter time is no older than 12000 days.
+         * This only works if the given 32-bit inverter time is no older than 24000 days.
          * @param inverter_time the given inverter time
          * @param unix_epoch_time_in_ms the current 64-bit unix epoch time in milliseconds
          * @return the unix epoch time in ms
@@ -78,7 +78,7 @@ namespace libspeedwire {
         /**
          * Convert the given emeter time to an inverter time.
          * This uses the current 64-bit epoch time to fill the missing msb bits of the 32-bit timestamp.
-         * This only works if the given 32-bit inverter time is no older than 12 days.
+         * This only works if the given 32-bit inverter time is no older than 24 days.
          * @param emeter_time the given emeter time
          * @param unix_epoch_time_in_ms the current 64-bit unix epoch time in milliseconds
          * @return the inverter time
@@ -91,7 +91,7 @@ namespace libspeedwire {
         /**
          * Convert the given inverter time to an emeter time.
          * This uses the current 64-bit epoch time to fill the missing msb bits of the 32-bit timestamp.
-         * This only works if the given 32-bit inverter time is no older than 12000 days.
+         * This only works if the given 32-bit inverter time is no older than 24000 days.
          * @param inverter_time the given inverter time
          * @param unix_epoch_time_in_ms the current 64-bit unix epoch time in milliseconds
          * @return the emeter time
@@ -104,7 +104,6 @@ namespace libspeedwire {
         /**
          * Expand the given 32-bit timestamp to a 64-bit unix epoch time.
          * This uses the given 64-bit epoch time to fill the missing msb bits of the 32-bit timestamp.
-         * This only works if the given 32-bit time is no older than 12 days.
          * @param truncated_time32 a 32-bit timestamp, like an emeter or inverter timestamp
          * @param current_time64 the 64-bit unix epoch time, typically the current time
          * @return the unix epoch time in ms

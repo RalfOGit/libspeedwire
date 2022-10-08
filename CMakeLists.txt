@@ -34,3 +34,7 @@ target_include_directories(${PROJECT_NAME}
 PUBLIC
     include
 )
+
+add_subdirectory  (test EXCLUDE_FROM_ALL)
+add_custom_target (tests)
+add_dependencies  (tests speedwire_test)
