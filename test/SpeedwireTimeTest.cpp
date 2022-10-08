@@ -78,4 +78,104 @@ TEST(SpeedwireTimeTest, TimerConversionDelayedFailure) {
     ASSERT_NE(epoch, epoch2);
 }
 
+// time differences tests 32-bits
+TEST(SpeedwireTimeTest, TimerDifferencesUint32) {
+    const uint64_t ms_per_day = 24 * 60 * 60 * 1000;
+    uint32_t emeter = SpeedwireTime::getEmeterTimeNow();
 
+    int32_t diff = SpeedwireTime::calculateTimeDifference(emeter, emeter - 1);
+    ASSERT_EQ(diff, 1);
+    diff = SpeedwireTime::calculateTimeDifference(emeter, emeter + 1);
+    ASSERT_EQ(diff, -1);
+
+    diff = SpeedwireTime::calculateTimeDifference(0, (uint32_t)-1);
+    ASSERT_EQ(diff, 1);
+    diff = SpeedwireTime::calculateTimeDifference((uint32_t)-1, 0);
+    ASSERT_EQ(diff, -1);
+
+    diff = SpeedwireTime::calculateTimeDifference(0, (uint32_t)10);
+    ASSERT_EQ(diff, -10);
+    diff = SpeedwireTime::calculateTimeDifference((uint32_t)10, 0);
+    ASSERT_EQ(diff, 10);
+
+    diff = SpeedwireTime::calculateTimeDifference(0, (uint32_t)-10);
+    ASSERT_EQ(diff, 10);
+    diff = SpeedwireTime::calculateTimeDifference((uint32_t)-10, 0);
+    ASSERT_EQ(diff, -10);
+}
+
+// time differences tests 64-bits
+TEST(SpeedwireTimeTest, TimerDifferencesUint64) {
+    uint64_t epoch = LocalHost::getUnixEpochTimeInMs();
+
+    int64_t diff = SpeedwireTime::calculateTimeDifference(epoch, epoch - 1);
+    ASSERT_EQ(diff, 1);
+    diff = SpeedwireTime::calculateTimeDifference(epoch, epoch + 1);
+    ASSERT_EQ(diff, -1);
+
+    diff = SpeedwireTime::calculateTimeDifference(0, (uint64_t)-1);
+    ASSERT_EQ(diff, 1);
+    diff = SpeedwireTime::calculateTimeDifference((uint64_t)-1, 0);
+    ASSERT_EQ(diff, -1);
+
+    diff = SpeedwireTime::calculateTimeDifference(0, (uint64_t)10);
+    ASSERT_EQ(diff, -10);
+    diff = SpeedwireTime::calculateTimeDifference((uint64_t)10, 0);
+    ASSERT_EQ(diff, 10);
+
+    diff = SpeedwireTime::calculateTimeDifference(0, (uint64_t)-10);
+    ASSERT_EQ(diff, 10);
+    diff = SpeedwireTime::calculateTimeDifference((uint64_t)-10, 0);
+    ASSERT_EQ(diff, -10);
+}
+
+// absolute time differences tests 32-bits
+TEST(SpeedwireTimeTest, AbsTimerDifferencesUint32) {
+    const uint64_t ms_per_day = 24 * 60 * 60 * 1000;
+    uint32_t emeter = SpeedwireTime::getEmeterTimeNow();
+
+    int32_t diff = SpeedwireTime::calculateAbsTimeDifference(emeter, emeter - 1);
+    ASSERT_EQ(diff, 1);
+    diff = SpeedwireTime::calculateAbsTimeDifference(emeter, emeter + 1);
+    ASSERT_EQ(diff, 1);
+
+    diff = SpeedwireTime::calculateAbsTimeDifference(0, (uint32_t)-1);
+    ASSERT_EQ(diff, 1);
+    diff = SpeedwireTime::calculateAbsTimeDifference((uint32_t)-1, 0);
+    ASSERT_EQ(diff, 1);
+
+    diff = SpeedwireTime::calculateAbsTimeDifference(0, (uint32_t)10);
+    ASSERT_EQ(diff, 10);
+    diff = SpeedwireTime::calculateAbsTimeDifference((uint32_t)10, 0);
+    ASSERT_EQ(diff, 10);
+
+    diff = SpeedwireTime::calculateAbsTimeDifference(0, (uint32_t)-10);
+    ASSERT_EQ(diff, 10);
+    diff = SpeedwireTime::calculateAbsTimeDifference((uint32_t)-10, 0);
+    ASSERT_EQ(diff, 10);
+}
+
+// absolute time differences tests 64-bits
+TEST(SpeedwireTimeTest, AbsTimerDifferencesUint64) {
+    uint64_t epoch = LocalHost::getUnixEpochTimeInMs();
+
+    int64_t diff = SpeedwireTime::calculateAbsTimeDifference(epoch, epoch - 1);
+    ASSERT_EQ(diff, 1);
+    diff = SpeedwireTime::calculateAbsTimeDifference(epoch, epoch + 1);
+    ASSERT_EQ(diff, 1);
+
+    diff = SpeedwireTime::calculateAbsTimeDifference(0, (uint64_t)-1);
+    ASSERT_EQ(diff, 1);
+    diff = SpeedwireTime::calculateAbsTimeDifference((uint64_t)-1, 0);
+    ASSERT_EQ(diff, 1);
+
+    diff = SpeedwireTime::calculateAbsTimeDifference(0, (uint64_t)10);
+    ASSERT_EQ(diff, 10);
+    diff = SpeedwireTime::calculateAbsTimeDifference((uint64_t)10, 0);
+    ASSERT_EQ(diff, 10);
+
+    diff = SpeedwireTime::calculateAbsTimeDifference(0, (uint64_t)-10);
+    ASSERT_EQ(diff, 10);
+    diff = SpeedwireTime::calculateAbsTimeDifference((uint64_t)-10, 0);
+    ASSERT_EQ(diff, 10);
+}
