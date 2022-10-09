@@ -143,14 +143,14 @@ namespace libspeedwire {
          *  Calculate the signed time difference between time1 and time2
          */
         static int32_t calculateTimeDifference(uint32_t time1, uint32_t time2) {
-            return (int32_t)(time1 - time2);  // rely on an inherent 2's complement property that also works for unsigned ints
+            return (int32_t)(time1 - time2);  // rely on an inherent 2's complement modulo arithmetic property
         }
 
         /**
          *  Calculate the signed time difference between time1 and time2
          */
         static int64_t calculateTimeDifference(uint64_t time1, uint64_t time2) {
-            return (int64_t)(time1 - time2);  // rely on an inherent 2's complement property that also works for unsigned ints
+            return (int64_t)(time1 - time2);  // rely on an inherent 2's complement modulo arithmetic property 
         }
 
         /**
