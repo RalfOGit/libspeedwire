@@ -147,7 +147,7 @@ namespace libspeedwire {
         size_t getRingBufferIndex(const size_t data_vector_index) const {
             const size_t size = data_vector.size();
             if (data_vector_index < size) {
-                size_t index = write_pointer - index;
+                size_t index = data_vector_index - write_pointer;
                 if (index >= size) {    // modulo arithmetic!
                     index += size;
                 }
