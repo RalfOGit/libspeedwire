@@ -1,6 +1,7 @@
 build/
 out/
 doc/
+packages/
 .vs/
 .vscode/
 *.tar

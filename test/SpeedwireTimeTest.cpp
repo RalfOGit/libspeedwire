@@ -102,6 +102,16 @@ TEST(SpeedwireTimeTest, TimerDifferencesUint32) {
     ASSERT_EQ(diff, 10);
     diff = SpeedwireTime::calculateTimeDifference((uint32_t)-10, 0);
     ASSERT_EQ(diff, -10);
+
+    diff = SpeedwireTime::calculateTimeDifference(0, (uint32_t)0x80000000);
+    ASSERT_EQ(diff, 0x80000000);
+    diff = SpeedwireTime::calculateTimeDifference((uint32_t)0x80000000, 0);
+    ASSERT_EQ(diff, 0x80000000); // overflow condition
+
+    diff = SpeedwireTime::calculateTimeDifference(0, (uint32_t)0x7FFFFFFF);
+    ASSERT_EQ(diff, 0x80000001); // overflow condition
+    diff = SpeedwireTime::calculateTimeDifference((uint32_t)0x7FFFFFFF, 0);
+    ASSERT_EQ(diff, 0x7FFFFFFF);
 }
 
 // time differences tests 64-bits
@@ -127,6 +137,16 @@ TEST(SpeedwireTimeTest, TimerDifferencesUint64) {
     ASSERT_EQ(diff, 10);
     diff = SpeedwireTime::calculateTimeDifference((uint64_t)-10, 0);
     ASSERT_EQ(diff, -10);
+
+    diff = SpeedwireTime::calculateTimeDifference(0, (uint64_t)0x8000000000000000);
+    ASSERT_EQ(diff, 0x8000000000000000);
+    diff = SpeedwireTime::calculateTimeDifference((uint64_t)0x8000000000000000, 0);
+    ASSERT_EQ(diff, 0x8000000000000000); // overflow condition
+
+    diff = SpeedwireTime::calculateTimeDifference(0, (uint64_t)0x7FFFFFFFFFFFFFFF);
+    ASSERT_EQ(diff, 0x8000000000000001); // overflow condition
+    diff = SpeedwireTime::calculateTimeDifference((uint64_t)0x7FFFFFFFFFFFFFFF, 0);
+    ASSERT_EQ(diff, 0x7FFFFFFFFFFFFFFF);
 }
 
 // absolute time differences tests 32-bits
@@ -153,6 +173,16 @@ TEST(SpeedwireTimeTest, AbsTimerDifferencesUint32) {
     ASSERT_EQ(diff, 10);
     diff = SpeedwireTime::calculateAbsTimeDifference((uint32_t)-10, 0);
     ASSERT_EQ(diff, 10);
+
+    diff = SpeedwireTime::calculateAbsTimeDifference(0, (uint32_t)0x80000000);
+    ASSERT_EQ(diff, 0x80000000); // overflow condition
+    diff = SpeedwireTime::calculateAbsTimeDifference((uint32_t)0x80000000, 0);
+    ASSERT_EQ(diff, 0x80000000); // overflow condition
+
+    diff = SpeedwireTime::calculateAbsTimeDifference(0, (uint32_t)0x7FFFFFFF);
+    ASSERT_EQ(diff, 0x7FFFFFFF);
+    diff = SpeedwireTime::calculateAbsTimeDifference((uint32_t)0x7FFFFFFF, 0);
+    ASSERT_EQ(diff, 0x7FFFFFFF);
 }
 
 // absolute time differences tests 64-bits
@@ -178,4 +208,14 @@ TEST(SpeedwireTimeTest, AbsTimerDifferencesUint64) {
     ASSERT_EQ(diff, 10);
     diff = SpeedwireTime::calculateAbsTimeDifference((uint64_t)-10, 0);
     ASSERT_EQ(diff, 10);
+
+    diff = SpeedwireTime::calculateAbsTimeDifference(0, (uint64_t)0x8000000000000000);
+    ASSERT_EQ(diff, 0x8000000000000000); // overflow condition
+    diff = SpeedwireTime::calculateAbsTimeDifference((uint64_t)0x8000000000000000, 0);
+    ASSERT_EQ(diff, 0x8000000000000000); // overflow condition
+
+    diff = SpeedwireTime::calculateAbsTimeDifference(0, (uint64_t)0x7FFFFFFFFFFFFFFF);
+    ASSERT_EQ(diff, 0x7FFFFFFFFFFFFFFF);
+    diff = SpeedwireTime::calculateAbsTimeDifference((uint64_t)0x7FFFFFFFFFFFFFFF, 0);
+    ASSERT_EQ(diff, 0x7FFFFFFFFFFFFFFF);
 }
