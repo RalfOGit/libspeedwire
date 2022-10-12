@@ -165,7 +165,7 @@ namespace libspeedwire {
          *  @return reference to the index out of bound element.
          */
         static const T& getIndexOutOfBoundsElement(void) {
-            static const T el(999999999.99, 0);
+            static const T el;
             return el;
         }
 
