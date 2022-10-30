@@ -22,6 +22,7 @@ add_executable (${PROJECT_NAME} EXCLUDE_FROM_ALL
     speedwire_test.cpp
     RingBufferTest.cpp
     SpeedwireTimeTest.cpp
+    MeasurementValuesTest.cpp
 )
 
 if (${GTest_FOUND})

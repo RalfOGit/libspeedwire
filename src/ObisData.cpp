@@ -90,7 +90,7 @@ bool ObisData::equals(const ObisType &other) const {
 
 //! Print this instance to file
 void ObisData::print(FILE *file) const {
-    TimestampDoublePair measurementValue = measurementValues.getMostRecentMeasurement();
+    TimestampDoublePair measurementValue = measurementValues.getNewestElement();
     uint32_t    timer  = measurementValue.time;
     double      value  = measurementValue.value;
     std::string string = measurementValues.value_string;
@@ -104,7 +104,7 @@ void ObisData::print(FILE *file) const {
 
 //! Convert this instance into its byte array representation according to the obis byte stream definition
 std::array<uint8_t, 12> ObisData::toByteArray(void) const {
-    TimestampDoublePair measurementValue = measurementValues.getMostRecentMeasurement();
+    TimestampDoublePair measurementValue = measurementValues.getNewestElement();
     std::array<uint8_t, 12> byte_array = ObisType::toByteArray();
     switch (type) {
     case 0:

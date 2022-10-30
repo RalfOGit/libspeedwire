@@ -7,7 +7,6 @@ using namespace libspeedwire;
 TEST(RingBufferTest, IndexOutOfBounds) {
     unsigned int el = 0;
     ASSERT_FALSE(RingBuffer<unsigned>::isIndexOutOfBoundsElement(el));
-    ASSERT_FALSE(RingBuffer<unsigned>::isIndexOutOfBoundsElement(el));
     
     const unsigned& outOfBounds = RingBuffer<unsigned>::getIndexOutOfBoundsElement();
     ASSERT_TRUE(RingBuffer<unsigned>::isIndexOutOfBoundsElement(outOfBounds));
@@ -78,9 +77,11 @@ TEST(RingBufferTest, Capacity1) {
     ASSERT_TRUE (rb.isIndexOutOfBoundsElement(rb[-1]));
     ASSERT_FALSE(rb.isIndexOutOfBoundsElement(rb[0]));
     ASSERT_TRUE (rb.isIndexOutOfBoundsElement(rb[1]));
+    ASSERT_EQ(rb[0], 1);
     ASSERT_EQ(&rb.getNewestElement(), &rb.getOldestElement());
     ASSERT_EQ(&rb.getNewestElement(), &rb[0]);
     ASSERT_EQ(rb.getNewestElement(), 1);
+    ASSERT_EQ(rb.at(0), rb[0]);
 
     // buffer with replaced element 2
     rb.addNewElement(2);
@@ -98,9 +99,11 @@ TEST(RingBufferTest, Capacity1) {
     ASSERT_TRUE(rb.isIndexOutOfBoundsElement(rb[-1]));
     ASSERT_FALSE(rb.isIndexOutOfBoundsElement(rb[0]));
     ASSERT_TRUE(rb.isIndexOutOfBoundsElement(rb[1]));
+    ASSERT_EQ(rb[0], 2);
     ASSERT_EQ(&rb.getNewestElement(), &rb.getOldestElement());
     ASSERT_EQ(&rb.getNewestElement(), &rb[0]);
     ASSERT_EQ(rb.getNewestElement(), 2);
+    ASSERT_EQ(rb.at(0), rb[0]);
 }
 
 // test capacity of two
@@ -149,9 +152,11 @@ TEST(RingBufferTest, Capacity2) {
     ASSERT_TRUE(rb.isIndexOutOfBoundsElement(rb[-1]));
     ASSERT_FALSE(rb.isIndexOutOfBoundsElement(rb[0]));
     ASSERT_TRUE(rb.isIndexOutOfBoundsElement(rb[1]));
+    ASSERT_EQ(rb[0], 1);
     ASSERT_EQ(&rb.getNewestElement(), &rb.getOldestElement());
     ASSERT_EQ(&rb.getNewestElement(), &rb[0]);
     ASSERT_EQ(rb.getNewestElement(), 1);
+    ASSERT_EQ(rb.at(0), rb[0]);
 
     // buffer with two elements 1 and 2
     rb.addNewElement(2);
@@ -173,6 +178,8 @@ TEST(RingBufferTest, Capacity2) {
     ASSERT_TRUE(rb.isIndexOutOfBoundsElement(rb[-1]));
     ASSERT_FALSE(rb.isIndexOutOfBoundsElement(rb[0]));
     ASSERT_FALSE(rb.isIndexOutOfBoundsElement(rb[1]));
+    ASSERT_EQ(rb[0], 1);
+    ASSERT_EQ(rb[1], 2);
     ASSERT_NE(&rb.getNewestElement(), &rb.getOldestElement());
     ASSERT_NE(&rb.getNewestElement(), &rb[0]);
     ASSERT_EQ(&rb.getOldestElement(), &rb[0]);
@@ -180,6 +187,8 @@ TEST(RingBufferTest, Capacity2) {
     ASSERT_NE(&rb.getOldestElement(), &rb[1]);
     ASSERT_EQ(rb.getOldestElement(), 1);
     ASSERT_EQ(rb.getNewestElement(), 2);
+    ASSERT_EQ(rb.at(0), rb[0]);
+    ASSERT_EQ(rb.at(1), rb[1]);
 
     // buffer with two elements 2 and 3
     rb.addNewElement(3);
@@ -202,6 +211,8 @@ TEST(RingBufferTest, Capacity2) {
     ASSERT_FALSE(rb.isIndexOutOfBoundsElement(rb[ 0]));
     ASSERT_FALSE(rb.isIndexOutOfBoundsElement(rb[ 1]));
     ASSERT_TRUE (rb.isIndexOutOfBoundsElement(rb[ 2]));
+    ASSERT_EQ(rb[0], 2);
+    ASSERT_EQ(rb[1], 3);
     ASSERT_NE(&rb.getNewestElement(), &rb.getOldestElement());
     ASSERT_EQ(&rb.getNewestElement(), &rb[1]);
     ASSERT_EQ(&rb.getOldestElement(), &rb[0]);
@@ -209,4 +220,6 @@ TEST(RingBufferTest, Capacity2) {
     ASSERT_NE(&rb.getOldestElement(), &rb[1]);
     ASSERT_EQ(rb.getOldestElement(), 2);
     ASSERT_EQ(rb.getNewestElement(), 3);
+    ASSERT_EQ(rb.at(0), rb[0]);
+    ASSERT_EQ(rb.at(1), rb[1]);
 }

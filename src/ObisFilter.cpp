@@ -15,7 +15,7 @@ ObisFilter::~ObisFilter(void) {
 void ObisFilter::addFilter(const ObisData &entry) {
     ObisData& filter_entry = filterMap[entry.toKey()];
     filter_entry = entry;
-    filter_entry.measurementValues.setMaximumNumberOfMeasurements(entry.measurementValues.getMaximumNumberOfMeasurements());
+    filter_entry.measurementValues.setMaximumNumberOfElements(entry.measurementValues.getMaximumNumberOfElements());
 }
 
 void ObisFilter::addFilter(const std::vector<ObisData> &entries) {
@@ -58,13 +58,13 @@ bool ObisFilter::consume(const uint32_t serial, const void *const obis, const ui
             filteredElement->measurementValues.value_string = SpeedwireEmeterProtocol::toValueString(obis, false);
             break;
         case 4:
-            filteredElement->measurementValues.addMeasurement((uint32_t)SpeedwireEmeterProtocol::getObisValue4(obis), filteredElement->measurementType.divisor, time);
+            filteredElement->addMeasurement((uint32_t)SpeedwireEmeterProtocol::getObisValue4(obis), time);
             break;
         case 7:
-            filteredElement->measurementValues.addMeasurement((int32_t)SpeedwireEmeterProtocol::getObisValue4(obis), filteredElement->measurementType.divisor, time);
+            filteredElement->addMeasurement((int32_t)SpeedwireEmeterProtocol::getObisValue4(obis), time);
             break;
         case 8:
-            filteredElement->measurementValues.addMeasurement(SpeedwireEmeterProtocol::getObisValue8(obis), filteredElement->measurementType.divisor, time);
+            filteredElement->addMeasurement(SpeedwireEmeterProtocol::getObisValue8(obis), time);
             break;
         default:
             perror("obis identifier not implemented");

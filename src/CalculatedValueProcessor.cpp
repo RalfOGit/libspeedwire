@@ -5,12 +5,15 @@ using namespace libspeedwire;
 
 
 // Calculate difference between all positive and negative measurement values and store it in diff values
-static void calculateValueDiffs(MeasurementValues& diff, const MeasurementValues& pos, const MeasurementValues& neg) {
-    diff.clear();
-    for (size_t i = 0; i < pos.getNumberOfMeasurements(); ++i) {
-        if (pos.values[i].time == neg.values[i].time) {
-            double sig = pos.values[i].value - neg.values[i].value;
-            diff.addMeasurement(sig, pos.values[i].time);
+static void calculateValueDiffs(Measurement& diff, const Measurement& pos, const Measurement& neg) {
+    const MeasurementValues& pos_values = pos.measurementValues;
+    const MeasurementValues& neg_values = neg.measurementValues;
+    MeasurementValues& diff_values = diff.measurementValues;
+    diff_values.clear();
+    for (size_t i = 0; i < pos_values.getNumberOfElements(); ++i) {
+        if (pos_values[i].time == neg_values[i].time) {
+            double signed_value = pos_values[i].value - neg_values[i].value;
+            diff_values.addMeasurement(signed_value, pos_values[i].time);
         }
     }
 }
@@ -41,7 +44,7 @@ CalculatedValueProcessor::~CalculatedValueProcessor(void) { }
  * @param element A reference to a received ObisData instance, holding output data of the ObisFilter.
  */
 void CalculatedValueProcessor::consume(const uint32_t serial_number, ObisData& element) {
-    producer.produce(serial_number, element.measurementType, element.wire, element.measurementValues.calculateAverageValue(), element.measurementValues.getMostRecentMeasurement().time);
+    producer.produce(serial_number, element.measurementType, element.wire, element.measurementValues.calculateAverageValue(), element.measurementValues.getNewestElement().time);
 }
 
 
@@ -51,7 +54,7 @@ void CalculatedValueProcessor::consume(const uint32_t serial_number, ObisData& e
  * @param element A reference to a received SpeedwireData instance.
  */
 void CalculatedValueProcessor::consume(const uint32_t serial_number, SpeedwireData& element) {
-    producer.produce(serial_number, element.measurementType, element.wire, element.measurementValues.calculateAverageValue(), element.measurementValues.getMostRecentMeasurement().time);
+    producer.produce(serial_number, element.measurementType, element.wire, element.measurementValues.calculateAverageValue(), element.measurementValues.getNewestElement().time);
 }
 
 
@@ -68,7 +71,7 @@ void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const
     if ((pos = obis_data_map.find(ObisData::PositiveActivePowerL1.toKey())) != end &&
         (neg = obis_data_map.find(ObisData::NegativeActivePowerL1.toKey())) != end &&
         (sig = obis_data_map.find(ObisData::SignedActivePowerL1.toKey())) != end) {
-        calculateValueDiffs(sig->second.measurementValues, pos->second.measurementValues, neg->second.measurementValues);
+        calculateValueDiffs(sig->second, pos->second, neg->second);
         producer.produce(serial_number, ObisData::SignedActivePowerL1.measurementType, ObisData::SignedActivePowerL1.wire, sig->second.measurementValues.calculateAverageValue(), timestamp);
     }
 
@@ -76,7 +79,7 @@ void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const
     if ((pos = obis_data_map.find(ObisData::PositiveActivePowerL2.toKey())) != end &&
         (neg = obis_data_map.find(ObisData::NegativeActivePowerL2.toKey())) != end &&
         (sig = obis_data_map.find(ObisData::SignedActivePowerL2.toKey())) != end) {
-        calculateValueDiffs(sig->second.measurementValues, pos->second.measurementValues, neg->second.measurementValues);
+        calculateValueDiffs(sig->second, pos->second, neg->second);
         producer.produce(serial_number, ObisData::SignedActivePowerL2.measurementType, ObisData::SignedActivePowerL2.wire, sig->second.measurementValues.calculateAverageValue(), timestamp);
     }
 
@@ -84,7 +87,7 @@ void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const
     if ((pos = obis_data_map.find(ObisData::PositiveActivePowerL3.toKey())) != end &&
         (neg = obis_data_map.find(ObisData::NegativeActivePowerL3.toKey())) != end &&
         (sig = obis_data_map.find(ObisData::SignedActivePowerL3.toKey())) != end) {
-        calculateValueDiffs(sig->second.measurementValues, pos->second.measurementValues, neg->second.measurementValues);
+        calculateValueDiffs(sig->second, pos->second, neg->second);
         producer.produce(serial_number, ObisData::SignedActivePowerL3.measurementType, ObisData::SignedActivePowerL3.wire, sig->second.measurementValues.calculateAverageValue(), timestamp);
     }
 
@@ -92,7 +95,7 @@ void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const
     if ((pos = obis_data_map.find(ObisData::PositiveActivePowerTotal.toKey())) != end &&
         (neg = obis_data_map.find(ObisData::NegativeActivePowerTotal.toKey())) != end &&
         (sig = obis_data_map.find(ObisData::SignedActivePowerTotal.toKey())) != end) {
-        calculateValueDiffs(sig->second.measurementValues, pos->second.measurementValues, neg->second.measurementValues);
+        calculateValueDiffs(sig->second, pos->second, neg->second);
         producer.produce(serial_number, ObisData::SignedActivePowerTotal.measurementType, ObisData::SignedActivePowerTotal.wire, sig->second.measurementValues.calculateAverageValue(), timestamp);
     }
 
@@ -124,8 +127,8 @@ void CalculatedValueProcessor::endOfSpeedwireData(const uint32_t serial_number, 
     // calculate total dc power
     if ((value1 = speedwire_data_map.find(SpeedwireData::InverterPowerMPP1.toKey())) != end &&
         (value2 = speedwire_data_map.find(SpeedwireData::InverterPowerMPP2.toKey())) != end &&
-        (value1_time = value1->second.measurementValues.getMostRecentMeasurement().time, 
-         value2_time = value2->second.measurementValues.getMostRecentMeasurement().time,
+        (value1_time = value1->second.measurementValues.getNewestElement().time, 
+         value2_time = value2->second.measurementValues.getNewestElement().time,
          SpeedwireTime::calculateAbsTimeDifference(value1_time, value2_time) <= 1)) {
         dc_age = (uint32_t)SpeedwireTime::calculateAbsTimeDifference(inverter_time, value1_time);
         dc_time = value1_time;
@@ -139,9 +142,9 @@ void CalculatedValueProcessor::endOfSpeedwireData(const uint32_t serial_number, 
     if ((value1 = speedwire_data_map.find(SpeedwireData::InverterPowerL1.toKey())) != end &&
         (value2 = speedwire_data_map.find(SpeedwireData::InverterPowerL2.toKey())) != end &&
         (value3 = speedwire_data_map.find(SpeedwireData::InverterPowerL3.toKey())) != end &&
-        (value1_time = value1->second.measurementValues.getMostRecentMeasurement().time,
-         value2_time = value2->second.measurementValues.getMostRecentMeasurement().time,
-         value3_time = value3->second.measurementValues.getMostRecentMeasurement().time,
+        (value1_time = value1->second.measurementValues.getNewestElement().time,
+         value2_time = value2->second.measurementValues.getNewestElement().time,
+         value3_time = value3->second.measurementValues.getNewestElement().time,
          SpeedwireTime::calculateAbsTimeDifference(value1_time, value2_time) <= 1 &&
          SpeedwireTime::calculateAbsTimeDifference(value1_time, value3_time) <= 1)) {
         ac_age = (uint32_t)SpeedwireTime::calculateAbsTimeDifference(inverter_time, value1_time);
@@ -165,7 +168,7 @@ void CalculatedValueProcessor::endOfSpeedwireData(const uint32_t serial_number, 
     ObisDataMap::const_iterator pos, neg;
     if ((pos = obis_data_map.find(ObisData::PositiveActivePowerTotal.toKey())) != obis_data_map.end() &&
         (neg = obis_data_map.find(ObisData::NegativeActivePowerTotal.toKey())) != obis_data_map.end()) {
-        uint32_t feed_in_time = neg->second.measurementValues.getMostRecentMeasurement().time;
+        uint32_t feed_in_time = neg->second.measurementValues.getNewestElement().time;
         uint32_t grid_age = emeter_time - feed_in_time;
         if (grid_age < max_age * 1000) {
             double neg_average_value = neg->second.measurementValues.calculateAverageValue();

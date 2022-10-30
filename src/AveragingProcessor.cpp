@@ -97,7 +97,7 @@ bool AveragingProcessor::process(const uint32_t serial_number, const DeviceType&
     AveragingState& state = states[index];
 
     // get the most recent measurement timestamp
-    uint32_t measurementTime = measurement.measurementValues.getMostRecentMeasurement().time;
+    uint32_t measurementTime = measurement.measurementValues.getNewestElement().time;
 
     // if no averaging is intended, leave the measurement value as is
     if (state.averagingTime == 0) {

@@ -10,15 +10,22 @@ namespace libspeedwire {
      */
     template<class T> class RingBuffer {
     public:
+        using value_type = T;
+        using reference = T&;
+        using const_reference = const T&;
+        using size_type = size_t;
+
         std::vector<T>  data_vector;    //!< Array of ring buffer elements
+        std::vector<T*> ref_vector;     //!< Array of references to ring buffer elements, it is twice as big as the array of ring buffer elements and provides contiguous access to elements without wrap around
         size_t          write_pointer;  //!< Write pointer pointing to the next element to write to
 
         /**
          * Constructor.
          * @param capacity Maximum number of ring buffer elements
          */
-        RingBuffer(const int capacity) :
-            data_vector(capacity) {
+        RingBuffer(const size_t capacity) :
+            data_vector(capacity),
+            ref_vector(2*capacity) {
             clear();
         }
 
@@ -46,6 +53,7 @@ namespace libspeedwire {
         void setMaximumNumberOfElements(const size_t new_capacity) {
             clear();
             data_vector.reserve(new_capacity);
+            ref_vector.reserve(2 * new_capacity);
         }
 
         /**
@@ -66,6 +74,11 @@ namespace libspeedwire {
             }
             else {
                 data_vector.push_back(value);
+                // during the initial ring buffer fill-up, update references to data elements
+                ref_vector.resize(data_vector.size() * 2, NULL);
+                for (size_t i = 0; i < data_vector.size(); ++i) {
+                    ref_vector.data()[i] = ref_vector.data()[i + data_vector.size()] = &data_vector.data()[i];
+                }
             }
             if (++write_pointer >= data_vector.capacity()) {
                 write_pointer = 0;
@@ -74,7 +87,7 @@ namespace libspeedwire {
 
         /**
          *  Get a reference to the element at the given ring buffer index position.
-         *  @param i ring buffer index - i = 0 gets the oldest element, i = (getNumberOfElements()-1) gets the newest element.
+         *  @param i ring buffer index, where i = 0 gets the oldest element and i = (getNumberOfElements()-1) gets the newest element.
          *  @return reference to the element at ring buffer index; if the index is out of bounds, reference getIndexOutOfBoundsElement() is returned. 
          */
         const T& operator[](const size_t i) const {
@@ -83,6 +96,16 @@ namespace libspeedwire {
                 return data_vector[index];
             }
             return getIndexOutOfBoundsElement();
+        }
+
+        /**
+         *  Get a reference to the element at the given ring buffer index position, where the index boundaries are not checked for efficiency reasons.
+         *  This method must only be used whenever index boundaries are guarantied to stay within 0 ... (getNumberOfElements()-1).
+         *  @param i ring buffer index, where i = 0 gets the oldest element and i = (getNumberOfElements()-1) gets the newest element.
+         *  @return reference to the element at ring buffer index; if the index is out of bounds, reference getIndexOutOfBoundsElement() is returned.
+         */
+        const T& at(const size_t i) const {
+            return *(ref_vector.data()[write_pointer + i]);
         }
 
         /**
@@ -177,7 +200,6 @@ namespace libspeedwire {
             const T& indexOutOfBoundsElement = getIndexOutOfBoundsElement();
             return (&element == &indexOutOfBoundsElement);
         }
-
     };
 
 }   // namespace libspeedwire
