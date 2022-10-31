@@ -10,7 +10,7 @@
 namespace libspeedwire {
 
     /**
-     *  Class encapsulating a value timestamp pair, where the value is a double value.
+     *  Class encapsulating a value-timestamp pair, where the value is a double value.
      */
     class TimestampDoublePair {
     public:
@@ -26,6 +26,7 @@ namespace libspeedwire {
 
     /**
      *  Class encapsulating a ring buffer of measurement values together with their timesamps.
+     *  It is assumed that measurement values are added to the ring buffer with monotically increasing timestamps.
      */
     class MeasurementValues : public RingBuffer<TimestampDoublePair> {
     public:
@@ -53,16 +54,20 @@ namespace libspeedwire {
          */
         const size_t findClosestIndex(const uint32_t time) const {
             if (getNumberOfElements() > 0) {
-                uint64_t min_diff = (uint64_t)-1;
-                size_t min_index = 0;
-                for (size_t i = 0; i < getNumberOfElements(); ++i) {
-                    uint64_t diff = SpeedwireTime::calculateAbsTimeDifference(time, at(i).time);
-                    if (diff < min_diff) {
-                        min_diff = diff;
-                        min_index = i;
+                // binary search
+                size_t low = 0;
+                size_t high = getNumberOfElements() - 1;
+                while ((low + 1) < high) {
+                    const size_t mid = (low + high) / 2u;
+                    if (SpeedwireTime::calculateTimeDifference(time, at(mid).time) > 0) {  // use signed difference
+                        low = mid;
+                    }
+                    else {
+                        high = mid;
                     }
                 }
-                return min_index;
+                const bool low_is_closer = (SpeedwireTime::calculateAbsTimeDifference(time, at(low).time) < SpeedwireTime::calculateAbsTimeDifference(time, at(high).time));
+                return (low_is_closer ? low : high);
             }
             return (size_t)-1;
         }

@@ -294,6 +294,30 @@ TEST(MeasurementValuesTest, Capacity3) {
     ASSERT_EQ(mv.interpolateClosestValues(2750), (pair2.value + 3 * pair3.value) / 4);
 }
 
+// test findClosestIndex with a capacity of 60
+TEST(MeasurementValuesTest, FindClosestMeasurement) {
+    MeasurementValues mv(60);
+    for (int i = 0; i < mv.getMaximumNumberOfElements(); ++i) {
+        TimestampDoublePair p(i, i * 1000);
+        mv.addNewElement(p);
+    }
+    for (int i = 0; i < 1000 * mv.getNumberOfElements() - 500; ++i) {
+        if ((i % 500) == 0) {
+            const size_t index = mv.findClosestIndex(i);
+            ASSERT_TRUE(index == (i + 500) / 1000 || index == (i + 499) / 1000);
+        }
+        else {
+            ASSERT_EQ(mv.findClosestIndex(i), (i + 500) / 1000);
+        }
+    }
+    for (int i = -5000; i <= 0; ++i) {
+        ASSERT_EQ(mv.findClosestIndex(i), 0);
+    }
+    for (int i = 1000 * mv.getNumberOfElements(); i < 1005 * mv.getNumberOfElements(); ++i) {
+        ASSERT_EQ(mv.findClosestIndex(i), mv.getNumberOfElements()-1);
+    }
+}
+
 // test capacity of one - calculateAverageValue
 TEST(MeasurementValuesTest, Capacity1_calculateAverageValue) {
     MeasurementValues mv(1);
