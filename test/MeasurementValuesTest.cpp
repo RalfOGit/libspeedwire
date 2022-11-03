@@ -297,24 +297,24 @@ TEST(MeasurementValuesTest, Capacity3) {
 // test findClosestIndex with a capacity of 60
 TEST(MeasurementValuesTest, FindClosestMeasurement) {
     MeasurementValues mv(60);
-    for (int i = 0; i < mv.getMaximumNumberOfElements(); ++i) {
-        TimestampDoublePair p(i, i * 1000);
+    for (size_t i = 0; i < mv.getMaximumNumberOfElements(); ++i) {
+        TimestampDoublePair p((double)i, (uint32_t)(i * 1000));
         mv.addNewElement(p);
     }
-    for (int i = 0; i < 1000 * mv.getNumberOfElements() - 500; ++i) {
+    for (size_t i = 0; i < 1000 * mv.getNumberOfElements() - 500; ++i) {
         if ((i % 500) == 0) {
-            const size_t index = mv.findClosestIndex(i);
+            const size_t index = mv.findClosestIndex((uint32_t)i);
             ASSERT_TRUE(index == (i + 500) / 1000 || index == (i + 499) / 1000);
         }
         else {
-            ASSERT_EQ(mv.findClosestIndex(i), (i + 500) / 1000);
+            ASSERT_EQ(mv.findClosestIndex((uint32_t)i), (i + 500) / 1000);
         }
     }
     for (int i = -5000; i <= 0; ++i) {
-        ASSERT_EQ(mv.findClosestIndex(i), 0);
+        ASSERT_EQ(mv.findClosestIndex((uint32_t)i), 0);
     }
-    for (int i = 1000 * mv.getNumberOfElements(); i < 1005 * mv.getNumberOfElements(); ++i) {
-        ASSERT_EQ(mv.findClosestIndex(i), mv.getNumberOfElements()-1);
+    for (size_t i = 1000 * mv.getNumberOfElements(); i < 1005 * mv.getNumberOfElements(); ++i) {
+        ASSERT_EQ(mv.findClosestIndex((uint32_t)i), mv.getNumberOfElements()-1);
     }
 }
 
@@ -367,4 +367,22 @@ TEST(MeasurementValuesTest, Capacity3_calculateAverageValue) {
 
     mv.addNewElement(pair4);
     ASSERT_EQ(mv.calculateAverageValue(), (pair2.value + pair3.value + pair4.value) / 3);
+}
+
+// test capacity of three - calculateAverageValue
+TEST(MeasurementValuesTest, approximateStepFunctions) {
+    const double noise = 300.0;
+    MeasurementValues mv(60);
+    for (size_t i = 0; i < mv.getMaximumNumberOfElements()/2; ++i) {
+        double value = 300.0 + noise * (((double)std::rand() - (RAND_MAX / 2)) / RAND_MAX);
+        TimestampDoublePair p(value, (uint32_t)(i * 1000));
+        mv.addNewElement(p);
+    }
+    for (size_t i = mv.getMaximumNumberOfElements() / 2; i < mv.getMaximumNumberOfElements(); ++i) {
+        double value = 600.0 + noise * (((double)std::rand() - (RAND_MAX / 2)) / RAND_MAX);
+        TimestampDoublePair p(value, (uint32_t)(i * 1000));
+        mv.addNewElement(p);
+    }
+    std::vector<size_t> steps;
+    mv.findChangePoints(steps);
 }

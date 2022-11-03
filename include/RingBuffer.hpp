@@ -86,6 +86,29 @@ namespace libspeedwire {
         }
 
         /**
+         *  Remove elements from the ring buffer. Non-existing elements are silently ignored.
+         *  @param offs index of the first element to be removed
+         *  @param n number of elements to be removed
+         *  @return number of elements removed
+         */
+        size_t removeElements(const size_t offs, const size_t n) {
+            size_t data_vector_size = data_vector.size();
+            std::vector<T> temp;
+            temp.reserve(data_vector_size > n ? data_vector_size - n : 0);
+            for (size_t i = 0; i < offs && i < data_vector_size; ++i) {
+                temp.push_back(at(i));
+            }
+            for (size_t i = offs + n; i < data_vector_size; ++i) {
+                temp.push_back(at(i));
+            }
+            clear();
+            for (auto &el : temp) {
+                addNewElement(el);
+            }
+            return data_vector_size - temp.size();
+        }
+
+        /**
          *  Get a reference to the element at the given ring buffer index position.
          *  @param i ring buffer index, where i = 0 gets the oldest element and i = (getNumberOfElements()-1) gets the newest element.
          *  @return reference to the element at ring buffer index; if the index is out of bounds, reference getIndexOutOfBoundsElement() is returned. 
