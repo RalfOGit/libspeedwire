@@ -183,8 +183,9 @@ namespace libspeedwire {
                 const double var_value = squared_sum / (to - from + 1) - mean_value * mean_value;
                 mean.push_back(mean_value);
                 variance.push_back(var_value);
-
-                printf("mean %lf  var %lf\n", mean[i], variance[i]);
+#ifdef _DEBUG
+                printf("i %02d  value %lf  mean %lf  var %lf\n", (int)i,  at(i).value, mean[i], variance[i]);
+#endif
             }
 
             // estimate variance values for the oldest and newest measurement value using variances of their direct neighbors
@@ -218,8 +219,18 @@ namespace libspeedwire {
                     const double mean_diff_squared   = mean_diff * mean_diff;
                     const double three_sigma_squared = 9.0 * 0.5*(variance[center_1] + variance[center_2]);
                     if (mean_diff_squared > three_sigma_squared) {
-                        printf("3 sigma total variation minimum found at %d  (mean_diff^2: %lf  9*variance: %lf)\n", (int)min_index, mean_diff_squared, three_sigma_squared);
-                        steps.push_back(min_index);
+                        // ignore if the variance is small compared to the absolute value
+                        if (three_sigma_squared > 200.0) {
+#ifdef _DEBUG
+                            printf("3 sigma total variation minimum found at %d  (mean_1 %lf  mean_2 %lf  mean_diff^2: %lf  9*variance: %lf)\n", (int)min_index, mean[center_1], mean[center_2], mean_diff_squared, three_sigma_squared);
+#endif
+                            steps.push_back(min_index);
+                        }
+#ifdef _DEBUG
+                        else {
+                            printf("3 sigma total variation minimum ignored at %d  (mean_1 %lf  mean_2 %lf  mean_diff^2: %lf  9*variance: %lf)\n", (int)min_index, mean[center_1], mean[center_2], mean_diff_squared, three_sigma_squared);
+                        }
+#endif
                     }
                 }
             }

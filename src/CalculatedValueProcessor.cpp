@@ -97,6 +97,33 @@ void CalculatedValueProcessor::endOfObisData(const uint32_t serial_number, const
         (sig = obis_data_map.find(ObisData::SignedActivePowerTotal.toKey())) != end) {
         calculateValueDiffs(sig->second, pos->second, neg->second);
         producer.produce(serial_number, ObisData::SignedActivePowerTotal.measurementType, ObisData::SignedActivePowerTotal.wire, sig->second.measurementValues.calculateAverageValue(), timestamp);
+
+        // experimental setup to feed time-accurate power measurements
+        static uint32_t last_time = 0;
+        const uint32_t experimental_serial = 1234567890;
+        const MeasurementValues& mvalues = sig->second.measurementValues;
+        std::vector<MeasurementValueInterval> intervals;
+        mvalues.findPiecewiseConstantIntervals(intervals);
+        for (auto& iv : intervals) {
+            if (SpeedwireTime::calculateTimeDifference(mvalues[iv.end_index].time, last_time) <= 0) {
+#ifdef _DEBUG
+                printf("interval %d %d - %lu %lu : %lf  => skipped\n", (int)iv.start_index, (int)iv.end_index, mvalues[iv.start_index].time, mvalues[iv.end_index].time, iv.mean_value);
+#endif
+                continue;
+            }
+            while (SpeedwireTime::calculateTimeDifference(mvalues[iv.start_index].time, last_time) <= 0 && iv.start_index < (mvalues.getNumberOfElements() - 1)) {
+#ifdef _DEBUG
+                printf("interval %d %d - %lu %lu : %lf  => incremented start index\n", (int)iv.start_index, (int)iv.end_index, mvalues[iv.start_index].time, mvalues[iv.end_index].time, iv.mean_value);
+#endif
+                iv.start_index++;
+            }
+#ifdef _DEBUG
+            printf("interval %d %d - %lu %lu : %lf\n", (int)iv.start_index, (int)iv.end_index, mvalues[iv.start_index].time, mvalues[iv.end_index].time, iv.mean_value);
+#endif
+            producer.produce(experimental_serial, ObisData::SignedActivePowerTotal.measurementType, ObisData::SignedActivePowerTotal.wire, iv.mean_value, mvalues[iv.start_index].time);
+            producer.produce(experimental_serial, ObisData::SignedActivePowerTotal.measurementType, ObisData::SignedActivePowerTotal.wire, iv.mean_value, mvalues[iv.end_index].time);
+        }
+        last_time = mvalues[intervals[intervals.size() - 1].end_index].time;
     }
 
     producer.flush();
@@ -169,7 +196,7 @@ void CalculatedValueProcessor::endOfSpeedwireData(const uint32_t serial_number, 
     if ((pos = obis_data_map.find(ObisData::PositiveActivePowerTotal.toKey())) != obis_data_map.end() &&
         (neg = obis_data_map.find(ObisData::NegativeActivePowerTotal.toKey())) != obis_data_map.end()) {
         uint32_t feed_in_time = neg->second.measurementValues.getNewestElement().time;
-        uint32_t grid_age = emeter_time - feed_in_time;
+        uint32_t grid_age = SpeedwireTime::calculateAbsTimeDifference(emeter_time, feed_in_time);
         if (grid_age < max_age * 1000) {
             double neg_average_value = neg->second.measurementValues.calculateAverageValue();
 

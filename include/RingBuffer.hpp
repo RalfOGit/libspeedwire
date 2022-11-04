@@ -92,9 +92,9 @@ namespace libspeedwire {
          *  @return number of elements removed
          */
         size_t removeElements(const size_t offs, const size_t n) {
-            size_t data_vector_size = data_vector.size();
+            const size_t data_vector_size = data_vector.size();
             std::vector<T> temp;
-            temp.reserve(data_vector_size > n ? data_vector_size - n : 0);
+            temp.reserve(data_vector_size >= n ? data_vector_size - n : 0);
             for (size_t i = 0; i < offs && i < data_vector_size; ++i) {
                 temp.push_back(at(i));
             }
@@ -102,10 +102,15 @@ namespace libspeedwire {
                 temp.push_back(at(i));
             }
             clear();
-            for (auto &el : temp) {
-                addNewElement(el);
+            const size_t temp_size = temp.size();
+            for (const auto& el : temp) {
+                data_vector.push_back(el);
             }
-            return data_vector_size - temp.size();
+            write_pointer = (temp_size >= data_vector.capacity() ? 0 : temp_size);
+            for (size_t i = 0; i < temp_size; ++i) {
+                ref_vector.data()[i] = ref_vector.data()[i + temp_size] = &data_vector.data()[i];
+            }
+            return data_vector_size - temp_size;
         }
 
         /**
