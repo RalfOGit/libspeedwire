@@ -162,37 +162,53 @@ namespace libspeedwire {
          */
         size_t findChangePoints(std::vector<size_t>& steps) const {
 
-            // for each measurement value, estimate mean and variance using a sliding window around the value;
+            struct Estimates {
+                double mean, variance, beta0, beta1;
+                Estimates(const double m, const double var, const double b0, const double b1) : mean(m), variance(var), beta0(b0), beta1(b1) {}
+            };
+            std::vector<Estimates> estimates;
+            estimates.reserve(getMaximumNumberOfElements());
+
+            // for each measurement value, estimate statical parameters in a sliding window around the value;
             // the sliding window is from -window_size .. 0 .. window_size
             const size_t window_size = getMaximumNumberOfElements() / 10;   // must be > 0
-            std::vector<double> mean; mean.reserve(getMaximumNumberOfElements());
-            std::vector<double> variance; variance.reserve(getMaximumNumberOfElements());
 
             for (size_t i = 0; i < getNumberOfElements(); ++i) {
                 const size_t truncated_size = (i < window_size ? i : (i > (getNumberOfElements() - window_size - 1) ? (getNumberOfElements() - i - 1) : window_size));
                 const size_t from = i - truncated_size;
                 const size_t to   = i + truncated_size;
 
-                double sum = 0.0, squared_sum = 0.0;
+                // calculate mean and variance of x coordinate; use center of window as origin, therefore x_mean is always 0
+                // calculate x_var from sum of squared ints: 1^2 + 2^2 + 3^2 + ... + n^2 = [n(n+1)(2n+1)] / 6
+                const double x_var = (double)((truncated_size * (truncated_size + 1) * (2 * truncated_size + 1)) / 3) / (2 * truncated_size + 1);
+                const double x_mean = 0.0;
+
+                // calculate mean and variance of y coordinate and also the xy covariance
+                double y_sum = 0.0, y_squared_sum = 0.0, xy_sum = 0.0;
                 for (size_t w = from; w <= to; ++w) {
                     const double value = at(w).value;
-                    sum += value;
-                    squared_sum += value * value;
+                    y_sum += value;
+                    y_squared_sum += value * value;
+                    xy_sum += value * ((int)w - (int)i);
                 }
-                const double mean_value = sum / (to - from + 1);
-                const double var_value = squared_sum / (to - from + 1) - mean_value * mean_value;
-                mean.push_back(mean_value);
-                variance.push_back(var_value);
-#ifdef _DEBUG
-                printf("i %02d  value %lf  mean %lf  var %lf\n", (int)i,  at(i).value, mean[i], variance[i]);
-#endif
+                const double y_mean = y_sum / (to - from + 1);
+                const double y_var = y_squared_sum / (to - from + 1) - y_mean * y_mean;
+                const double xy_var = xy_sum / (to - from + 1) - x_mean * y_mean;
+                const double beta1 = (x_var != 0.0 ? xy_var / x_var - x_mean * y_mean : 0.0); // slope
+                const double beta0 = y_mean - beta1 * x_mean;                                 // intercept
+                estimates.push_back(Estimates(y_mean, y_var, beta0, beta1));
             }
-
             // estimate variance values for the oldest and newest measurement value using variances of their direct neighbors
             if (getNumberOfElements() >= 2) {
-                variance[0] = variance[1];
-                variance[getNumberOfElements() - 1] = variance[getNumberOfElements() - 2];
+                estimates[0].variance = estimates[1].variance;
+                estimates[getNumberOfElements() - 1].variance = estimates[getNumberOfElements() - 2].variance;
             }
+#if defined(_DEBUG)
+            int i = 0;
+            for (const auto& estim : estimates) {
+                printf("i %02d  value %lf  mean %lf  var %lf  offs %lf  slope %lf\n", (int)i, at(i).value, estim.mean, estim.variance, estim.beta0, estim.beta1); ++i;
+            }
+#endif
 
             // find mean value change points by simplified total variation. This is done by calculating the sum of variances of
             // two adjacent sliding windows. Adjacent sliding windows have their centers 2 * window_size values apart.
@@ -203,9 +219,9 @@ namespace libspeedwire {
                 const size_t center_2 = center_1 + 2 * window_size + 1;
 
                 // calculate total variation cost functions for this value, the value before and the value after.
-                const double penalty_m1 = variance[center_1 - 1] + variance[center_2 - 1];
-                const double penalty    = variance[center_1    ] + variance[center_2];
-                const double penalty_p1 = variance[center_1 + 1] + variance[center_2 + 1];
+                const double penalty_m1 = estimates[center_1 - 1].variance + estimates[center_2 - 1].variance;
+                const double penalty    = estimates[center_1    ].variance + estimates[center_2    ].variance;
+                const double penalty_p1 = estimates[center_1 + 1].variance + estimates[center_2 + 1].variance;
 
                 downwards = ((penalty < penalty_m1) ? true : ((penalty > penalty_m1) ? false : downwards));
 
@@ -215,20 +231,20 @@ namespace libspeedwire {
 
                     // check if mean values differ by more than 3 * sigma; only then this value is considered as a change point;
                     // to avoid square root calculations squared mean differences and 9 * variance are used instead
-                    const double mean_diff           = mean[center_1] - mean[center_2];
+                    const double mean_diff           = estimates[center_1].mean - estimates[center_2].mean;
                     const double mean_diff_squared   = mean_diff * mean_diff;
-                    const double three_sigma_squared = 9.0 * 0.5*(variance[center_1] + variance[center_2]);
+                    const double three_sigma_squared = 9.0 * 0.5*(estimates[center_1].variance + estimates[center_2].variance);
                     if (mean_diff_squared > three_sigma_squared) {
                         // ignore if the variance is small compared to the absolute value
                         if (three_sigma_squared > 200.0) {
 #ifdef _DEBUG
-                            printf("3 sigma total variation minimum found at %d  (mean_1 %lf  mean_2 %lf  mean_diff^2: %lf  9*variance: %lf)\n", (int)min_index, mean[center_1], mean[center_2], mean_diff_squared, three_sigma_squared);
+                            printf("3 sigma total variation minimum found at %d  (mean_1 %lf  mean_2 %lf  mean_diff^2: %lf  9*variance: %lf)\n", (int)min_index, estimates[center_1].mean, estimates[center_2].mean, mean_diff_squared, three_sigma_squared);
 #endif
                             steps.push_back(min_index);
                         }
 #ifdef _DEBUG
                         else {
-                            printf("3 sigma total variation minimum ignored at %d  (mean_1 %lf  mean_2 %lf  mean_diff^2: %lf  9*variance: %lf)\n", (int)min_index, mean[center_1], mean[center_2], mean_diff_squared, three_sigma_squared);
+                            printf("3 sigma total variation minimum ignored at %d  (mean_1 %lf  mean_2 %lf  mean_diff^2: %lf  9*variance: %lf)\n", (int)min_index, estimates[center_1].mean, estimates[center_2].mean, mean_diff_squared, three_sigma_squared);
                         }
 #endif
                     }
