@@ -2,7 +2,6 @@
 #define __LIBSPEEDWIRE_MEASUREMENTVALUES_HPP__
 
 #include <cstdint>
-#include <cstdlib>
 #include <string>
 #include <vector>
 #include <RingBuffer.hpp>
@@ -23,21 +22,6 @@ namespace libspeedwire {
 
         static TimestampDoublePair defaultPair;
     };
-
-    class ChangePoint {
-    public:
-        size_t change_index_before;
-        size_t change_index_after;
-    };
-
-    class MeasurementValueInterval {
-    public:
-        size_t start_index;
-        size_t end_index;       // included
-        double mean_value;
-        MeasurementValueInterval(const size_t start, const size_t end, const double mean) : start_index(start), end_index(end), mean_value(mean) {}
-    };
-
 
     /**
      *  Class encapsulating a ring buffer of measurement values together with their timesamps.
@@ -130,10 +114,10 @@ namespace libspeedwire {
         }
 
         /**
-         *  Calculate the average value of all measurements in the ring buffer.
+         *  Estimate the sample mean, aka average value, of all measurements in the ring buffer.
          *  @return average value
          */
-        double calculateAverageValue(void) const {
+        double estimateMean(void) const {
             double sum = 0.0;
             for (const auto& m : data_vector) {
                 sum += m.value;
@@ -142,12 +126,12 @@ namespace libspeedwire {
         }
 
         /**
-         *  Calculate the average value over the given subset of measurements in the ring buffer.
+         *  Estimate the sample mean, aka average value, over the given subset of measurements in the ring buffer.
          *  @param from start index
          *  @param to end index; the measurement with index end is included
          *  @return average value
          */
-        double calculateAverageValue(const size_t from, const size_t to) const {
+        double estimateMean(const size_t from, const size_t to) const {
             double sum = 0.0;
             for (size_t index = from; index <= to; ++index) {
                 sum += at(index).value;
@@ -156,128 +140,59 @@ namespace libspeedwire {
         }
 
         /**
-         *  Find mean value change points by simplified total variation.
-         *  @param steps output vector holding indexes of change points; the index points to the last index before the change point
-         *  @return the number of change points
+         *  Estimate sample mean and sample variance values over the given subset of measurements in the ring buffer.
+         *  @param from start index
+         *  @param to end index; the measurement with index end is included
+         *  @param the sample mean result
+         *  @param the sample variance result
          */
-        size_t findChangePoints(std::vector<size_t>& steps) const {
-
-            struct Estimates {
-                double mean, variance, beta0, beta1;
-                Estimates(const double m, const double var, const double b0, const double b1) : mean(m), variance(var), beta0(b0), beta1(b1) {}
-            };
-            std::vector<Estimates> estimates;
-            estimates.reserve(getMaximumNumberOfElements());
-
-            // for each measurement value, estimate statical parameters in a sliding window around the value;
-            // the sliding window is from -window_size .. 0 .. window_size
-            const size_t window_size = getMaximumNumberOfElements() / 10;   // must be > 0
-
-            for (size_t i = 0; i < getNumberOfElements(); ++i) {
-                const size_t truncated_size = (i < window_size ? i : (i > (getNumberOfElements() - window_size - 1) ? (getNumberOfElements() - i - 1) : window_size));
-                const size_t from = i - truncated_size;
-                const size_t to   = i + truncated_size;
-
-                // calculate mean and variance of x coordinate; use center of window as origin, therefore x_mean is always 0
-                // calculate x_var from sum of squared ints: 1^2 + 2^2 + 3^2 + ... + n^2 = [n(n+1)(2n+1)] / 6
-                const double x_var = (double)((truncated_size * (truncated_size + 1) * (2 * truncated_size + 1)) / 3) / (2 * truncated_size + 1);
-                const double x_mean = 0.0;
-
-                // calculate mean and variance of y coordinate and also the xy covariance
-                double y_sum = 0.0, y_squared_sum = 0.0, xy_sum = 0.0;
-                for (size_t w = from; w <= to; ++w) {
-                    const double value = at(w).value;
-                    y_sum += value;
-                    y_squared_sum += value * value;
-                    xy_sum += value * ((int)w - (int)i);
-                }
-                const double y_mean = y_sum / (to - from + 1);
-                const double y_var = y_squared_sum / (to - from + 1) - y_mean * y_mean;
-                const double xy_var = xy_sum / (to - from + 1) - x_mean * y_mean;
-                const double beta1 = (x_var != 0.0 ? xy_var / x_var - x_mean * y_mean : 0.0); // slope
-                const double beta0 = y_mean - beta1 * x_mean;                                 // intercept
-                estimates.push_back(Estimates(y_mean, y_var, beta0, beta1));
+        void estimateMeanAndVariance(const size_t from, const size_t to, double& mean, double& var) const {
+            double y_sum = 0.0, y_sq_sum = 0.0;
+            for (size_t index = from; index <= to; ++index) {
+                const double value = at(index).value;
+                y_sum    += value;
+                y_sq_sum += value * value;
             }
-            // estimate variance values for the oldest and newest measurement value using variances of their direct neighbors
-            if (getNumberOfElements() >= 2) {
-                estimates[0].variance = estimates[1].variance;
-                estimates[getNumberOfElements() - 1].variance = estimates[getNumberOfElements() - 2].variance;
-            }
-#if defined(_DEBUG)
-            int i = 0;
-            for (const auto& estim : estimates) {
-                printf("i %02d  value %lf  mean %lf  var %lf  offs %lf  slope %lf\n", (int)i, at(i).value, estim.mean, estim.variance, estim.beta0, estim.beta1); ++i;
-            }
-#endif
-
-            // find mean value change points by simplified total variation. This is done by calculating the sum of variances of
-            // two adjacent sliding windows. Adjacent sliding windows have their centers 2 * window_size values apart.
-            // A change point is characterized by a local minimum sum of variances.
-            bool downwards = false;  // minimum seeker state, needed to avoid saddle points
-            //for (size_t center_1 = window_size; center_1 < (getNumberOfElements() - 3 * window_size); ++center_1) {
-            for (size_t center_1 = 1; center_1 < (getNumberOfElements() - 2 * window_size - 3); ++center_1) {
-                const size_t center_2 = center_1 + 2 * window_size + 1;
-
-                // calculate total variation cost functions for this value, the value before and the value after.
-                const double penalty_m1 = estimates[center_1 - 1].variance + estimates[center_2 - 1].variance;
-                const double penalty    = estimates[center_1    ].variance + estimates[center_2    ].variance;
-                const double penalty_p1 = estimates[center_1 + 1].variance + estimates[center_2 + 1].variance;
-
-                downwards = ((penalty < penalty_m1) ? true : ((penalty > penalty_m1) ? false : downwards));
-
-                if (downwards == true && penalty < penalty_p1) {
-                    const size_t min_index = center_1 + window_size;
-                    printf("minimum total variation found at %d\n", (int)min_index);
-
-                    // check if mean values differ by more than 3 * sigma; only then this value is considered as a change point;
-                    // to avoid square root calculations squared mean differences and 9 * variance are used instead
-                    const double mean_diff           = estimates[center_1].mean - estimates[center_2].mean;
-                    const double mean_diff_squared   = mean_diff * mean_diff;
-                    const double three_sigma_squared = 9.0 * 0.5*(estimates[center_1].variance + estimates[center_2].variance);
-                    if (mean_diff_squared > three_sigma_squared) {
-                        // ignore if the variance is small compared to the absolute value
-                        if (three_sigma_squared > 200.0) {
-#ifdef _DEBUG
-                            printf("3 sigma total variation minimum found at %d  (mean_1 %lf  mean_2 %lf  mean_diff^2: %lf  9*variance: %lf)\n", (int)min_index, estimates[center_1].mean, estimates[center_2].mean, mean_diff_squared, three_sigma_squared);
-#endif
-                            steps.push_back(min_index);
-                        }
-#ifdef _DEBUG
-                        else {
-                            printf("3 sigma total variation minimum ignored at %d  (mean_1 %lf  mean_2 %lf  mean_diff^2: %lf  9*variance: %lf)\n", (int)min_index, estimates[center_1].mean, estimates[center_2].mean, mean_diff_squared, three_sigma_squared);
-                        }
-#endif
-                    }
-                }
-            }
-            return steps.size();
+            mean = y_sum    / (to - from + 1);
+            var  = y_sq_sum / (to - from + 1) - mean * mean;
         }
 
         /**
-         *  Find mean value invtervals by simplified total variation.
-         *  @param intervals output vector holding interval definitions
-         *  @return the number of intervals
+         *  Estimate linear regression over the given subset of measurements in the ring buffer.
+         *  @param from start index
+         *  @param to end index; the measurement with index end is included
+         *  @param the sample mean result
+         *  @param the sample variance result
+         *  @param the slope result
          */
-        size_t findPiecewiseConstantIntervals(std::vector<MeasurementValueInterval>& intervals) const {
-            std::vector<size_t> steps;
-            if (findChangePoints(steps) > 0) {
-                double avg0 = calculateAverageValue(0, steps[0]);
-                intervals.push_back(MeasurementValueInterval(0, steps[0], avg0));
+        void estimateLinearRegression(const size_t start_index, const size_t end_index, double& mean, double& var, double& slope) const {
+            const size_t n_values = end_index - start_index + 1;
 
-                for (size_t i = 1; i < steps.size(); ++i) {
-                    double avg = calculateAverageValue(steps[i - 1] + 1, steps[i]);
-                    intervals.push_back(MeasurementValueInterval(steps[i - 1] + 1, steps[i], avg));
-                }
-                double avgn = calculateAverageValue(steps[steps.size() - 1] + 1, getNumberOfElements() - 1);
-                intervals.push_back(MeasurementValueInterval(steps[steps.size() - 1] + 1, getNumberOfElements() - 1, avgn));
+            // estimate mean and variance of y coordinate and also the xy covariance
+            double y_sum = 0.0, y_sq_sum = 0.0, xy_sum = 0.0;
+            for (size_t i = start_index; i <= end_index; ++i) {
+                const double value = at(i).value;
+                y_sum    += value;
+                y_sq_sum += value * value;
+                xy_sum   += value * (i - start_index);
             }
-            else {
-                double avg = calculateAverageValue();
-                intervals.push_back(MeasurementValueInterval(0, getNumberOfElements() - 1, avg));
-            }
-            return intervals.size();
+
+            // normalize mean and variance
+            const double y_mean = y_sum    / n_values;
+            const double y_var  = y_sq_sum / n_values - y_mean * y_mean;
+
+            // calculate mean and variance of x coordinate
+            // calculate x_var from sum of squared ints: 1^2 + 2^2 + 3^2 + ... + n^2 = [n(n+1)(2n+1)] / 6
+            const size_t n_values_minus_1 = n_values - 1;
+            const double x_mean = n_values_minus_1 / 2.0;
+            const double x_var  = (n_values_minus_1 * (n_values_minus_1 + 1) * (2 * n_values_minus_1 + 1)) / (6.0 * n_values) - x_mean * x_mean;
+            const double xy_var = xy_sum / n_values - x_mean * y_mean;
+
+            // calculate linear regression
+            mean  = y_mean;
+            var   = y_var;
+            slope = (x_var != 0.0 ? xy_var / x_var : 0.0);
         }
-
     };
 
 }   // namespace libspeedwire

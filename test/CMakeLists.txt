@@ -23,7 +23,7 @@ add_executable (${PROJECT_NAME} EXCLUDE_FROM_ALL
     RingBufferTest.cpp
     SpeedwireTimeTest.cpp
     MeasurementValuesTest.cpp
-)
+    LineSegmentEstimatorTest.cpp)
 
 if (${GTest_FOUND})
   target_include_directories(${PROJECT_NAME} PUBLIC GTest::gtest speedwire)

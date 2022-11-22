@@ -1,7 +1,13 @@
 #include <gtest/gtest.h>
 #include <MeasurementValues.hpp>
+#include <LineSegmentEstimator.hpp>
 
 using namespace libspeedwire;
+
+static bool approximatelyEqual(double lhs, double rhs) {
+    double diff = abs(lhs - rhs);
+    return diff < 1e-7;
+}
 
 // test index out of bounds methods
 TEST(MeasurementValuesTest, IndexOutOfBounds) {
@@ -318,38 +324,43 @@ TEST(MeasurementValuesTest, FindClosestMeasurement) {
     }
 }
 
-// test capacity of one - calculateAverageValue
-TEST(MeasurementValuesTest, Capacity1_calculateAverageValue) {
+// test capacity of one - calculateSampleMean
+TEST(MeasurementValuesTest, Capacity1_calculateSampleMean) {
     MeasurementValues mv(1);
     TimestampDoublePair pair1(1.0, 1000);
     TimestampDoublePair pair2(2.0, 2000);
 
     mv.addNewElement(pair1);
-    ASSERT_EQ(mv.calculateAverageValue(), pair1.value);
+    ASSERT_EQ(mv.estimateMean(), pair1.value);
+    ASSERT_EQ(mv.estimateMean(0, 0), pair1.value);
 
     mv.addNewElement(pair2);
-    ASSERT_EQ(mv.calculateAverageValue(), pair2.value);
+    ASSERT_EQ(mv.estimateMean(), pair2.value);
+    ASSERT_EQ(mv.estimateMean(0, 0), pair2.value);
 }
 
-// test capacity of two - calculateAverageValue
-TEST(MeasurementValuesTest, Capacity2_calculateAverageValue) {
+// test capacity of two - estimateMean
+TEST(MeasurementValuesTest, Capacity2_estimateMean) {
     MeasurementValues mv(2);
     TimestampDoublePair pair1(1.0, 1000);
     TimestampDoublePair pair2(2.0, 2000);
     TimestampDoublePair pair3(3.0, 3000);
 
     mv.addNewElement(pair1);
-    ASSERT_EQ(mv.calculateAverageValue(), pair1.value);
+    ASSERT_EQ(mv.estimateMean(), pair1.value);
+    ASSERT_EQ(mv.estimateMean(0, 0), pair1.value);
 
     mv.addNewElement(pair2);
-    ASSERT_EQ(mv.calculateAverageValue(), (pair1.value + pair2.value) / 2);
+    ASSERT_EQ(mv.estimateMean(), (pair1.value + pair2.value) / 2);
+    ASSERT_EQ(mv.estimateMean(0, 1), (pair1.value + pair2.value) / 2);
 
     mv.addNewElement(pair3);
-    ASSERT_EQ(mv.calculateAverageValue(), (pair2.value + pair3.value) / 2);
+    ASSERT_EQ(mv.estimateMean(), (pair2.value + pair3.value) / 2);
+    ASSERT_EQ(mv.estimateMean(0, 1), (pair2.value + pair3.value) / 2);
 }
 
-// test capacity of three - calculateAverageValue
-TEST(MeasurementValuesTest, Capacity3_calculateAverageValue) {
+// test capacity of three - estimateMean
+TEST(MeasurementValuesTest, Capacity3_estimateMean) {
     MeasurementValues mv(3);
     TimestampDoublePair pair1(1.0, 1000);
     TimestampDoublePair pair2(2.0, 2000);
@@ -357,32 +368,116 @@ TEST(MeasurementValuesTest, Capacity3_calculateAverageValue) {
     TimestampDoublePair pair4(4.0, 4000);
 
     mv.addNewElement(pair1);
-    ASSERT_EQ(mv.calculateAverageValue(), pair1.value);
+    ASSERT_EQ(mv.estimateMean(), pair1.value);
+    ASSERT_EQ(mv.estimateMean(0, 0), pair1.value);
 
     mv.addNewElement(pair2);
-    ASSERT_EQ(mv.calculateAverageValue(), (pair1.value + pair2.value) / 2);
+    ASSERT_EQ(mv.estimateMean(), (pair1.value + pair2.value) / 2);
+    ASSERT_EQ(mv.estimateMean(0, 1), (pair1.value + pair2.value) / 2);
 
     mv.addNewElement(pair3);
-    ASSERT_EQ(mv.calculateAverageValue(), (pair1.value + pair2.value + pair3.value) / 3);
+    ASSERT_EQ(mv.estimateMean(), (pair1.value + pair2.value + pair3.value) / 3);
+    ASSERT_EQ(mv.estimateMean(0, 2), (pair1.value + pair2.value + pair3.value) / 3);
 
     mv.addNewElement(pair4);
-    ASSERT_EQ(mv.calculateAverageValue(), (pair2.value + pair3.value + pair4.value) / 3);
+    ASSERT_EQ(mv.estimateMean(), (pair2.value + pair3.value + pair4.value) / 3);
+    ASSERT_EQ(mv.estimateMean(0, 2), (pair2.value + pair3.value + pair4.value) / 3);
 }
 
-// test capacity of three - calculateAverageValue
-TEST(MeasurementValuesTest, approximateStepFunctions) {
-    const double noise = 300.0;
-    MeasurementValues mv(60);
-    for (size_t i = 0; i < mv.getMaximumNumberOfElements()/2; ++i) {
-        double value = 300.0 + noise * (((double)std::rand() - (RAND_MAX / 2)) / RAND_MAX);
-        TimestampDoublePair p(value, (uint32_t)(i * 1000));
-        mv.addNewElement(p);
-    }
-    for (size_t i = mv.getMaximumNumberOfElements() / 2; i < mv.getMaximumNumberOfElements(); ++i) {
-        double value = 600.0 + noise * (((double)std::rand() - (RAND_MAX / 2)) / RAND_MAX);
-        TimestampDoublePair p(value, (uint32_t)(i * 1000));
-        mv.addNewElement(p);
-    }
-    std::vector<size_t> steps;
-    mv.findChangePoints(steps);
+// test capacity of three - estimateMeanAndVariance
+TEST(MeasurementValuesTest, Capacity3_estimateMeanAndVariance) {
+    MeasurementValues mv(3);
+    TimestampDoublePair pair1(1.0, 1000);
+    TimestampDoublePair pair2(2.0, 2000);
+    TimestampDoublePair pair3(3.0, 3000);
+    TimestampDoublePair pair4(4.0, 4000);
+    double mean, variance;
+
+    mv.addNewElement(pair1);
+    mv.estimateMeanAndVariance(0, 0, mean, variance);
+    ASSERT_EQ(mean, pair1.value);
+    ASSERT_EQ(variance, 0.0);
+
+    mv.addNewElement(pair2);
+    mv.estimateMeanAndVariance(0, 1, mean, variance);
+    ASSERT_EQ(mean, (pair1.value + pair2.value) / 2);
+    ASSERT_EQ(variance, 0.25);
+
+    mv.addNewElement(pair3);
+    mv.estimateMeanAndVariance(0, 2, mean, variance);
+    ASSERT_EQ(mean, (pair1.value + pair2.value + pair3.value) / 3);
+    EXPECT_DOUBLE_EQ(variance, 2.0 / 3.0);
+
+    mv.addNewElement(pair4);
+    mv.estimateMeanAndVariance(0, 2, mean, variance);
+    ASSERT_EQ(mean, (pair2.value + pair3.value + pair4.value) / 3);
+    ASSERT_TRUE(approximatelyEqual(variance, 2.0 / 3.0));
+}
+
+// test capacity of three - estimateLinearRegression
+TEST(MeasurementValuesTest, Capacity3_calculateLinearRegression) {
+    MeasurementValues mv(3);
+    TimestampDoublePair pair1(1.0, 1000);
+    TimestampDoublePair pair2(2.0, 2000);
+    TimestampDoublePair pair3(3.0, 3000);
+    TimestampDoublePair pair4(4.0, 4000);
+    double mean, slope, variance;
+
+    mv.addNewElement(pair1);
+    mv.estimateLinearRegression(0, 0, mean, variance, slope);
+    ASSERT_EQ(mean, pair1.value);
+    ASSERT_EQ(variance, 0.0);
+    ASSERT_EQ(slope, 0.0);
+
+    mv.addNewElement(pair2);
+    mv.estimateLinearRegression(0, 1, mean, variance, slope);
+    ASSERT_EQ(mean, (pair1.value + pair2.value) / 2);
+    ASSERT_EQ(variance, 0.25);
+    EXPECT_DOUBLE_EQ(slope, 1.0);
+
+    mv.addNewElement(pair3);
+    mv.estimateLinearRegression(0, 2, mean, variance, slope);
+    ASSERT_EQ(mean, (pair1.value + pair2.value + pair3.value) / 3);
+    ASSERT_TRUE(approximatelyEqual(variance, 2.0 / 3.0));
+    EXPECT_DOUBLE_EQ(slope, 1.0);
+
+    mv.addNewElement(pair4);
+    mv.estimateLinearRegression(0, 2, mean, variance, slope);
+    ASSERT_EQ(mean, (pair2.value + pair3.value + pair4.value) / 3);
+    ASSERT_TRUE(approximatelyEqual(variance, 2.0 / 3.0));
+    EXPECT_DOUBLE_EQ(slope, 1.0);
+}
+
+// test capacity of three - estimateLinearRegression
+TEST(MeasurementValuesTest, Capacity3_estimateLinearRegressionDown) {
+    MeasurementValues mv(3);
+    TimestampDoublePair pair1(4.0, 1000);
+    TimestampDoublePair pair2(3.0, 2000);
+    TimestampDoublePair pair3(2.0, 3000);
+    TimestampDoublePair pair4(1.0, 4000);
+    double mean, slope, variance;
+
+    mv.addNewElement(pair1);
+    mv.estimateLinearRegression(0, 0, mean, variance, slope);
+    ASSERT_EQ(mean, pair1.value);
+    ASSERT_EQ(variance, 0.0);
+    ASSERT_EQ(slope, 0.0);
+
+    mv.addNewElement(pair2);
+    mv.estimateLinearRegression(0, 1, mean, variance, slope);
+    ASSERT_EQ(mean, (pair1.value + pair2.value) / 2);
+    ASSERT_EQ(variance, 0.25);
+    EXPECT_DOUBLE_EQ(slope, -1.0);
+
+    mv.addNewElement(pair3);
+    mv.estimateLinearRegression(0, 2, mean, variance, slope);
+    ASSERT_EQ(mean, (pair1.value + pair2.value + pair3.value) / 3);
+    ASSERT_TRUE(approximatelyEqual(variance, 2.0 / 3.0));
+    EXPECT_DOUBLE_EQ(slope, -1.0);
+
+    mv.addNewElement(pair4);
+    mv.estimateLinearRegression(0, 2, mean, variance, slope);
+    ASSERT_EQ(mean, (pair2.value + pair3.value + pair4.value) / 3);
+    ASSERT_TRUE(approximatelyEqual(variance, 2.0 / 3.0));
+    EXPECT_DOUBLE_EQ(slope, -1.0);
 }
