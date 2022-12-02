@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <float.h>
 #include <RingBuffer.hpp>
 #include <SpeedwireTime.hpp>
 
@@ -146,15 +147,17 @@ namespace libspeedwire {
          *  @param the sample mean result
          *  @param the sample variance result
          */
-        void estimateMeanAndVariance(const size_t from, const size_t to, double& mean, double& var) const {
+        void estimateMeanAndVariance(const size_t start_index, const size_t end_index, double& mean, double& var) const {
+            const size_t n_values = end_index - start_index + 1;
+
             double y_sum = 0.0, y_sq_sum = 0.0;
-            for (size_t index = from; index <= to; ++index) {
+            for (size_t index = start_index; index <= end_index; ++index) {
                 const double value = at(index).value;
                 y_sum    += value;
                 y_sq_sum += value * value;
             }
-            mean = y_sum    / (to - from + 1);
-            var  = y_sq_sum / (to - from + 1) - mean * mean;
+            mean = y_sum / n_values;
+            var  = (n_values <= 1 ? FLT_MAX : (y_sq_sum - mean * y_sum) / (n_values - 1));
         }
 
         /**
@@ -166,32 +169,40 @@ namespace libspeedwire {
          *  @param the slope result
          */
         void estimateLinearRegression(const size_t start_index, const size_t end_index, double& mean, double& var, double& slope) const {
-            const size_t n_values = end_index - start_index + 1;
+            const size_t n_values_minus_1 = end_index - start_index;
+            const size_t n_values         = n_values_minus_1 + 1;
 
-            // estimate mean and variance of y coordinate and also the xy covariance
+            // estimate mean of y-coordinate, sample variance of y coordinate and also the xy covariance
             double y_sum = 0.0, y_sq_sum = 0.0, xy_sum = 0.0;
-            for (size_t i = start_index; i <= end_index; ++i) {
-                const double value = at(i).value;
+            for (size_t index = start_index; index <= end_index; ++index) {
+                const double value = at(index).value;
                 y_sum    += value;
                 y_sq_sum += value * value;
-                xy_sum   += value * (i - start_index);
+                xy_sum   += value * (index - start_index);
             }
-
-            // normalize mean and variance
-            const double y_mean = y_sum    / n_values;
-            const double y_var  = y_sq_sum / n_values - y_mean * y_mean;
+            mean = y_sum / n_values;
+            var  = (n_values <= 1 ? FLT_MAX : (y_sq_sum - mean * y_sum) / n_values_minus_1);
 
             // calculate mean and variance of x coordinate
             // calculate x_var from sum of squared ints: 1^2 + 2^2 + 3^2 + ... + n^2 = [n(n+1)(2n+1)] / 6
-            const size_t n_values_minus_1 = n_values - 1;
+#if 0
+            // more readable but less accurate code
             const double x_mean = n_values_minus_1 / 2.0;
             const double x_var  = (n_values_minus_1 * (n_values_minus_1 + 1) * (2 * n_values_minus_1 + 1)) / (6.0 * n_values) - x_mean * x_mean;
-            const double xy_var = xy_sum / n_values - x_mean * y_mean;
+            const double xy_var = xy_sum / n_values - x_mean * (y_sum / n_values);
+            slope = (x_var != 0.0 ? xy_var / x_var : 0.0);
+#else
+            // less readable, but numerically more accurate code relying on integer arithmetics as far as possible
+            const size_t x_mean_num = n_values_minus_1;
+            const size_t x_mean_den = 2;
+            const size_t x_var_num  = n_values_minus_1 * (n_values_minus_1 + 1) * (2 * n_values_minus_1 + 1) * x_mean_den * x_mean_den - x_mean_num * x_mean_num * n_values * 6;
+            const size_t x_var_den  = 6 * x_mean_den * x_mean_den * n_values;
+            const double xy_var_num = xy_sum * x_mean_den - x_mean_num * y_sum;
+            const size_t xy_var_den = x_mean_den * n_values;
 
             // calculate linear regression
-            mean  = y_mean;
-            var   = y_var;
-            slope = (x_var != 0.0 ? xy_var / x_var : 0.0);
+            slope = ((x_var_num * xy_var_den) != 0 ? (xy_var_num * x_var_den) / (x_var_num * xy_var_den) : 0.0);
+#endif
         }
     };
 

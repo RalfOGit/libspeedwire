@@ -396,22 +396,22 @@ TEST(MeasurementValuesTest, Capacity3_estimateMeanAndVariance) {
     mv.addNewElement(pair1);
     mv.estimateMeanAndVariance(0, 0, mean, variance);
     ASSERT_EQ(mean, pair1.value);
-    ASSERT_EQ(variance, 0.0);
+    ASSERT_EQ(variance, FLT_MAX);
 
     mv.addNewElement(pair2);
     mv.estimateMeanAndVariance(0, 1, mean, variance);
     ASSERT_EQ(mean, (pair1.value + pair2.value) / 2);
-    ASSERT_EQ(variance, 0.25);
+    ASSERT_EQ(variance, 0.5);
 
     mv.addNewElement(pair3);
     mv.estimateMeanAndVariance(0, 2, mean, variance);
     ASSERT_EQ(mean, (pair1.value + pair2.value + pair3.value) / 3);
-    EXPECT_DOUBLE_EQ(variance, 2.0 / 3.0);
+    ASSERT_EQ(variance, 1.0);
 
     mv.addNewElement(pair4);
     mv.estimateMeanAndVariance(0, 2, mean, variance);
     ASSERT_EQ(mean, (pair2.value + pair3.value + pair4.value) / 3);
-    ASSERT_TRUE(approximatelyEqual(variance, 2.0 / 3.0));
+    ASSERT_EQ(variance, 1.0);
 }
 
 // test capacity of three - estimateLinearRegression
@@ -426,25 +426,25 @@ TEST(MeasurementValuesTest, Capacity3_calculateLinearRegression) {
     mv.addNewElement(pair1);
     mv.estimateLinearRegression(0, 0, mean, variance, slope);
     ASSERT_EQ(mean, pair1.value);
-    ASSERT_EQ(variance, 0.0);
+    ASSERT_EQ(variance, FLT_MAX);
     ASSERT_EQ(slope, 0.0);
 
     mv.addNewElement(pair2);
     mv.estimateLinearRegression(0, 1, mean, variance, slope);
     ASSERT_EQ(mean, (pair1.value + pair2.value) / 2);
-    ASSERT_EQ(variance, 0.25);
+    ASSERT_EQ(variance, 0.5);
     EXPECT_DOUBLE_EQ(slope, 1.0);
 
     mv.addNewElement(pair3);
     mv.estimateLinearRegression(0, 2, mean, variance, slope);
     ASSERT_EQ(mean, (pair1.value + pair2.value + pair3.value) / 3);
-    ASSERT_TRUE(approximatelyEqual(variance, 2.0 / 3.0));
+    ASSERT_EQ(variance, 1.0);
     EXPECT_DOUBLE_EQ(slope, 1.0);
 
     mv.addNewElement(pair4);
     mv.estimateLinearRegression(0, 2, mean, variance, slope);
     ASSERT_EQ(mean, (pair2.value + pair3.value + pair4.value) / 3);
-    ASSERT_TRUE(approximatelyEqual(variance, 2.0 / 3.0));
+    ASSERT_EQ(variance, 1.0);
     EXPECT_DOUBLE_EQ(slope, 1.0);
 }
 
@@ -460,24 +460,24 @@ TEST(MeasurementValuesTest, Capacity3_estimateLinearRegressionDown) {
     mv.addNewElement(pair1);
     mv.estimateLinearRegression(0, 0, mean, variance, slope);
     ASSERT_EQ(mean, pair1.value);
-    ASSERT_EQ(variance, 0.0);
+    ASSERT_EQ(variance, FLT_MAX);
     ASSERT_EQ(slope, 0.0);
 
     mv.addNewElement(pair2);
     mv.estimateLinearRegression(0, 1, mean, variance, slope);
     ASSERT_EQ(mean, (pair1.value + pair2.value) / 2);
-    ASSERT_EQ(variance, 0.25);
+    ASSERT_EQ(variance, 0.5);
     EXPECT_DOUBLE_EQ(slope, -1.0);
 
     mv.addNewElement(pair3);
     mv.estimateLinearRegression(0, 2, mean, variance, slope);
     ASSERT_EQ(mean, (pair1.value + pair2.value + pair3.value) / 3);
-    ASSERT_TRUE(approximatelyEqual(variance, 2.0 / 3.0));
+    ASSERT_EQ(variance, 1.0);
     EXPECT_DOUBLE_EQ(slope, -1.0);
 
     mv.addNewElement(pair4);
     mv.estimateLinearRegression(0, 2, mean, variance, slope);
     ASSERT_EQ(mean, (pair2.value + pair3.value + pair4.value) / 3);
-    ASSERT_TRUE(approximatelyEqual(variance, 2.0 / 3.0));
+    ASSERT_EQ(variance, 1.0);
     EXPECT_DOUBLE_EQ(slope, -1.0);
 }
