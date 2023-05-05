@@ -172,7 +172,12 @@ void SpeedwireHeader::setControl(uint8_t value)  {
 
 /** Get payload offset in udp packet; i.e. the offset of the first payload byte behind the header fields. */
 unsigned long SpeedwireHeader::getPayloadOffset(void) const {
-    if (getProtocolID() == sma_emeter_protocol_id) {    // emeter protocol data payload starts directly after the protocolID field
+    return getPayloadOffset(getProtocolID());
+}
+
+/** Get payload offset in udp packet; i.e. the offset of the first payload byte behind the header fields. */
+unsigned long SpeedwireHeader::getPayloadOffset(uint16_t protocol_id) {
+    if (protocol_id == sma_emeter_protocol_id) {    // emeter protocol data payload starts directly after the protocolID field
         return sma_protocol_offset + sma_protocol_size;
     }
     return sma_control_offset + sma_control_size;
