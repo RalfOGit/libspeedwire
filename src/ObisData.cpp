@@ -151,6 +151,7 @@ std::vector<ObisData> ObisData::getAllPredefined(void) {
     predefined.push_back(NegativeApparentPowerTotal);
     predefined.push_back(NegativeApparentEnergyTotal);
     predefined.push_back(PowerFactorTotal);
+    predefined.push_back(Frequency);
 
     // line 1
     predefined.push_back(PositiveActivePowerL1);
@@ -266,6 +267,7 @@ const ObisData ObisData::NegativeApparentEnergyL1   (0, 30, 8, 0, MeasurementTyp
 const ObisData ObisData::NegativeApparentEnergyL2   (0, 50, 8, 0, MeasurementType::EmeterNegativeApparentEnergy(), Wire::L2);
 const ObisData ObisData::NegativeApparentEnergyL3   (0, 70, 8, 0, MeasurementType::EmeterNegativeApparentEnergy(), Wire::L3);
 const ObisData ObisData::PowerFactorTotal           (0, 13, 4, 0, MeasurementType::EmeterPowerFactor(),            Wire::TOTAL);
+const ObisData ObisData::Frequency                  (0, 14, 4, 0, MeasurementType::EmeterFrequency(),              Wire::TOTAL);
 const ObisData ObisData::CurrentL1                  (0, 31, 4, 0, MeasurementType::EmeterCurrent(),                Wire::L1);
 const ObisData ObisData::CurrentL2                  (0, 51, 4, 0, MeasurementType::EmeterCurrent(),                Wire::L2);
 const ObisData ObisData::CurrentL3                  (0, 71, 4, 0, MeasurementType::EmeterCurrent(),                Wire::L3);

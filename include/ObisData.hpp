@@ -105,6 +105,7 @@ namespace libspeedwire {
         static const ObisData NegativeApparentEnergyL2;
         static const ObisData NegativeApparentEnergyL3;
         static const ObisData PowerFactorTotal;
+        static const ObisData Frequency;
         static const ObisData PowerFactorL1;
         static const ObisData PowerFactorL2;
         static const ObisData PowerFactorL3;

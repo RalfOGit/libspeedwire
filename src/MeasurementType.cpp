@@ -68,6 +68,7 @@ std::string libspeedwire::toString(const Quantity quantity) {
     case Quantity::POWER:        return "power";
     case Quantity::ENERGY:       return "energy";
     case Quantity::POWER_FACTOR: return "power_factor";
+    case Quantity::FREQUENCY:    return "frequency";
     case Quantity::VOLTAGE:      return "voltage";
     case Quantity::CURRENT:      return "current";
     case Quantity::STATUS:       return "status";

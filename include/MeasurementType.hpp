@@ -50,6 +50,7 @@ namespace libspeedwire {
         POWER,              //!< Electrical power
         ENERGY,             //!< Electrical energy
         POWER_FACTOR,       //!< Power factor
+        FREQUENCY,          //!< Frequency
         CURRENT,            //!< Electrical current
         VOLTAGE,            //!< Electrical voltage
         STATUS,             //!< Device status
@@ -115,6 +116,7 @@ namespace libspeedwire {
         static MeasurementType EmeterNegativeReactiveEnergy(void) { return MeasurementType(Direction::NEGATIVE, Type::REACTIVE, Quantity::ENERGY, "kWh", 3600000); }
         static MeasurementType EmeterSignedActivePower(void) { return MeasurementType(Direction::SIGNED, Type::ACTIVE, Quantity::POWER, "W", 10); }
         static MeasurementType EmeterPowerFactor(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::POWER_FACTOR, "phi", 1000); }
+        static MeasurementType EmeterFrequency(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::FREQUENCY, "Hz", 1000); }
         static MeasurementType EmeterVoltage(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::VOLTAGE, "V", 1000); }
         static MeasurementType EmeterCurrent(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::CURRENT, "A", 1000); }
         static MeasurementType EmeterSoftwareVersion(void) { return MeasurementType(Direction::NO_DIRECTION, Type::VERSION, Quantity::NO_QUANTITY, "", 1); }
