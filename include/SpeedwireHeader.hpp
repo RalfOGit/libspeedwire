@@ -72,8 +72,8 @@ namespace libspeedwire {
         void setLongWords(uint8_t value);
         void setControl(uint8_t value);
 
+        static unsigned long getPayloadOffset(uint16_t protocol_id);
         unsigned long getPayloadOffset(void) const;
-        static unsigned long SpeedwireHeader::getPayloadOffset(uint16_t protocol_id);
         uint8_t* getPacketPointer(void) const;
         unsigned long getPacketSize(void) const;
     };
