@@ -59,9 +59,29 @@ LocalHost& LocalHost::getInstance(void) {
         // query interfaces
         instance->cacheLocalIPAddresses(LocalHost::queryLocalIPAddresses());
 
-        // query interface information, such as interface names, mac addresses and local ip addressesl and interface indexes
+        // query interface information, such as interface names, mac addresses and local ip addresses and interface indexes
         const std::vector<LocalHost::InterfaceInfo> infos = LocalHost::queryLocalInterfaceInfos();
         instance->cacheLocalInterfaceInfos(infos);
+
+#if defined(__arm__) && !defined(__APPLE__) && !defined(_WIN32)
+        // on raspi getaddrinfo() is broken, use ip addresses from interface inforamation instead;
+        // a broken getaddrinfo() returns the local loopback address 127.0.1.1 but no other ipv4 address
+        bool isBrokenGetAddrInfo = true;
+        for (auto& addr : instance->getLocalIPAddresses()) {
+            if (AddressConversion::isIpv4(addr) == true && addr != "127.0.1.1") {
+                isBrokenGetAddrInfo = false; break;
+            }
+        }
+        if (isBrokenGetAddrInfo == true) {
+            std::vector<std::string> localIpAddress;
+            for (auto& info : instance->getLocalInterfaceInfos()) {
+                for (auto& addr : info.ip_addresses) {
+                    localIpAddress.push_back(addr);
+                }
+            }
+            instance->cacheLocalIPAddresses(localIpAddress);
+        }
+#endif
     }
     return *instance;
 }
@@ -111,10 +131,11 @@ void LocalHost::cacheLocalIPAddresses(const std::vector<std::string> &local_ip_a
     local_ipv4_addresses.clear();
     local_ipv6_addresses.clear();
     for (auto& a : local_ip_addresses) {
-        if (AddressConversion::isIpv4(a) == true) {
-            local_ipv4_addresses.push_back(a);
-        } else if (AddressConversion::isIpv6(a) == true) {
-            local_ipv6_addresses.push_back(a);
+        std::string addr = AddressConversion::stripIPAddress(a);
+        if (AddressConversion::isIpv4(addr) == true) {
+            local_ipv4_addresses.push_back(addr);
+        } else if (AddressConversion::isIpv6(addr) == true) {
+            local_ipv6_addresses.push_back(addr);
         }
     }
 }
