@@ -65,10 +65,10 @@ LocalHost& LocalHost::getInstance(void) {
 
 #if defined(__arm__) && !defined(__APPLE__) && !defined(_WIN32)
         // on raspi getaddrinfo() is broken, use ip addresses from interface inforamation instead;
-        // a broken getaddrinfo() returns the local loopback address 127.0.1.1 but no other ipv4 address
+        // a broken getaddrinfo() returns the local loopback address 127.0.1.1 or 127.0.0.1 but no other ipv4 address
         bool isBrokenGetAddrInfo = true;
         for (auto& addr : instance->getLocalIPAddresses()) {
-            if (AddressConversion::isIpv4(addr) == true && addr != "127.0.1.1") {
+            if (AddressConversion::isIpv4(addr) == true && addr.substr(0, 4) != "127.") {
                 isBrokenGetAddrInfo = false; break;
             }
         }
