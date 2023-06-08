@@ -190,7 +190,7 @@ std::string SpeedwireEmeterProtocol::toValueString(const void* const current_ele
             uint32_t version = getObisValue4(current_element);
             uint8_t array[sizeof(uint32_t)];
             memcpy(array, &version, sizeof(array));
-            snprintf(str, sizeof(str), (hex == false ? "%u.%u.%u.%u" : "%02x.%02x.%02x.%02x"), array[3], array[2], array[1], array[0]);
+            snprintf(str, sizeof(str), (hex == false ? "%u.%u.%u.%c" : "%02x.%02x.%02x.%02x"), array[3], array[2], array[1], array[0]);
         }
         else if (channel == 0 && getObisIndex(current_element) == 0 && getObisTariff(current_element) == 0) {
             snprintf(str, sizeof(str), "end of data");

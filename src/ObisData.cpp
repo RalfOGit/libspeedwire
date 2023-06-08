@@ -112,6 +112,11 @@ std::array<uint8_t, 12> ObisData::toByteArray(void) const {
             // convert software version
             uint32_t int_array[sizeof(uint32_t)] = { 0xff, 0xff, 0xff, 0xff };
             int n = sscanf(measurementValues.value_string.c_str(), "%u.%u.%u.%u", &int_array[3], &int_array[2], &int_array[1], &int_array[0]);
+            if (n == 3) {
+                char c = 0;
+                n = sscanf(measurementValues.value_string.c_str(), "%u.%u.%u.%c", &int_array[3], &int_array[2], &int_array[1], &c);
+                int_array[0] = c;
+            }
             if (n != 4) {
                 n = sscanf(measurementValues.value_string.c_str(), "%02x.%02x.%02x.%02x", &int_array[3], &int_array[2], &int_array[1], &int_array[0]);
             }
