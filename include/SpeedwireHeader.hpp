@@ -40,6 +40,7 @@ namespace libspeedwire {
 
         static constexpr uint16_t sma_emeter_protocol_id = 0x6069;          //!< Protocol id used for SMA emeter packets
         static constexpr uint16_t sma_inverter_protocol_id = 0x6065;        //!< Protocol id used for SMA inverter packets
+        static constexpr uint16_t sma_evcharger_emeter_protocol_id = 0x6081;//!< Protocol id used for the emeter built into SMA EV chargers
         static constexpr uint16_t sma_discovery_protocol_id = 0xffff;       //!< Protocol id used for SMA discovery packets
 
 
@@ -59,6 +60,7 @@ namespace libspeedwire {
         uint8_t  getControl(void) const;
         bool isEmeterProtocolID(void) const;
         bool isInverterProtocolID(void) const;
+        bool isEVChargerEmeterProtocolID(void) const;
 
         // setter methods to fill header fields
         void setDefaultHeader(void);
