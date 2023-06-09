@@ -105,14 +105,14 @@ bool SpeedwireHeader::isEmeterProtocolID(void) const {
     return (getProtocolID() == sma_emeter_protocol_id);
 }
 
+/** Check if protocolID is extended emeter protocol id. */
+bool SpeedwireHeader::isExtendedEmeterProtocolID(void) const {
+    return (getProtocolID() == sma_extended_emeter_protocol_id);
+}
+
 /** check if protocolID is inverter protocol id. */
 bool SpeedwireHeader::isInverterProtocolID(void) const {
     return (getProtocolID() == sma_inverter_protocol_id);
-}
-
-/** Check if protocolID is evcharger emeter protocol id. */
-bool SpeedwireHeader::isEVChargerEmeterProtocolID(void) const {
-    return (getProtocolID() == sma_evcharger_emeter_protocol_id);
 }
 
 /** Set header fields according to defaults. */
@@ -135,7 +135,6 @@ void SpeedwireHeader::setDefaultHeader(uint32_t group, uint16_t length, uint16_t
         setLongWords(0);
         setControl(3);
     }
-
 }
 
 /** Set SMA signature bytes. */
@@ -190,9 +189,7 @@ unsigned long SpeedwireHeader::getPayloadOffset(uint16_t protocol_id) {
     if (protocol_id == sma_emeter_protocol_id) {    // emeter protocol data payload starts directly after the protocolID field
         return sma_protocol_offset + sma_protocol_size;
     }
-    else if (protocol_id == sma_evcharger_emeter_protocol_id) {
-        return sma_control_offset + sma_control_size;
-    }
+    // for sma_inverter_protocol_id and sma_extended_emeter_protocol_id
     return sma_control_offset + sma_control_size;
 }
 
