@@ -128,12 +128,12 @@ void SpeedwireHeader::setDefaultHeader(uint32_t group, uint16_t length, uint16_t
     setLength(length);
     memcpy(udp + sma_netversion_offset, sma_net_v2, sizeof(sma_net_v2));
     setProtocolID(protocolID);
-    if (isEmeterProtocolID()) {
-        setLongWords((uint8_t)(length / sizeof(uint32_t)));
-        setControl(0);
-    } else {
+    if (isExtendedEmeterProtocolID()) {
         setLongWords(0);
         setControl(3);
+    } else {
+        setLongWords((uint8_t)(length / sizeof(uint32_t)));
+        setControl(0);
     }
 }
 
