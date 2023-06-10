@@ -34,7 +34,7 @@ And if you are developing on a Linux host and your projects reside in /home/YOU/
 
 The official SMA-Emeter(TM) protocol specification is available here:
 
-    https://www.sma.de/fileadmin/content/global/Partner/Documents/SMA_Labs/EMETER-Protokoll-TI-en-10.pdf
+   https://developer.sma.de/fileadmin/content/global/Partner/Documents/SMA_Labs/EMETER-Protokoll-TI-en-10.pdf
 
 Further information regarding the SMA-Inverter(TM) datagrams can be found in various places on the internet:
 
