@@ -24,6 +24,7 @@
 #include <SpeedwireInverterProtocol.hpp>
 #include <SpeedwireSocket.hpp>
 #include <SpeedwireSocketFactory.hpp>
+#include <SpeedwireDevice.hpp>
 #include <SpeedwireDiscovery.hpp>
 using namespace libspeedwire;
 
@@ -342,8 +343,9 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 SpeedwireInfo info;
                 info.susyID = emeter.getSusyID();
                 info.serialNumber = emeter.getSerialNumber();
-                info.deviceClass = "Emeter";
-                info.deviceType = "Emeter";
+                const DeviceType &device = DeviceType::fromSusyID(info.susyID);
+                info.deviceClass = toString(device.deviceClass);
+                info.deviceType = device.name;
                 info.peer_ip_address = peer_ip_address;
                 info.interface_ip_address = localhost.getMatchingLocalIPAddress(peer_ip_address);
                 if (info.interface_ip_address == "" && socket.isIpAny() == false) {
@@ -362,8 +364,9 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 SpeedwireInfo info;
                 info.susyID = inverter.getSrcSusyID();
                 info.serialNumber = inverter.getSrcSerialNumber();
-                info.deviceClass = "Inverter";
-                info.deviceType = "Inverter";
+                const DeviceType& device = DeviceType::fromSusyID(info.susyID);
+                info.deviceClass = toString(device.deviceClass);
+                info.deviceType = device.name;
                 info.peer_ip_address = peer_ip_address;
                 info.interface_ip_address = localhost.getMatchingLocalIPAddress(peer_ip_address);
                 if (info.interface_ip_address == "" && socket.isIpAny() == false) {
@@ -399,7 +402,7 @@ SpeedwireInfo::SpeedwireInfo(void) : susyID(0), serialNumber(0), deviceClass(), 
  */
 std::string SpeedwireInfo::toString(void) const {
     char buffer[256] = { 0 };
-    snprintf(buffer, sizeof(buffer), "SusyID %u  Serial %u  Class %-8s  Type %-8s  IP %s  IF %s", 
+    snprintf(buffer, sizeof(buffer), "SusyID %u  Serial %u  Class %-16s  Type %-14s  IP %s  IF %s", 
              susyID, serialNumber, deviceClass.c_str(), deviceType.c_str(), peer_ip_address.c_str(), interface_ip_address.c_str());
     return std::string(buffer);
 }
