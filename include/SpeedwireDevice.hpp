@@ -57,11 +57,14 @@ namespace libspeedwire {
         // unknown device type
         static const DeviceType &Unknown(void)       { static const DeviceType devicetype = DeviceType(0, "UNKNOWN", "Unknown Device", DeviceClass::UNKNOWN); return devicetype; }
 
+        /**
+         * Return the DeviceType given the susy_id. This works only for emeter device types.
+         * For other device types there is usually no unique relationship between susyid and device type.
+         */
         static const DeviceType &fromSusyID(const uint16_t susy_id) {
             if (susy_id == Emeter10().susyID)       { return Emeter10(); }
             if (susy_id == Emeter20().susyID)       { return Emeter20(); }
             if (susy_id == HomeManager20().susyID)  { return HomeManager20(); }
-            if (susy_id == Tripower5000().susyID)   { return Tripower5000(); }
             return Unknown();
         }
     };

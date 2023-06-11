@@ -44,8 +44,8 @@ const unsigned char  SpeedwireDiscovery::unicast_request[] = {
     0x60, 0x65, 0x09, 0xa0, 0xff, 0xff, 0xff, 0xff,     // 0x6065 protocol, 0x09 #long words, 0xa0 ctrl, 0xffff dst susyID any, 0xffffffff dst serial any
     0xff, 0xff, 0x00, 0x00, 0x7d, 0x00, 0x52, 0xbe,     // 0x0000 dst cntrl, 0x007d src susy id, 0x3a28be52 src serial
     0x28, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // 0x0000 src cntrl, 0x0000 error code, 0x0000 fragment ID
-    0x01, 0x80, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,     // 0x8001 packet ID
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x01, 0x80, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,     // 0x8001 packet ID, 0x0200 command ID, 0x00000000 first register id
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // 0x00000000 last register id, 0x00000000 trailer
     0x00, 0x00
 };
 
@@ -344,8 +344,14 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 info.susyID = emeter.getSusyID();
                 info.serialNumber = emeter.getSerialNumber();
                 const DeviceType &device = DeviceType::fromSusyID(info.susyID);
-                info.deviceClass = toString(device.deviceClass);
-                info.deviceType = device.name;
+                if (device.deviceClass != DeviceClass::UNKNOWN) {
+                    info.deviceClass = toString(device.deviceClass);
+                    info.deviceType = device.name;
+                }
+                else {
+                    info.deviceClass = "Emeter";
+                    info.deviceType = "Emeter";
+                }
                 info.peer_ip_address = peer_ip_address;
                 info.interface_ip_address = localhost.getMatchingLocalIPAddress(peer_ip_address);
                 if (info.interface_ip_address == "" && socket.isIpAny() == false) {
@@ -359,14 +365,14 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
             // check for inverter protocol and ignore loopback packets
             else if (protocol.isInverterProtocolID() &&
                 (nbytes != sizeof(unicast_request) || memcmp(udp_packet, unicast_request, sizeof(unicast_request)) != 0)) {
-                //SpeedwireSocket::hexdump(udp_packet, nbytes);
+                SpeedwireSocket::hexdump(udp_packet, nbytes);
                 SpeedwireInverterProtocol inverter(protocol);
                 SpeedwireInfo info;
                 info.susyID = inverter.getSrcSusyID();
                 info.serialNumber = inverter.getSrcSerialNumber();
                 const DeviceType& device = DeviceType::fromSusyID(info.susyID);
-                info.deviceClass = toString(device.deviceClass);
-                info.deviceType = device.name;
+                info.deviceClass = "Inverter";
+                info.deviceType = "Inverter";
                 info.peer_ip_address = peer_ip_address;
                 info.interface_ip_address = localhost.getMatchingLocalIPAddress(peer_ip_address);
                 if (info.interface_ip_address == "" && socket.isIpAny() == false) {
