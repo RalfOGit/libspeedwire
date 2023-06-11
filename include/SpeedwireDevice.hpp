@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <string>
-#include <vector>
 
 namespace libspeedwire {
 
@@ -48,17 +47,17 @@ namespace libspeedwire {
         {}
 
         // pre-defined emeter instances
-        static const DeviceType &Emeter10(void)      { static DeviceType devicetype = DeviceType(270, "EMETER-10", "Energy-Meter-1.0", DeviceClass::EMETER); return devicetype; }
-        static const DeviceType &Emeter20(void)      { static DeviceType devicetype = DeviceType(349, "EMETER-20", "Energy-Meter-2.0", DeviceClass::EMETER); return devicetype; }
-        static const DeviceType &HomeManager20(void) { static DeviceType devicetype = DeviceType(372, "HM-20", "Sunny-Home-Manager-2.0", DeviceClass::EMETER); return devicetype; }
+        static const DeviceType &Emeter10(void)      { static const DeviceType devicetype = DeviceType(270, "EMETER-10", "Energy-Meter-1.0",   DeviceClass::EMETER); return devicetype; }
+        static const DeviceType &Emeter20(void)      { static const DeviceType devicetype = DeviceType(349, "EMETER-20", "Energy-Meter-2.0",   DeviceClass::EMETER); return devicetype; }
+        static const DeviceType &HomeManager20(void) { static const DeviceType devicetype = DeviceType(372, "HM-20", "Sunny-Home-Manager-2.0", DeviceClass::EMETER); return devicetype; }
 
         // pre-defined pv inverter instances
-        static const DeviceType &Tripower5000(void)  { static DeviceType devicetype = DeviceType(378, "STP-5.0-3AV-40", "Sunny-Tripower-5.0", DeviceClass::PV_INVERTER); return devicetype; }
+        static const DeviceType &Tripower5000(void)  { static const DeviceType devicetype = DeviceType(378, "STP-5.0-3AV-40", "Sunny-Tripower-5.0", DeviceClass::PV_INVERTER); return devicetype; }
 
         // unknown device type
-        static const DeviceType &Unknown(void)       { static DeviceType devicetype = DeviceType(0, "UNKNOWN", "Unknown Device", DeviceClass::UNKNOWN); return devicetype; }
+        static const DeviceType &Unknown(void)       { static const DeviceType devicetype = DeviceType(0, "UNKNOWN", "Unknown Device", DeviceClass::UNKNOWN); return devicetype; }
 
-        static DeviceType fromSusyID(const uint16_t susy_id) {
+        static const DeviceType &fromSusyID(const uint16_t susy_id) {
             if (susy_id == Emeter10().susyID)       { return Emeter10(); }
             if (susy_id == Emeter20().susyID)       { return Emeter20(); }
             if (susy_id == HomeManager20().susyID)  { return HomeManager20(); }
