@@ -21,11 +21,11 @@ namespace libspeedwire {
     class SpeedwireEmeterProtocol {
 
     protected:
-        static constexpr unsigned long sma_susy_id_offset = 0;                             //!< Susy ID offset within the emeter specific part of the speedwire udp packet; i.e. this offset is 0.
-        static constexpr unsigned long sma_serial_number_offset = 2;                             //!< Serial number offset within the emeter specific part of the speedwire udp packet.
+        static constexpr unsigned long sma_susy_id_offset = 0;                          //!< Susy ID offset within the emeter specific part of the speedwire udp packet; i.e. this offset is 0.
+        static constexpr unsigned long sma_serial_number_offset = 2;                    //!< Serial number offset within the emeter specific part of the speedwire udp packet.
         static constexpr unsigned long sma_time_offset = sma_serial_number_offset + 4;  //!< Timestamp offset within the emeter specific part of the speedwire udp packet.
-        static constexpr unsigned long sma_first_obis_offset = sma_time_offset + 4;           //!< Offset of the first obis element within the emeter specific part of the speedwire udp packet.
-        static constexpr uint8_t sma_firmware_version_channel = 144;                           //!< Obis channel used to mark the firmware version obis element.
+        static constexpr unsigned long sma_first_obis_offset = sma_time_offset + 4;     //!< Offset of the first obis element within the emeter specific part of the speedwire udp packet.
+        static constexpr uint8_t sma_firmware_version_channel = 144;                    //!< Obis channel used to mark the firmware version obis element.
 
         uint8_t* udp;
         unsigned long size;

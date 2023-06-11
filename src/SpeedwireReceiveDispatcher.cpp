@@ -93,7 +93,8 @@ int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& so
                 bool valid_inverter_packet = false;
 
                 // check if it is an sma emeter packet
-                if (speedwire_packet.isEmeterProtocolID()) {
+                if (speedwire_packet.isEmeterProtocolID() ||
+                    speedwire_packet.isExtendedEmeterProtocolID()) {
                     SpeedwireEmeterProtocol emeter(speedwire_packet);
                     uint16_t susyid = emeter.getSusyID();
                     uint32_t serial = emeter.getSerialNumber();

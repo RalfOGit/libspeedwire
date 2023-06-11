@@ -336,7 +336,7 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 printf("received speedwire discovery response packet\n");
             }
             // check for emeter protocol
-            else if (protocol.isEmeterProtocolID()) {
+            else if (protocol.isEmeterProtocolID() || protocol.isExtendedEmeterProtocolID()) {
                 //SpeedwireSocket::hexdump(udp_packet, nbytes);
                 SpeedwireEmeterProtocol emeter(protocol);
                 SpeedwireInfo info;
