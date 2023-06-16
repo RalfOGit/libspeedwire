@@ -564,7 +564,7 @@ int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, co
 
 
 /**
- *  Print buffer content to stdoutSend udp multicast packet to the given ipv6 address
+ *  Print buffer content to stdout
  */
 void SpeedwireSocket::hexdump(const void* const buff, const unsigned long size) {
     printf("--------:");

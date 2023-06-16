@@ -12,6 +12,21 @@
 namespace libspeedwire {
 
     /**
+     *  Enumeration of data types used in speedwire inverter reply packets.
+     */
+    enum class SpeedwireDataType : uint8_t {
+        UnsignedLong = 0x00,
+        Status       = 0x08,
+        String       = 0x10,
+        Float        = 0x20,
+        SignedLong   = 0x40
+    };
+
+    //! Convert SpeedwireDataType to a string
+    std::string toString(SpeedwireDataType type);
+
+
+    /**
      *  Class holding raw data from the speedwire inverter reply packet.
      */
     class SpeedwireRawData {
@@ -19,12 +34,13 @@ namespace libspeedwire {
         uint32_t command;                   //!< command code
         uint32_t id;                        //!< register id
         uint8_t  conn;                      //!< connector id (mpp #1, mpp #2, ac #1)
-        uint8_t  type;                      //!< unknown type
+        SpeedwireDataType type;             //!< type
         time_t   time;                      //!< timestamp
         uint8_t  data[40];                  //!< payload data
         size_t   data_size;                 //!< payload data size in bytes
 
-        SpeedwireRawData(const uint32_t command, const uint32_t id, const uint8_t conn, const uint8_t type, const time_t time, const void* const data, const size_t data_size);
+        SpeedwireRawData(const uint32_t command, const uint32_t id, const uint8_t conn, const SpeedwireDataType type, const time_t time, const void* const data, const size_t data_size);
+        SpeedwireRawData(void);
 
         bool equals(const SpeedwireRawData& other) const;
         bool isSameSignature(const SpeedwireRawData& other) const;
@@ -45,7 +61,7 @@ namespace libspeedwire {
     class SpeedwireData : public SpeedwireRawData, public Measurement {
     public:
 
-        SpeedwireData(const uint32_t command, const uint32_t id, const uint8_t conn, const uint8_t type, const time_t time,
+        SpeedwireData(const uint32_t command, const uint32_t id, const uint8_t conn, const SpeedwireDataType type, const time_t time,
             const void* data, const size_t data_size, const MeasurementType& mType, const Wire wire);
         SpeedwireData(void);
 

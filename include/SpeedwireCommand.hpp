@@ -93,6 +93,8 @@ namespace libspeedwire {
         SpeedwireCommandTokenIndex sendLoginRequest(const SpeedwireInfo& peer, const bool user, const char* password);
         SpeedwireCommandTokenIndex sendQueryRequest(const SpeedwireInfo& peer, const Command command, const uint32_t first_register, const uint32_t last_register);
 
+        void queryDeviceType(const SpeedwireInfo& peer);
+
         // synchronous receive method - receive command reply packet for the given command token; this method will block until the packet is received or it times out
         // (for asynchronous receive handling, see class SpeedwireReceiveDispatcher)
         int32_t receiveResponse(const SpeedwireCommandTokenIndex index, SpeedwireSocket& socket, void* udp_buffer, const size_t udp_buffer_size, const int poll_timeout_in_ms);

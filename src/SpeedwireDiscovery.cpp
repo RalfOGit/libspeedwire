@@ -365,12 +365,12 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
             // check for inverter protocol and ignore loopback packets
             else if (protocol.isInverterProtocolID() &&
                 (nbytes != sizeof(unicast_request) || memcmp(udp_packet, unicast_request, sizeof(unicast_request)) != 0)) {
-                SpeedwireSocket::hexdump(udp_packet, nbytes);
-                SpeedwireInverterProtocol inverter(protocol);
+                SpeedwireInverterProtocol inverter_packet(protocol);
+                //SpeedwireSocket::hexdump(udp_packet, nbytes);
+                //printf("%s\n", inverter_packet.toString().c_str());
                 SpeedwireInfo info;
-                info.susyID = inverter.getSrcSusyID();
-                info.serialNumber = inverter.getSrcSerialNumber();
-                const DeviceType& device = DeviceType::fromSusyID(info.susyID);
+                info.susyID = inverter_packet.getSrcSusyID();
+                info.serialNumber = inverter_packet.getSrcSerialNumber();
                 info.deviceClass = "Inverter";
                 info.deviceType = "Inverter";
                 info.peer_ip_address = peer_ip_address;
