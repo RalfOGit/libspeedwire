@@ -64,7 +64,7 @@ namespace libspeedwire {
         void* const getNextRawDataElement(const void* const current, uint32_t length) const;
         SpeedwireRawData getRawData(const void* const current, uint32_t length) const;
         std::vector<SpeedwireRawData> getRawDataElements(void) const;
-        std::string SpeedwireInverterProtocol::toString(void) const;
+        std::string toString(void) const;
 
         // setter methods
         void setDstSusyID(const uint16_t value);
