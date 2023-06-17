@@ -16,6 +16,7 @@
 #include <AddressConversion.hpp>
 #include <Logger.hpp>
 #include <SpeedwireByteEncoding.hpp>
+#include <SpeedwireDevice.hpp>
 #include <SpeedwireInverterProtocol.hpp>
 #include <SpeedwireSocket.hpp>
 #include <SpeedwireSocketFactory.hpp>
@@ -349,7 +350,10 @@ SpeedwireCommandTokenIndex SpeedwireCommand::sendQueryRequest(const SpeedwireInf
 /**
  *  query device type
  */
-void SpeedwireCommand::queryDeviceType(const SpeedwireInfo& peer) {
+SpeedwireInfo SpeedwireCommand::queryDeviceType(const SpeedwireInfo& peer) {
+    // create a copy of the peer
+    SpeedwireInfo info = peer;
+
     // Request  534d4100000402a00000000100260010 606509a0 7a01842a71b30001 7d0042be283a0001 000000000380 00020058 00348200 ff348200 00000000 =>  query software version
     // Response 534d4100000402a000000001004e0010 606513a0 7d0042be283a00a1 7a01842a71b30001 000000000380 01020058 0a000000 0a000000 01348200 2ae5e65f 00000000 00000000 feffffff feffffff 040a1003 040a1003 00000000 00000000 00000000  code = 0x00823401    3 (BCD).10 (BCD).10 (BIN) Typ R (Enum)
     // Request  534d4100000402a00000000100260010 606509a0 7a01842a71b30001 7d0042be283a0001 000000000480 00020058 001e8200 ff208200 00000000 =>  query device type
@@ -364,7 +368,7 @@ void SpeedwireCommand::queryDeviceType(const SpeedwireInfo& peer) {
     SocketIndex socket_index = socket_map[peer.interface_ip_address];
     if (socket_index < 0) {
         logger.print(LogLevel::LOG_ERROR, "invalid socket_index");
-        return;
+        return info;
     }
     SpeedwireSocket& socket = sockets[socket_index];
 
@@ -379,38 +383,47 @@ void SpeedwireCommand::queryDeviceType(const SpeedwireInfo& peer) {
         SpeedwireHeader speedwire_packet(udp_packet, nbytes);
         bool valid_speedwire_packet = speedwire_packet.checkHeader();
         if (valid_speedwire_packet && speedwire_packet.isInverterProtocolID()) {
-            SpeedwireSocket::hexdump(udp_packet, nbytes);
             SpeedwireInverterProtocol inverter_packet(speedwire_packet);
-            //uint32_t offset = speedwire_packet.getPayloadOffset() + 34ul;
-            //SpeedwireSocket::hexdump(udp_packet + offset, nbytes - offset);
-            std::vector<SpeedwireRawData> raw_data_vector = inverter_packet.getRawDataElements();
-            printf("%s\n", inverter_packet.toString().c_str());
+            //SpeedwireSocket::hexdump(udp_packet, nbytes);
+            //printf("%s\n", inverter_packet.toString().c_str());
 
-            // convert raw data into inverter values and pass them to the data processor
-            // TODO: NEED TO HANDLE A VARIABLE SIZED LIST OF DEVICE TYPES
+            std::vector<SpeedwireRawData> raw_data_vector = inverter_packet.getRawDataElements();
+
+            // augment the device information with data obtained the peer
             std::string serial_number;
             uint16_t device_class = 0xffff;
-            uint32_t device_type[4] = { 0, 0, 0, 0 };
+            uint16_t device_type = 0xffff;
             for (auto& raw_data : raw_data_vector) {
                 switch (raw_data.id) {
                 case 0x00821E00:        // serial number as ascii string
-                    serial_number = std::string((char*)raw_data.data);
+                    serial_number = raw_data.getValueAsString(0);
                     break;
-                case 0x00821F00:        // device class
-                    device_class = SpeedwireByteEncoding::getUint16LittleEndian(raw_data.data);
-                    break;
-                case 0x00822000:        // device type
-                    device_type[0] = SpeedwireByteEncoding::getUint16LittleEndian(raw_data.data);
-                    device_type[1] = SpeedwireByteEncoding::getUint16LittleEndian(raw_data.data+4);
-                    device_type[2] = SpeedwireByteEncoding::getUint16LittleEndian(raw_data.data+8);
-                    device_type[3] = SpeedwireByteEncoding::getUint16LittleEndian(raw_data.data+12);
+                case 0x00821F00: {      // device class
+                    DeviceClass device_class = (DeviceClass)raw_data.getValueAsUnsignedLong(0);;
+                    info.deviceClass = libspeedwire::toString(device_class);
                     break;
                 }
+                case 0x00822000: {      // device type
+                    device_type = raw_data.getValueAsUnsignedLong(0);
+                    size_t num_values = raw_data.getNumberOfValues();
+                    // if multiple device types are listed, choose the one with the 0x01 in the msb
+                    for (size_t i = 0; i < num_values; ++i) {
+                        uint32_t value = raw_data.getValueAsUnsignedLong(i);
+                        if (value >= 0x01000000) {
+                            DeviceType device_type = (DeviceType)value;
+                            SpeedwireDevice device = SpeedwireDevice::fromDeviceType(device_type);
+                            info.deviceType = device.name;
+                            break;
+                        }
+                    }
+                    break;
+                }
+                }
             }
-            printf("device_class: 0x%04x  device_type: %08lx %08lx %08lx %08lx\n", device_class, device_type[0], device_type[1], device_type[2], device_type[3]);
         }
     }
-    return;
+    //printf("%s\n", info.toString().c_str());
+    return info;
 }
 
 

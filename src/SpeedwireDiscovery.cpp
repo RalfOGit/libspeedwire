@@ -343,7 +343,7 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 SpeedwireInfo info;
                 info.susyID = emeter.getSusyID();
                 info.serialNumber = emeter.getSerialNumber();
-                const DeviceType &device = DeviceType::fromSusyID(info.susyID);
+                const SpeedwireDevice&device = SpeedwireDevice::fromSusyID(info.susyID);
                 if (device.deviceClass != DeviceClass::UNKNOWN) {
                     info.deviceClass = toString(device.deviceClass);
                     info.deviceType = device.name;
@@ -382,6 +382,18 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                     printf("%s\n", info.toString().c_str());
                     result = true;
                 }
+#if 0
+                // dump reply information; this is just the src susyid and serialnumber together with some unknown bits
+                printf("%s\n", inverter_packet.toString().c_str());
+                std::vector<SpeedwireRawData> raw_data = inverter_packet.getRawDataElements();
+                for (auto& rd : raw_data) {
+                    size_t num_values = rd.getNumberOfValues();
+                    for (size_t i = 0; i < num_values; ++i) {
+                        uint32_t value = rd.getValueAsUnsignedLong(i);
+                        printf("0x%08lx  %ld\n", value, value);
+                    }
+                }
+#endif
             }
             else if (!protocol.isInverterProtocolID()) {
                 uint16_t id = protocol.getProtocolID();

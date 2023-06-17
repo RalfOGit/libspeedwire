@@ -112,6 +112,48 @@ std::string SpeedwireRawData::toString(const uint64_t value) const {
     return std::string(str);
 }
 
+/** 
+ *  Get number of data values available in the payload data 
+ */
+size_t SpeedwireRawData::getNumberOfValues(void) const {
+    switch (type) {
+    case SpeedwireDataType::UnsignedLong:
+    case SpeedwireDataType::Status:
+    case SpeedwireDataType::Float:
+    case SpeedwireDataType::SignedLong:
+        return data_size / 4u;
+        return 2;
+    case SpeedwireDataType::String:
+        return 1;
+    }
+    return 0;
+}
+
+/** Get data value from payload at the given position */
+uint32_t SpeedwireRawData::getValueAsUnsignedLong(size_t pos) const {
+    if (pos < getNumberOfValues()) {
+        uint32_t value = SpeedwireByteEncoding::getUint32LittleEndian(data + pos * 4u);
+        return value;
+    }
+    return 0x00fffffe;
+}
+
+int32_t SpeedwireRawData::getValueAsSignedLong(size_t pos) const {
+    return (int32_t)getValueAsUnsignedLong(pos);
+}
+
+float SpeedwireRawData::getValueAsFloat(size_t pos) const {
+    uint32_t uint_value = getValueAsUnsignedLong(pos);
+    float value = 0.0f;
+    memcpy(&value, &uint_value, sizeof(value));
+    return value;
+}
+
+std::string SpeedwireRawData::getValueAsString(size_t pos) const {
+    std::string value;
+    value.append((char*)data + pos, data_size - pos);
+    return value;
+}
 
 
 /*******************************

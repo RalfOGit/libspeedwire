@@ -52,6 +52,15 @@ namespace libspeedwire {
         std::string toString(void) const;
         std::string toString(uint32_t value) const;
         std::string toString(uint64_t value) const;
+
+        /** Get number of data values available in the payload data */
+        size_t getNumberOfValues(void) const;
+
+        /** Get data value from payload at the given position */
+        uint32_t    getValueAsUnsignedLong(size_t pos) const;
+        int32_t     getValueAsSignedLong(size_t pos) const;
+        float       getValueAsFloat(size_t pos) const;
+        std::string getValueAsString(size_t pos) const;
     };
 
 
