@@ -80,6 +80,9 @@ namespace libspeedwire {
 
         // Calculate the absolute time difference between time1 and time2
         static uint64_t calculateAbsTimeDifference(uint64_t time1, uint64_t time2);
+
+        // hexdump utility method
+        static void hexdump(const void* const buff, const unsigned long size);
     };
 
 }   // namespace libspeedwire

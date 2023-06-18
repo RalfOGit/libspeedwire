@@ -561,19 +561,3 @@ int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, co
     }
     return nbytes;
 }
-
-
-/**
- *  Print buffer content to stdout
- */
-void SpeedwireSocket::hexdump(const void* const buff, const unsigned long size) {
-    printf("--------:");
-    for (unsigned long i = 0; i < size; i++) {
-        if ((i % 16) == 0) {
-            printf("\n%08X: ", i);
-        }
-        printf("%02X ", ((unsigned char*)buff)[i]);
-    }
-    printf("\n");
-    fflush(stdout);
-}

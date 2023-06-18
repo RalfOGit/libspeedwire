@@ -71,8 +71,6 @@ namespace libspeedwire {
         int sendto(const void* const buff, const unsigned long size, const struct sockaddr_in& dest) const;
         int sendto(const void* const buff, const unsigned long size, const struct sockaddr_in6& dest) const;
         int sendto(const void* const buff, const unsigned long size, const std::string& dest) const;
-
-        static void hexdump(const void* const buff, const unsigned long size);
     };
 
 }   // namespace libspeedwire

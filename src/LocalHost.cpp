@@ -470,3 +470,26 @@ const std::string LocalHost::getMatchingLocalIPAddress(std::string ip_address) c
     }
     return "";
 }
+
+
+/**
+ *  Print buffer content to stdout
+ */
+void LocalHost::hexdump(const void* const buff, const unsigned long size) {
+    printf("--------:");
+    for (unsigned long i = 0; i < size; i++) {
+        if ((i % 16) == 0) {
+            if (i != 0) {
+                printf("     ");
+                for (unsigned long j = (i >= 16 ? i - 16 : 0); j < i; j++) {
+                    const unsigned char c = ((unsigned char*)buff)[j];
+                    putchar(isprint(c) ? c : 0x001a);
+                }
+            }
+            printf("\n%08X: ", i);
+        }
+        printf("%02X ", ((unsigned char*)buff)[i]);
+    }
+    printf("\n");
+    fflush(stdout);
+}
