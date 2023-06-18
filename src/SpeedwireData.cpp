@@ -87,8 +87,31 @@ std::string SpeedwireRawData::toString(void) const {
         snprintf(byte, sizeof(byte), "%02x", (unsigned)data[i]);
         result.append(byte);
     }
+    size_t num_values = getNumberOfValues();
+    for (size_t i = 0; i < num_values; ++i) {
+        char byte[32];
+        switch (type) {
+        case SpeedwireDataType::SignedLong:
+            snprintf(byte, sizeof(byte), " %10ld", getValueAsSignedLong(i)); 
+            result.append(byte); 
+            break;
+        case SpeedwireDataType::UnsignedLong:
+            snprintf(byte, sizeof(byte), " %10lu", getValueAsUnsignedLong(i));
+            result.append(byte);
+            break;
+        case SpeedwireDataType::Float:
+            snprintf(byte, sizeof(byte), " %7.2f", getValueAsFloat(i));
+            result.append(byte);
+            break;
+        case SpeedwireDataType::String:
+            result.append(" ");
+            result.append(getValueAsString(0));
+            break;
+        }
+    }
     return result;
 }
+
 
 /**
  *  Convert this instance augmented by the given uint32 value into a std::string representation.
@@ -101,6 +124,7 @@ std::string SpeedwireRawData::toString(const uint32_t value) const {
     return std::string(str);
 }
 
+
 /**
  *  Convert this instance augmented by the given uint64 value into a std::string representation.
  *  @param value A measurement value to be printed together with this instance
@@ -111,6 +135,7 @@ std::string SpeedwireRawData::toString(const uint64_t value) const {
     snprintf(str, sizeof(str), "%s 0x%016llx %llu", toString().c_str(), value, value);
     return std::string(str);
 }
+
 
 /** 
  *  Get number of data values available in the payload data 
@@ -129,6 +154,7 @@ size_t SpeedwireRawData::getNumberOfValues(void) const {
     return 0;
 }
 
+
 /** Get data value from payload at the given position */
 uint32_t SpeedwireRawData::getValueAsUnsignedLong(size_t pos) const {
     if (pos < getNumberOfValues()) {
@@ -138,9 +164,11 @@ uint32_t SpeedwireRawData::getValueAsUnsignedLong(size_t pos) const {
     return 0x00fffffe;
 }
 
+
 int32_t SpeedwireRawData::getValueAsSignedLong(size_t pos) const {
     return (int32_t)getValueAsUnsignedLong(pos);
 }
+
 
 float SpeedwireRawData::getValueAsFloat(size_t pos) const {
     uint32_t uint_value = getValueAsUnsignedLong(pos);
@@ -149,9 +177,12 @@ float SpeedwireRawData::getValueAsFloat(size_t pos) const {
     return value;
 }
 
+
 std::string SpeedwireRawData::getValueAsString(size_t pos) const {
     std::string value;
-    value.append((char*)data + pos, data_size - pos);
+    if (pos < data_size) {
+        value.append((char*)data + pos, data_size - pos);
+    }
     return value;
 }
 
@@ -201,54 +232,55 @@ bool SpeedwireData::consume(const SpeedwireRawData& data) {
     if (!isSameSignature(data)) return false;
     if (data.data == NULL || data.data_size < 20) return false;
 
-    uint8_t  value1;
-    uint32_t value4;
+    switch (type) {
 
-    switch (id) {
-    case 0x00251e00:    // dc power
-    case 0x00451f00:    // dc voltage
-    case 0x00452100:    // dc current
-    case 0x00464000:    // ac power
-    case 0x00464100:    // ac power
-    case 0x00464200:    // ac power
-    case 0x00464800:    // ac voltage
-    case 0x00464900:    // ac voltage
-    case 0x00464a00:    // ac voltage
-    case 0x00464b00:    // ac voltage
-    case 0x00464c00:    // ac voltage
-    case 0x00464d00:    // ac voltage
-    case 0x00465300:    // ac current
-    case 0x00465400:    // ac current
-    case 0x00465500:    // ac current
-        value4 = SpeedwireByteEncoding::getUint32LittleEndian(data.data);
-        if (value4 == 0xffffffff || value4 == 0x80000000) value4 = 0;  // received during darkness
-#if 0   // simulate some values
-        if (id == 0x00251e00) value4 = 0x57;
-        if (id == 0x00451f00) value4 = 0x6105;
-        if (id == 0x00452100) value4 = 0x0160;
-        if (id == 0x00464000 || id == 0x00464100 || id == 0x00464200) value4 = 0x0038;
-        if (id == 0x00464800 || id == 0x00464900 || id == 0x00464a00) value4 = 0x59cf;
-        if (id == 0x00464b00 || id == 0x00464c00 || id == 0x00464d00) value4 = 0x9b3c;
-        if (id == 0x00465300 || id == 0x00465400 || id == 0x00465500) value4 = 0x011e;
+    case SpeedwireDataType::SignedLong: {
+        int32_t value = (int32_t)SpeedwireByteEncoding::getUint32LittleEndian(data.data);
+        if (value == 0xffffffff || value == 0x80000000) value = 0;  // received during darkness
+#if 0   // simulate some values for debugging
+        if (id == 0x00251e00) value = 0x57;
+        if (id == 0x00451f00) value = 0x6105;
+        if (id == 0x00452100) value = 0x0160;
+        if (id == 0x00464000 || id == 0x00464100 || id == 0x00464200) value = 0x0038;
+        if (id == 0x00464800 || id == 0x00464900 || id == 0x00464a00) value = 0x59cf;
+        if (id == 0x00464b00 || id == 0x00464c00 || id == 0x00464d00) value = 0x9b3c;
+        if (id == 0x00465300 || id == 0x00465400 || id == 0x00465500) value = 0x011e;
 #endif
-        addMeasurement(value4, (uint32_t)data.time);
+        addMeasurement(value, (uint32_t)data.time);
         time = data.time;
         break;
+    }
 
-    case 0x00214800:    // device status
-    case 0x00416400:    // grid relay status
-        // Request  534d4100000402a00000000100260010 606509a0 7a01842a71b30001 7d0042be283a0001 000000000980 00028051 00482100 ff482100 00000000 =>  query device status
-        // Response 534d4100000402a000000001004e0010 606513a0 7d0042be283a00a1 7a01842a71b30001 000000000980 01028051 00000000 00000000 01482108 59c5e95f 33010001 feffff00 00000000 00000000 00000000 00000000 00000000 00000000 00000000
-        // Request  534d4100000402a00000000100260010 606509a0 7a01842a71b30001 7d0042be283a0001 000000000a80 00028051 00644100 ff644100 00000000 =>  query grid relay status
-        // Response 534d4100000402a000000001004e0010 606513a0 7d0042be283a00a1 7a01842a71b30001 000000000a80 01028051 07000000 07000000 01644108 59c5e95f 33000001 37010000 fdffff00 feffff00 00000000 00000000 00000000 00000000 00000000
-        value4 = SpeedwireByteEncoding::getUint32LittleEndian(data.data);
-        value1 = (value4 >> 24) & 0xff;
-        addMeasurement((uint32_t)value1, (uint32_t)data.time);
+    case SpeedwireDataType::UnsignedLong: {
+        uint32_t value = SpeedwireByteEncoding::getUint32LittleEndian(data.data);
+        if (value == 0xffffffff || value == 0x80000000) value = 0;  // received during darkness
+        addMeasurement(value, (uint32_t)data.time);
         time = data.time;
         break;
+    }
 
+    case SpeedwireDataType::Status: {
+        switch (id) {
+        case 0x00214800:    // device status
+        case 0x00416400: {  // grid relay status
+            // Request  534d4100000402a00000000100260010 606509a0 7a01842a71b30001 7d0042be283a0001 000000000980 00028051 00482100 ff482100 00000000 =>  query device status
+            // Response 534d4100000402a000000001004e0010 606513a0 7d0042be283a00a1 7a01842a71b30001 000000000980 01028051 00000000 00000000 01482108 59c5e95f 33010001 feffff00 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+            // Request  534d4100000402a00000000100260010 606509a0 7a01842a71b30001 7d0042be283a0001 000000000a80 00028051 00644100 ff644100 00000000 =>  query grid relay status
+            // Response 534d4100000402a000000001004e0010 606513a0 7d0042be283a00a1 7a01842a71b30001 000000000a80 01028051 07000000 07000000 01644108 59c5e95f 33000001 37010000 fdffff00 feffff00 00000000 00000000 00000000 00000000 00000000
+            uint32_t value32 = SpeedwireByteEncoding::getUint32LittleEndian(data.data);
+            uint8_t  valued8 = (value32 >> 24) & 0xff;
+            addMeasurement((uint32_t)valued8, (uint32_t)data.time);
+            time = data.time;
+            break;
+        }
+        default:
+            perror("unsupported id");
+            return false;
+        }
+        break;
+    }
     default:
-        perror("unknown id");
+        perror("unsupported SpeedwireDataType");
         return false;
     }
 

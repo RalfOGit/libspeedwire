@@ -13,10 +13,12 @@
 namespace libspeedwire {
 
     enum Command : uint32_t {
-        COMMAND_AC_QUERY = 0x51000200,
-        COMMAND_STATUS_QUERY = 0x51800200,
-        COMMAND_DEVICE_QUERY = 0x58000200,
-        COMMAND_DC_QUERY = 0x53800200
+        COMMAND_AC_QUERY          = 0x51000200,
+        COMMAND_STATUS_QUERY      = 0x51800200,
+        COMMAND_TEMPERATURE_QUERY = 0x52000200,
+        COMMAND_DC_QUERY          = 0x53800200,
+        COMMAND_ENERGY_QUERY      = 0x54000200,
+        COMMAND_DEVICE_QUERY      = 0x58000200
     };
 
 

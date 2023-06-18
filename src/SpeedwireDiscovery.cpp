@@ -17,6 +17,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <LocalHost.hpp>
 #include <AddressConversion.hpp>
 #include <SpeedwireByteEncoding.hpp>
 #include <SpeedwireHeader.hpp>
@@ -338,13 +339,13 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
             }
             // check for emeter protocol
             else if (protocol.isEmeterProtocolID() || protocol.isExtendedEmeterProtocolID()) {
-                //SpeedwireSocket::hexdump(udp_packet, nbytes);
+                //LocalHost::hexdump(udp_packet, nbytes);
                 SpeedwireEmeterProtocol emeter(protocol);
                 SpeedwireInfo info;
                 info.susyID = emeter.getSusyID();
                 info.serialNumber = emeter.getSerialNumber();
                 const SpeedwireDevice&device = SpeedwireDevice::fromSusyID(info.susyID);
-                if (device.deviceClass != DeviceClass::UNKNOWN) {
+                if (device.deviceClass != SpeedwireDeviceClass::UNKNOWN) {
                     info.deviceClass = toString(device.deviceClass);
                     info.deviceType = device.name;
                 }
@@ -366,7 +367,7 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
             else if (protocol.isInverterProtocolID() &&
                 (nbytes != sizeof(unicast_request) || memcmp(udp_packet, unicast_request, sizeof(unicast_request)) != 0)) {
                 SpeedwireInverterProtocol inverter_packet(protocol);
-                //SpeedwireSocket::hexdump(udp_packet, nbytes);
+                //LocalHost::hexdump(udp_packet, nbytes);
                 //printf("%s\n", inverter_packet.toString().c_str());
                 SpeedwireInfo info;
                 info.susyID = inverter_packet.getSrcSusyID();

@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <LocalHost.hpp>
 #include <AddressConversion.hpp>
 #include <Logger.hpp>
 #include <SpeedwireByteEncoding.hpp>
@@ -377,14 +378,14 @@ SpeedwireInfo SpeedwireCommand::queryDeviceType(const SpeedwireInfo& peer) {
     int32_t nbytes = receiveResponse(token_index, socket, udp_packet, sizeof(udp_packet), 3000);
 
     if (nbytes > 0) {
-        //SpeedwireSocket::hexdump(udp_packet, nbytes);
+        //LocalHost::hexdump(udp_packet, nbytes);
 
         // parse reply packet
         SpeedwireHeader speedwire_packet(udp_packet, nbytes);
         bool valid_speedwire_packet = speedwire_packet.checkHeader();
         if (valid_speedwire_packet && speedwire_packet.isInverterProtocolID()) {
             SpeedwireInverterProtocol inverter_packet(speedwire_packet);
-            //SpeedwireSocket::hexdump(udp_packet, nbytes);
+            //LocalHost::hexdump(udp_packet, nbytes);
             //printf("%s\n", inverter_packet.toString().c_str());
 
             std::vector<SpeedwireRawData> raw_data_vector = inverter_packet.getRawDataElements();
@@ -399,7 +400,7 @@ SpeedwireInfo SpeedwireCommand::queryDeviceType(const SpeedwireInfo& peer) {
                     serial_number = raw_data.getValueAsString(0);
                     break;
                 case 0x00821F00: {      // device class
-                    DeviceClass device_class = (DeviceClass)raw_data.getValueAsUnsignedLong(0);;
+                    SpeedwireDeviceClass device_class = (SpeedwireDeviceClass)raw_data.getValueAsUnsignedLong(0);;
                     info.deviceClass = libspeedwire::toString(device_class);
                     break;
                 }
@@ -410,7 +411,7 @@ SpeedwireInfo SpeedwireCommand::queryDeviceType(const SpeedwireInfo& peer) {
                     for (size_t i = 0; i < num_values; ++i) {
                         uint32_t value = raw_data.getValueAsUnsignedLong(i);
                         if (value >= 0x01000000) {
-                            DeviceType device_type = (DeviceType)value;
+                            SpeedwireDeviceType device_type = (SpeedwireDeviceType)value;
                             SpeedwireDevice device = SpeedwireDevice::fromDeviceType(device_type);
                             info.deviceType = device.name;
                             break;
@@ -465,7 +466,7 @@ int32_t SpeedwireCommand::receiveResponse(const SpeedwireCommandTokenIndex token
             SpeedwireHeader speedwire_packet(udp_buffer, nbytes);
             bool valid_speedwire_packet = speedwire_packet.checkHeader();
             if (valid_speedwire_packet == true) {
-                //SpeedwireSocket::hexdump(udp_buffer, nbytes);
+                //LocalHost::hexdump(udp_buffer, nbytes);
 
                 // check reply packet for validity
                 const SpeedwireCommandToken& token = token_repository.at(token_index);
