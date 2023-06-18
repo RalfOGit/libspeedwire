@@ -11,15 +11,32 @@
 
 namespace libspeedwire {
 
+    //  From the Modbus documentation: SMA-Modbus-general-TI-en-10.pdf
+    //  3.5.7 SMA Data Types and NaN Values
+    //      The following table shows the data types used in the SMA Modbus profile and compares these to
+    //      possible NaN values.The SMA data types are listed in the assignment tables in the Type column.
+    //      The SMA data types describe the data widths of the assigned values :
+    //  Type        Explanation                             NaN value
+    //      S16     A signed word (16-bit).                 0x8000
+    //      S32     A signed double word (32-bit).          0x8000 0000
+    //      STR32   32 byte data field, in UTF8 format.     ZERO
+    //      U16     A word (16-bit).                        0xFFFF
+    //      U32     A double word (32-bit).                 0xFFFF FFFF
+    //      U32     For status values, only the lower 24 bits 
+    //              of a double word (32-bit) are used.     0x00FF FFFD
+    //      U64     A quadruple word (64-bit).              0xFFFF FFFF FFFF FFFF
+    //
+    // 0x00FF FFFE is apparently used as a "no value" or "end of data" word for status values
+
     /**
      *  Enumeration of data types used in speedwire inverter reply packets.
      */
     enum class SpeedwireDataType : uint8_t {
-        UnsignedLong = 0x00,
-        Status       = 0x08,
-        String       = 0x10,
-        Float        = 0x20,
-        SignedLong   = 0x40
+        Unsigned32 = 0x00,
+        Status32   = 0x08,
+        String32   = 0x10,
+        Float      = 0x20,
+        Signed32   = 0x40
     };
 
     //! Convert SpeedwireDataType to a string

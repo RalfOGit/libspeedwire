@@ -45,11 +45,11 @@ namespace libspeedwire {
 
         //! Constructor
         SpeedwireDevice(const SpeedwireDeviceClass& device_class, const SpeedwireDeviceType& device_type, const uint16_t susy_id, const std::string& name_, const std::string& long_name) :
+            deviceClass(device_class),
+            deviceType(device_type),
             susyID(susy_id),
             name(name_),
-            longName(long_name),
-            deviceClass(device_class),
-            deviceType(device_type)
+            longName(long_name)
         {}
 
         // pre-defined emeter instances
