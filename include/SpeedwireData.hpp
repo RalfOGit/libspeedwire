@@ -66,9 +66,8 @@ namespace libspeedwire {
          *  @return The key for this instance */
         uint32_t toKey(void) const { return id | conn; }
 
+        std::string toHexString(void) const;
         std::string toString(void) const;
-        std::string toString(uint32_t value) const;
-        std::string toString(uint64_t value) const;
 
         /** Get number of data values available in the payload data */
         size_t getNumberOfValues(void) const;
@@ -94,6 +93,8 @@ namespace libspeedwire {
         bool consume(const SpeedwireRawData& data);
 
         std::string toString(void) const;
+
+        static std::vector<SpeedwireData> getAllPredefined(void);
 
         // pre-defined static instances
         static const SpeedwireData InverterPowerMPP1;              //!< Power on direct current inverter input MPP1
@@ -126,7 +127,6 @@ namespace libspeedwire {
         static const SpeedwireData HouseholdIncomeTotal;           //!< Income generated
         static const SpeedwireData HouseholdIncomeFeedIn;          //!< Income generated from grid feed-in
         static const SpeedwireData HouseholdIncomeSelfConsumption; //!< Income generated from self-consumption
-
     };
 
 
@@ -136,26 +136,17 @@ namespace libspeedwire {
         a SpeedwireRawData instance.
      */
     class SpeedwireDataMap : public std::map<uint32_t, SpeedwireData> {
+        static SpeedwireDataMap allPredefined;
+
     public:
         /**
          *  Add a new element to the map of speedwire inverter reply data elements.
-         *  @param element The SpeedwireData element added to the map
+         *  @param element The SpeedwireData element to be added to the map
          */
         void add(const SpeedwireData& element) { operator[](element.toKey()) = element; }
 
-        /**
-         *  Find a speedwire inverter reply data map element by the given key and add its measurement value to the target element.
-         *  @param key The search key
-         *  @param target The target SpeedwireData element to be modified with the value of the element referenced by the search key
-         */
-        //void addValueToTarget(uint32_t key, SpeedwireData& target) const {
-        //    auto iterator = find(key);
-        //    if (iterator != end()) {
-        //        target.measurementValue.value += iterator->second.measurementValue.value;
-        //        target.measurementValue.timer = iterator->second.measurementValue.timer;
-        //        target.time = iterator->second.time;
-        //    }
-        //}
+        static SpeedwireDataMap createMap(const std::vector<SpeedwireData>& elements);
+        static const SpeedwireDataMap &getAllPredefined(void);
     };
 
 }   // namespace libspeedwire

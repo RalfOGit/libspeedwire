@@ -75,32 +75,56 @@ bool SpeedwireRawData::isSameSignature(const SpeedwireRawData& other) const {
 
 
 /**
- *  Convert this instance into a std::string representation.
+ *  Convert this instance into a std::string representation. Print data bytes as hex values.
  *  @return A string representation
  */
-std::string SpeedwireRawData::toString(void) const {
+std::string SpeedwireRawData::toHexString(void) const {
     char buff[256];
-    snprintf(buff, sizeof(buff), "id 0x%08lx conn 0x%02x type 0x%02x (%10s)  time 0x%08lx data 0x", (unsigned)id, (unsigned)conn, (unsigned)type, libspeedwire::toString(type).c_str(),  (uint32_t)time);
+    snprintf(buff, sizeof(buff), "id 0x%08lx conn 0x%02x type 0x%02x (%10s)  time 0x%08lx  data 0x", (unsigned)id, (unsigned)conn, (unsigned)type, libspeedwire::toString(type).c_str(), (uint32_t)time);
     std::string result(buff);
     for (size_t i = 0; i < data_size; ++i) {
         char byte[4];
         snprintf(byte, sizeof(byte), "%02x", (unsigned)data[i]);
         result.append(byte);
     }
+    return result;
+}
+
+
+/**
+ *  Convert this instance into a std::string representation. Interprete data bytes according to their type.
+ *  @return A string representation
+ */
+std::string SpeedwireRawData::toString(void) const {
+    // check if this raw data element is one of the predefined elements, if so get description string 
+    std::string description = "unknown";
+    const SpeedwireDataMap &data_map = SpeedwireDataMap::getAllPredefined();
+    auto iterator = data_map.find(toKey());
+    if (iterator != data_map.end()) {
+        description = iterator->second.description;
+        //unsigned long divisor = iterator->second.measurementType.divisor;
+    }
+
+    // assemble a string from the header fields
+    char buff[256];
+    snprintf(buff, sizeof(buff), "id 0x%08lx (%12s) conn 0x%02x type 0x%02x (%10s)  time 0x%08lx  data ", (unsigned)id, description.c_str(), (unsigned)conn, (unsigned)type, libspeedwire::toString(type).c_str(),  (uint32_t)time);
+
+    // decode values and append them to the string
+    std::string result(buff);
     size_t num_values = getNumberOfValues();
     for (size_t i = 0; i < num_values; ++i) {
         char byte[32];
         switch (type) {
         case SpeedwireDataType::Signed32: {
             int32_t value = getValueAsSignedLong(i);
-            if (value == 0x80000000) { result.append(" NaN"); break; }
+            if (value == 0x80000000) { result.append("        NaN"); break; }
             snprintf(byte, sizeof(byte), " %10ld", value);
             result.append(byte);
             break;
         }
         case SpeedwireDataType::Unsigned32: {
             uint32_t value = getValueAsUnsignedLong(i);
-            if (value == 0xffffffff) { result.append(" NaN"); break; }
+            if (value == 0xffffffff) { result.append("        NaN"); break; }
             snprintf(byte, sizeof(byte), " %10lu", value);
             result.append(byte);
             break;
@@ -124,30 +148,6 @@ std::string SpeedwireRawData::toString(void) const {
         }
     }
     return result;
-}
-
-
-/**
- *  Convert this instance augmented by the given uint32 value into a std::string representation.
- *  @param value A measurement value to be printed together with this instance
- *  @return A string representation
- */
-std::string SpeedwireRawData::toString(const uint32_t value) const {
-    char str[256];
-    snprintf(str, sizeof(str), "%s 0x%08lx %lu", toString().c_str(), value, value);
-    return std::string(str);
-}
-
-
-/**
- *  Convert this instance augmented by the given uint64 value into a std::string representation.
- *  @param value A measurement value to be printed together with this instance
- *  @return A string representation
- */
-std::string SpeedwireRawData::toString(const uint64_t value) const {
-    char str[256];
-    snprintf(str, sizeof(str), "%s 0x%016llx %llu", toString().c_str(), value, value);
-    return std::string(str);
 }
 
 
@@ -315,7 +315,49 @@ std::string SpeedwireData::toString(void) const {
 }
 
 
-// pre-defined instances
+/**
+ *  Get a vector of all pre - defined SpeedwireData instances.
+ */
+std::vector<SpeedwireData> SpeedwireData::getAllPredefined(void) {
+    std::vector<SpeedwireData> predefined;
+
+    predefined.push_back(InverterPowerMPP1);
+    predefined.push_back(InverterPowerMPP1);
+    predefined.push_back(InverterPowerMPP2);
+    predefined.push_back(InverterVoltageMPP1);
+    predefined.push_back(InverterVoltageMPP2);
+    predefined.push_back(InverterCurrentMPP1);
+    predefined.push_back(InverterCurrentMPP2);
+    predefined.push_back(InverterPowerL1);
+    predefined.push_back(InverterPowerL2);
+    predefined.push_back(InverterPowerL3);
+    predefined.push_back(InverterVoltageL1);
+    predefined.push_back(InverterVoltageL2);
+    predefined.push_back(InverterVoltageL3);
+    predefined.push_back(InverterVoltageL1toL2);
+    predefined.push_back(InverterVoltageL2toL3);
+    predefined.push_back(InverterVoltageL3toL1);
+    predefined.push_back(InverterCurrentL1);
+    predefined.push_back(InverterCurrentL2);
+    predefined.push_back(InverterCurrentL3);
+    predefined.push_back(InverterStatus);
+    predefined.push_back(InverterRelay);
+
+    predefined.push_back(InverterPowerDCTotal);
+    predefined.push_back(InverterPowerACTotal);
+    predefined.push_back(InverterPowerLoss);
+    predefined.push_back(InverterPowerEfficiency);
+
+    predefined.push_back(HouseholdPowerTotal);
+    predefined.push_back(HouseholdIncomeTotal);
+    predefined.push_back(HouseholdIncomeFeedIn);
+    predefined.push_back(HouseholdIncomeSelfConsumption);
+
+    return predefined;
+}
+
+
+// pre-defined SpeedwireData instances
 const SpeedwireData SpeedwireData::InverterPowerMPP1    (Command::COMMAND_DC_QUERY,     0x00251E00, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::MPP1);
 const SpeedwireData SpeedwireData::InverterPowerMPP2    (Command::COMMAND_DC_QUERY,     0x00251E00, 0x02, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::MPP2);
 const SpeedwireData SpeedwireData::InverterVoltageMPP1  (Command::COMMAND_DC_QUERY,     0x00451F00, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::MPP1);
@@ -348,3 +390,35 @@ const SpeedwireData SpeedwireData::HouseholdPowerTotal           (0, 0, 0, Speed
 const SpeedwireData SpeedwireData::HouseholdIncomeTotal          (0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::Currency(),      Wire::TOTAL);
 const SpeedwireData SpeedwireData::HouseholdIncomeFeedIn         (0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::Currency(),      Wire::FEED_IN);
 const SpeedwireData SpeedwireData::HouseholdIncomeSelfConsumption(0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::Currency(),      Wire::SELF_CONSUMPTION);
+
+
+/*******************************
+ *  Class holding a map of SpeedwireData elements.
+ ********************************/
+
+/**
+ *  Create a SpeedwireDataMap from the given vector of SpeedwireData elements
+ *  @param elements the vector of SpeedwireData elements
+ *  @return the map
+ */
+SpeedwireDataMap SpeedwireDataMap::createMap(const std::vector<SpeedwireData>& elements) {
+    SpeedwireDataMap map;
+    for (auto& e : elements) {
+        map.add(e);
+    }
+    return map;
+}
+
+
+/**
+ *  Get a reference to the SpeedwireDataMap containing all predefined elements
+ *  @return the map
+ */
+const SpeedwireDataMap& SpeedwireDataMap::getAllPredefined(void) {
+    if (allPredefined.size() == 0) {
+        allPredefined = createMap(SpeedwireData::getAllPredefined());
+    }
+    return allPredefined;
+}
+
+SpeedwireDataMap SpeedwireDataMap::allPredefined;
