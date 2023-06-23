@@ -129,15 +129,46 @@ namespace libspeedwire {
      *  The class extends std::map<uint32_t, ObisData>.
      */
     class ObisDataMap : public std::map<uint32_t, ObisData> {
+        static ObisDataMap allPredefined;
+
     public:
-        //! Serial number of the device that provided this data.
-        uint32_t serial_number;
 
         /**
-         *  Add a new element to the map of semeter obis data.elements.
-         *  @param element The ObisData element added to the map
+         *  Add a new element to the map of emeter obis data elements.
+         *  @param element The ObisData element to be added to the map
          */
-        void add(const ObisData& element) { operator[](element.toKey()) = element; }
+        inline void add(const ObisData& element) { operator[](element.toKey()) = element; }
+
+        /**
+         *  Add a vector of elements to the map of emeter obis data elements.
+         *  @param elements The vector of ObisData element to be added to the map
+         */
+        inline void add(const std::vector<ObisData>& elements) {
+            for (auto& e : elements) {
+                add(e);
+            }
+        }
+
+        /**
+         *  Remove the given element from the map of emeter obis data elements.
+         *  @param element The ObisData element to be removed from the map
+         */
+        inline void remove(const ObisData& entry) {
+            erase(entry.toKey());
+        }
+
+        /**
+         *  Create a ObisDataMap from the given vector of ObisData elements
+         *  @param elements the vector of ObisData elements
+         *  @return the map
+         */
+        static ObisDataMap ObisDataMap::createMap(const std::vector<ObisData>& elements) {
+            ObisDataMap map;
+            map.add(elements);
+            return map;
+        }
+
+        static const ObisDataMap& getAllPredefined(void);
     };
 
 }   // namespace libspeedwire

@@ -31,7 +31,7 @@ void ObisFilter::addFilter(const ObisDataMap& entries) {
 }
 
 void ObisFilter::removeFilter(const ObisData &entry) {
-    filterMap.erase(entry.toKey());
+    filterMap.remove(entry);
 }
 
 ObisDataMap& ObisFilter::getFilter(void) {

@@ -288,3 +288,21 @@ const ObisData ObisData::SignedActivePowerTotal     (0, 16, 7, 0, MeasurementTyp
 const ObisData ObisData::SignedActivePowerL1        (0, 36, 7, 0, MeasurementType::EmeterSignedActivePower(),      Wire::L1); 
 const ObisData ObisData::SignedActivePowerL2        (0, 56, 7, 0, MeasurementType::EmeterSignedActivePower(),      Wire::L2);
 const ObisData ObisData::SignedActivePowerL3        (0, 76, 7, 0, MeasurementType::EmeterSignedActivePower(),      Wire::L3);
+
+
+/*******************************
+ *  Class holding a map of ObisData elements.
+ ********************************/
+
+/**
+ *  Get a reference to the ObisDataMap containing all predefined elements
+ *  @return the map
+ */
+const ObisDataMap& ObisDataMap::getAllPredefined(void) {
+    if (allPredefined.size() == 0) {
+        allPredefined = createMap(ObisData::getAllPredefined());
+    }
+    return allPredefined;
+}
+
+ObisDataMap ObisDataMap::allPredefined;
