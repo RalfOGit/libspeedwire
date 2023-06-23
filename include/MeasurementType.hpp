@@ -28,10 +28,14 @@ namespace libspeedwire {
         L1,                //!< Phase L1 of three-phase alternating current wire
         L2,                //!< Phase L2 of three-phase alternating current wire
         L3,                //!< Phase L3 of three-phase alternating current wire
+        L1L2,              //!< Phase L1 of three-phase alternating current wire
+        L2L3,              //!< Phase L2 of three-phase alternating current wire
+        L3L1,              //!< Phase L3 of three-phase alternating current wire
         MPP_TOTAL,         //!< Total of MPP1+MPP2 direct current
         MPP1,              //!< MPP1 direct current wire
         MPP2,              //!< MPP2 direct current wire
         LOSS_TOTAL,        //!< Total of L1+L2+L3 of three-phase alternating current minus total of MPP1+MPP2 direct current
+        GRID_TOTAL,        //!< Total of L1+L2+L3 of three-phase alternating current at grid connection point
         DEVICE_OK,         //!< Device OK status
         RELAY_ON,          //!< Grid relay switched on
         FEED_IN,           //!< Monetary income from grid feed-in
@@ -55,6 +59,7 @@ namespace libspeedwire {
         VOLTAGE,            //!< Electrical voltage
         STATUS,             //!< Device status
         EFFICIENCY,         //!< Energy efficiency
+        DURATION,           //!< Time duration
         CURRENCY,           //!< Monetary amount
         NO_QUANTITY         //!< Quantity is not applicable
     };
@@ -73,6 +78,7 @@ namespace libspeedwire {
         ACTIVE,              //!< Electrical active power or energy
         REACTIVE,            //!< Electrical reactive power or energy
         APPARENT,            //!< Electrical apparent power or energy
+        NOMINAL,             //!< Electrical nominal power
         VERSION,             //!< Software version
         END_OF_DATA,         //!< End of data marker
         NO_TYPE              //!< Type is not applicable
@@ -108,12 +114,12 @@ namespace libspeedwire {
         static MeasurementType EmeterNegativeActiveEnergy(void) { return MeasurementType(Direction::NEGATIVE, Type::ACTIVE, Quantity::ENERGY, "kWh", 3600000); }
         static MeasurementType EmeterPositiveApparentPower(void) { return MeasurementType(Direction::POSITIVE, Type::APPARENT, Quantity::POWER, "VA", 10); }
         static MeasurementType EmeterPositiveApparentEnergy(void) { return MeasurementType(Direction::POSITIVE, Type::APPARENT, Quantity::ENERGY, "VAh", 3600000); }
-        static MeasurementType EmeterNegativeApparentPower(void) { return MeasurementType(Direction::NEGATIVE, Type::APPARENT, Quantity::POWER, "Var", 10); }
-        static MeasurementType EmeterNegativeApparentEnergy(void) { return MeasurementType(Direction::NEGATIVE, Type::APPARENT, Quantity::ENERGY, "Varh", 3600000); }
-        static MeasurementType EmeterPositiveReactivePower(void) { return MeasurementType(Direction::POSITIVE, Type::REACTIVE, Quantity::POWER, "W", 10); }
-        static MeasurementType EmeterPositiveReactiveEnergy(void) { return MeasurementType(Direction::POSITIVE, Type::REACTIVE, Quantity::ENERGY, "kWh", 3600000); }
-        static MeasurementType EmeterNegativeReactivePower(void) { return MeasurementType(Direction::NEGATIVE, Type::REACTIVE, Quantity::POWER, "W", 10); }
-        static MeasurementType EmeterNegativeReactiveEnergy(void) { return MeasurementType(Direction::NEGATIVE, Type::REACTIVE, Quantity::ENERGY, "kWh", 3600000); }
+        static MeasurementType EmeterNegativeApparentPower(void) { return MeasurementType(Direction::NEGATIVE, Type::APPARENT, Quantity::POWER, "VA", 10); }
+        static MeasurementType EmeterNegativeApparentEnergy(void) { return MeasurementType(Direction::NEGATIVE, Type::APPARENT, Quantity::ENERGY, "VAh", 3600000); }
+        static MeasurementType EmeterPositiveReactivePower(void) { return MeasurementType(Direction::POSITIVE, Type::REACTIVE, Quantity::POWER, "Var", 10); }
+        static MeasurementType EmeterPositiveReactiveEnergy(void) { return MeasurementType(Direction::POSITIVE, Type::REACTIVE, Quantity::ENERGY, "Varh", 3600000); }
+        static MeasurementType EmeterNegativeReactivePower(void) { return MeasurementType(Direction::NEGATIVE, Type::REACTIVE, Quantity::POWER, "Var", 10); }
+        static MeasurementType EmeterNegativeReactiveEnergy(void) { return MeasurementType(Direction::NEGATIVE, Type::REACTIVE, Quantity::ENERGY, "Varh", 3600000); }
         static MeasurementType EmeterSignedActivePower(void) { return MeasurementType(Direction::SIGNED, Type::ACTIVE, Quantity::POWER, "W", 10); }
         static MeasurementType EmeterPowerFactor(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::POWER_FACTOR, "phi", 1000); }
         static MeasurementType EmeterFrequency(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::FREQUENCY, "Hz", 1000); }
@@ -124,12 +130,18 @@ namespace libspeedwire {
 
         // pre-defined instances for inverter measurement types
         static MeasurementType InverterPower(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::POWER, "W", 1); }
+        static MeasurementType InverterReactivePower(void) { return MeasurementType(Direction::NO_DIRECTION, Type::REACTIVE, Quantity::POWER, "Var", 1); }
+        static MeasurementType InverterNominalPower(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NOMINAL, Quantity::POWER, "W", 1); }
+        static MeasurementType InverterPowerFactor(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::POWER_FACTOR, "phi", 100); }
+        static MeasurementType InverterFrequency(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::FREQUENCY, "Hz", 100); }
         static MeasurementType InverterVoltage(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::VOLTAGE, "V", 100); }
         static MeasurementType InverterCurrent(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::CURRENT, "A", 1000); }
         static MeasurementType InverterStatus(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::STATUS, "", 1); }
         static MeasurementType InverterRelay(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::STATUS, "", 1); }
         static MeasurementType InverterEfficiency(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::EFFICIENCY, "%", 1); }
         static MeasurementType InverterLoss(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::POWER, "W", 1); }
+        static MeasurementType InverterEnergy(const Direction direction = Direction::NO_DIRECTION) { return MeasurementType(direction, Type::ACTIVE, Quantity::ENERGY, "Wh", 1); }
+        static MeasurementType InverterDuration(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::DURATION, "s", 1); }
 
         // pre-defined instances for miscellaneous measurement types
         static MeasurementType Currency(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::CURRENCY, "Eur", 1); }

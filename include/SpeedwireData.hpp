@@ -85,9 +85,10 @@ namespace libspeedwire {
      */
     class SpeedwireData : public SpeedwireRawData, public Measurement {
     public:
+        std::string name;
 
         SpeedwireData(const uint32_t command, const uint32_t id, const uint8_t conn, const SpeedwireDataType type, const time_t time,
-            const void* data, const size_t data_size, const MeasurementType& mType, const Wire wire);
+            const void* data, const size_t data_size, const MeasurementType& mType, const Wire wire, const std::string &name);
         SpeedwireData(void);
 
         bool consume(const SpeedwireRawData& data);
@@ -97,6 +98,10 @@ namespace libspeedwire {
         static std::vector<SpeedwireData> getAllPredefined(void);
 
         // pre-defined static instances
+        static const SpeedwireData InverterDeviceName;             //!< Device name string
+        static const SpeedwireData InverterDeviceClass;            //!< Device class
+        static const SpeedwireData InverterDeviceType;             //!< Device type
+        static const SpeedwireData InverterSoftwareVersion;        //!< Software version
         static const SpeedwireData InverterPowerMPP1;              //!< Power on direct current inverter input MPP1
         static const SpeedwireData InverterPowerMPP2;              //!< Power on direct current inverter input MPP2
         static const SpeedwireData InverterVoltageMPP1;            //!< Voltage on direct current inverter input MPP1
@@ -112,9 +117,20 @@ namespace libspeedwire {
         static const SpeedwireData InverterVoltageL1toL2;          //!< Voltage on alternating current inverter output phase L1, measured between L1 and L2
         static const SpeedwireData InverterVoltageL2toL3;          //!< Voltage on alternating current inverter output phase L1, measured between L2 and L3
         static const SpeedwireData InverterVoltageL3toL1;          //!< Voltage on alternating current inverter output phase L1, measured between L3 and L1
+        static const SpeedwireData InverterPowerFactor;            //!< Power factor on alternating current inverter output
         static const SpeedwireData InverterCurrentL1;              //!< Current on alternating current inverter output phase L1
         static const SpeedwireData InverterCurrentL2;              //!< Current on alternating current inverter output phase L2
         static const SpeedwireData InverterCurrentL3;              //!< Current on alternating current inverter output phase L3
+        static const SpeedwireData InverterFrequency;              //!< Grid frequency on alternating current inverter output
+        static const SpeedwireData InverterPowerACTotal;           //!< Total active power on alternating current inverter output
+        static const SpeedwireData InverterReactivePowerTotal;     //!< Total reactive power on alternating current inverter output
+        static const SpeedwireData InverterNominalPower;           //!< Total nominal power of the inverter device
+        static const SpeedwireData InverterEnergyTotal;            //!< Total energy produced
+        static const SpeedwireData InverterEnergyDaily;            //!< Daily energy produced
+        static const SpeedwireData InverterGridExportEnergyTotal;  //!< Total energy fed into the grid - as reported by the emeter at the grid connection point
+        static const SpeedwireData InverterGridImportEnergyTotal;  //!< Total energy consumed from the grid - as reported by the emeter at the grid connection point
+        static const SpeedwireData InverterOperationTime;          //!< Total operation time of the inverter
+        static const SpeedwireData InverterFeedInTime;             //!< Total feed-in time of the inverter
         static const SpeedwireData InverterStatus;                 //!< Inverter operation status
         static const SpeedwireData InverterRelay;                  //!< Grid relay status
 
@@ -143,9 +159,37 @@ namespace libspeedwire {
          *  Add a new element to the map of speedwire inverter reply data elements.
          *  @param element The SpeedwireData element to be added to the map
          */
-        void add(const SpeedwireData& element) { operator[](element.toKey()) = element; }
+        inline void add(const SpeedwireData& element) { operator[](element.toKey()) = element; }
 
-        static SpeedwireDataMap createMap(const std::vector<SpeedwireData>& elements);
+        /**
+         *  Add a vector of elements to the map of emeter obis data elements.
+         *  @param elements The vector of ObisData element to be added to the map
+         */
+        inline void add(const std::vector<SpeedwireData>& elements) {
+            for (auto& e : elements) {
+                add(e);
+            }
+        }
+
+        /**
+         *  Remove the given element from the map of emeter obis data elements.
+         *  @param element The ObisData element to be removed from the map
+         */
+        inline void remove(const SpeedwireData& entry) {
+            erase(entry.toKey());
+        }
+
+        /**
+         *  Create a ObisDataMap from the given vector of ObisData elements
+         *  @param elements the vector of ObisData elements
+         *  @return the map
+         */
+        static SpeedwireDataMap createMap(const std::vector<SpeedwireData>& elements) {
+            SpeedwireDataMap map;
+            map.add(elements);
+            return map;
+        }
+
         static const SpeedwireDataMap &getAllPredefined(void);
     };
 
