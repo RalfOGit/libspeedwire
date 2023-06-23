@@ -135,7 +135,6 @@ namespace libspeedwire {
         static const SpeedwireData InverterRelay;                  //!< Grid relay status
 
         static const SpeedwireData InverterPowerDCTotal;           //!< Total power on direct current inverter inputs MPP1 + MPP2
-        static const SpeedwireData InverterPowerACTotal;           //!< Total power on alternating current inverter outputs L1 + L2 + L3
         static const SpeedwireData InverterPowerLoss;              //!< Total power loss
         static const SpeedwireData InverterPowerEfficiency;        //!< Total power efficiency
 
