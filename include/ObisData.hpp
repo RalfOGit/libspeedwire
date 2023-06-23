@@ -162,7 +162,7 @@ namespace libspeedwire {
          *  @param elements the vector of ObisData elements
          *  @return the map
          */
-        static ObisDataMap ObisDataMap::createMap(const std::vector<ObisData>& elements) {
+        static ObisDataMap createMap(const std::vector<ObisData>& elements) {
             ObisDataMap map;
             map.add(elements);
             return map;
