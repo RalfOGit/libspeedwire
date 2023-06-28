@@ -132,18 +132,30 @@ namespace libspeedwire {
         static ObisDataMap allPredefined;
 
     public:
+        /**
+         *  Default constructor.
+         */
+        ObisDataMap(void) : std::map<uint32_t, ObisData>() {}
+
+        /**
+         *  Construct a new map from the given vector of ObisData elements.
+         *  @param elements the vector of ObisData elements
+         */
+        ObisDataMap(const std::vector<ObisData>& elements) {
+            this->add(elements);
+        }
 
         /**
          *  Add a new element to the map of emeter obis data elements.
          *  @param element The ObisData element to be added to the map
          */
-        inline void add(const ObisData& element) { operator[](element.toKey()) = element; }
+        void add(const ObisData& element) { operator[](element.toKey()) = element; }
 
         /**
          *  Add a vector of elements to the map of emeter obis data elements.
          *  @param elements The vector of ObisData element to be added to the map
          */
-        inline void add(const std::vector<ObisData>& elements) {
+        void add(const std::vector<ObisData>& elements) {
             for (auto& e : elements) {
                 add(e);
             }
@@ -153,19 +165,8 @@ namespace libspeedwire {
          *  Remove the given element from the map of emeter obis data elements.
          *  @param element The ObisData element to be removed from the map
          */
-        inline void remove(const ObisData& entry) {
+        void remove(const ObisData& entry) {
             erase(entry.toKey());
-        }
-
-        /**
-         *  Create a ObisDataMap from the given vector of ObisData elements
-         *  @param elements the vector of ObisData elements
-         *  @return the map
-         */
-        static ObisDataMap createMap(const std::vector<ObisData>& elements) {
-            ObisDataMap map;
-            map.add(elements);
-            return map;
         }
 
         static const ObisDataMap& getAllPredefined(void);

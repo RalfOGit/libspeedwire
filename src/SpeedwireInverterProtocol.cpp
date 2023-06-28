@@ -166,7 +166,7 @@ SpeedwireRawData SpeedwireInverterProtocol::getRawData(const void* const current
         first_word,                             // command
         (uint32_t)(first_word & 0x00ffff00),    // register id;
         (uint8_t)(first_word & 0x000000ff),     // connector id (mpp #1, mpp #2, ac #1);
-        (SpeedwireDataType)(first_word >> 24),  // type;
+        SpeedwireDataType(first_word >> 24),    // type;
         second_word,                            // time;
         NULL,
         (element_length - 8 < sizeof(SpeedwireRawData::data) ? element_length - 8 : sizeof(SpeedwireRawData::data))

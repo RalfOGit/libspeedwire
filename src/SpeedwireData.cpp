@@ -113,39 +113,44 @@ std::string SpeedwireRawData::toString(void) const {
     std::string result(buff);
     size_t num_values = getNumberOfValues();
     for (size_t i = 0; i < num_values; ++i) {
-        char byte[32];
+        std::string value_string;
         switch (type) {
         case SpeedwireDataType::Signed32: {
-            int32_t value = getValueAsSignedLong(i);
-            if (value == 0x80000000) { result.append("        NaN"); break; }
-            snprintf(byte, sizeof(byte), " %10ld", value);
-            result.append(byte);
+            SpeedwireRawDataSigned32 rd(*this);
+            int32_t value = rd.getValue(i);
+            value_string = rd.convertValueToString(value);
             break;
         }
         case SpeedwireDataType::Unsigned32: {
-            uint32_t value = getValueAsUnsignedLong(i);
-            if (value == 0xffffffff) { result.append("        NaN"); break; }
-            snprintf(byte, sizeof(byte), " %10lu", value);
-            result.append(byte);
+            SpeedwireRawDataUnsigned32 rd(*this);
+            uint32_t value = rd.getValue(i);
+            value_string = rd.convertValueToString(value);
             break;
         }
         case SpeedwireDataType::Status32: {
-            uint32_t value = getValueAsUnsignedLong(i);
-            if (value == 0x00fffffd) { result.append("        NaN"); break; }
-            if (value == 0x00fffffe) { result.append("        EoD"); break; }
-            snprintf(byte, sizeof(byte), " 0x%08lx", value);
-            result.append(byte);
+            SpeedwireRawDataStatus32 rd(*this);
+            uint32_t value = rd.getValue(i);
+            value_string = rd.convertValueToString(value);
             break;
         }
-        case SpeedwireDataType::Float:
-            snprintf(byte, sizeof(byte), " %7.2f", getValueAsFloat(i));
-            result.append(byte);
-            break;
-        case SpeedwireDataType::String32:
-            result.append(" ");
-            result.append(getValueAsString(0));
+        //case SpeedwireDataType::Float: {
+        //    float value = 0.0f;
+        //    getFloatValue(i, value);
+        //    snprintf(byte, sizeof(byte), " %7.2f", value);
+        //    result.append(byte);
+        //    break;
+        //}
+        case SpeedwireDataType::String32: {
+            SpeedwireRawDataString32 rd(*this);
+            value_string = rd.getValue(i);
             break;
         }
+        }
+        const size_t num_chars = 12;
+        if (num_chars > value_string.length()) {
+            result.append(num_chars - value_string.length(), ' ');
+        }
+        result.append(value_string);
     }
     return result;
 }
@@ -157,47 +162,17 @@ std::string SpeedwireRawData::toString(void) const {
 size_t SpeedwireRawData::getNumberOfValues(void) const {
     switch (type) {
     case SpeedwireDataType::Unsigned32:
+        return data_size / SpeedwireRawDataUnsigned32::value_size;
     case SpeedwireDataType::Status32:
+        return data_size / SpeedwireRawDataStatus32::value_size;
     case SpeedwireDataType::Float:
-    case SpeedwireDataType::Signed32:
         return data_size / 4u;
-        return 2;
+    case SpeedwireDataType::Signed32:
+        return data_size / SpeedwireRawDataSigned32::value_size;
     case SpeedwireDataType::String32:
-        return 1;
+        return data_size / SpeedwireRawDataString32::value_size;
     }
     return 0;
-}
-
-
-/** Get data value from payload at the given position */
-uint32_t SpeedwireRawData::getValueAsUnsignedLong(size_t pos) const {
-    if (pos < getNumberOfValues()) {
-        uint32_t value = SpeedwireByteEncoding::getUint32LittleEndian(data + pos * 4u);
-        return value;
-    }
-    return 0x00fffffe;
-}
-
-
-int32_t SpeedwireRawData::getValueAsSignedLong(size_t pos) const {
-    return (int32_t)getValueAsUnsignedLong(pos);
-}
-
-
-float SpeedwireRawData::getValueAsFloat(size_t pos) const {
-    uint32_t uint_value = getValueAsUnsignedLong(pos);
-    float value = 0.0f;
-    memcpy(&value, &uint_value, sizeof(value));
-    return value;
-}
-
-
-std::string SpeedwireRawData::getValueAsString(size_t pos) const {
-    std::string value;
-    if (pos < data_size) {
-        value.append((char*)data + pos, data_size - pos);
-    }
-    return value;
 }
 
 
@@ -250,8 +225,9 @@ bool SpeedwireData::consume(const SpeedwireRawData& data) {
     switch (type) {
 
     case SpeedwireDataType::Signed32: {
-        int32_t value = (int32_t)SpeedwireByteEncoding::getUint32LittleEndian(data.data);
-        if (value == 0x80000000) value = 0;  // received during darkness: NaN value is 0x80000000
+        SpeedwireRawDataSigned32 rd((SpeedwireRawData&)data);
+        int32_t value = rd.getValue(0);
+        if (rd.isNanValue(value)) value = 0;  // received during darkness: NaN value is 0x80000000
 #if 0   // simulate some values for debugging
         if (id == 0x00251e00) value = 0x57;
         if (id == 0x00451f00) value = 0x6105;
@@ -267,25 +243,41 @@ bool SpeedwireData::consume(const SpeedwireRawData& data) {
     }
 
     case SpeedwireDataType::Unsigned32: {
-        uint32_t value = SpeedwireByteEncoding::getUint32LittleEndian(data.data);
-        if (value == 0xffffffff) value = 0;  // received during darkness: NaN value is 0xffffffff
+        SpeedwireRawDataUnsigned32 rd((SpeedwireRawData&)data);
+        int32_t value = rd.getValue(0);
+        if (rd.isNanValue(value)) value = 0;  // received during darkness: NaN value is 0xffffffff
         addMeasurement(value, (uint32_t)data.time);
         time = data.time;
         break;
     }
 
     case SpeedwireDataType::Status32: {
+        SpeedwireRawDataStatus32 rd((SpeedwireRawData &)data);
         switch (id) {
-        case 0x00214800:    // device status
+        case 0x00214800: {   // device status
+            bool ok = false;
+            size_t index = rd.getSelectionIndex();
+            if (index != (size_t)-1) {
+                uint32_t value = rd.getValue(index);
+                ok = ((value & 0x00ffffff) == 0x133);  // 307 <=> OK (from: Technische Beschreibung SC - COM Modbus® - Schnittstelle)
+            }
+            addMeasurement(ok, (uint32_t)data.time);
+            break;
+        }
         case 0x00416400: {  // grid relay status
             // Request  534d4100000402a00000000100260010 606509a0 7a01842a71b30001 7d0042be283a0001 000000000980 00028051 00482100 ff482100 00000000 =>  query device status
             // Response 534d4100000402a000000001004e0010 606513a0 7d0042be283a00a1 7a01842a71b30001 000000000980 01028051 00000000 00000000 01482108 59c5e95f 33010001 feffff00 00000000 00000000 00000000 00000000 00000000 00000000 00000000
             // Request  534d4100000402a00000000100260010 606509a0 7a01842a71b30001 7d0042be283a0001 000000000a80 00028051 00644100 ff644100 00000000 =>  query grid relay status
             // Response 534d4100000402a000000001004e0010 606513a0 7d0042be283a00a1 7a01842a71b30001 000000000a80 01028051 07000000 07000000 01644108 59c5e95f 33000001 37010000 fdffff00 feffff00 00000000 00000000 00000000 00000000 00000000
-            uint32_t value32 = SpeedwireByteEncoding::getUint32LittleEndian(data.data);
-            //if (value32 == 0x00fffffd) value32 = 0;  // NaN value is 0x00fffffd
-            uint8_t  valued8 = (value32 >> 24) & 0xff;
-            addMeasurement((uint32_t)valued8, (uint32_t)data.time);
+            // the inverter replies with a list of 3 status value: 0x33 (on), 0x137 (open) 0x00fffffd (NaN) (from: Technische Beschreibung SC-COM Modbus®-Schnittstelle)
+            // one of the value has a 0x01000000 marker; this is the one that is valid
+            bool on = false;
+            size_t index = rd.getSelectionIndex();
+            if (index != (size_t)-1) {
+                uint32_t value = rd.getValue(index);
+                on = ((value & 0x00ffffff) == 0x000033);
+            }
+            addMeasurement(on, (uint32_t)data.time);
             time = data.time;
             break;
         }
@@ -322,6 +314,7 @@ std::string SpeedwireData::toString(void) const {
 std::vector<SpeedwireData> SpeedwireData::getAllPredefined(void) {
     std::vector<SpeedwireData> predefined;
 
+    predefined.push_back(InverterDiscovery);
     predefined.push_back(InverterDeviceName);
     predefined.push_back(InverterDeviceClass);
     predefined.push_back(InverterDeviceType);
@@ -372,6 +365,7 @@ std::vector<SpeedwireData> SpeedwireData::getAllPredefined(void) {
 
 
 // pre-defined SpeedwireData instances
+const SpeedwireData SpeedwireData::InverterDiscovery         (Command::COMMAND_DEVICE_QUERY, 0x00000300, 0x00, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "Discovery");
 const SpeedwireData SpeedwireData::InverterDeviceName        (Command::COMMAND_DEVICE_QUERY, 0x00821e00, 0x01, SpeedwireDataType::String32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "Name");
 const SpeedwireData SpeedwireData::InverterDeviceClass       (Command::COMMAND_DEVICE_QUERY, 0x00821f00, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "MainModel");
 const SpeedwireData SpeedwireData::InverterDeviceType        (Command::COMMAND_DEVICE_QUERY, 0x00822000, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "Model");
@@ -430,7 +424,7 @@ const SpeedwireData SpeedwireData::HouseholdIncomeSelfConsumption(0, 0, 0, Speed
  */
 const SpeedwireDataMap& SpeedwireDataMap::getAllPredefined(void) {
     if (allPredefined.size() == 0) {
-        allPredefined = createMap(SpeedwireData::getAllPredefined());
+        allPredefined = SpeedwireDataMap(SpeedwireData::getAllPredefined());
     }
     return allPredefined;
 }

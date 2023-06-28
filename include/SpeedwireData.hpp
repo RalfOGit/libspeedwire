@@ -8,6 +8,7 @@
 #include <Measurement.hpp>
 #include <MeasurementType.hpp>
 #include <MeasurementValues.hpp>
+#include <SpeedwireByteEncoding.hpp>
 
 namespace libspeedwire {
 
@@ -35,7 +36,7 @@ namespace libspeedwire {
         Unsigned32 = 0x00,
         Status32   = 0x08,
         String32   = 0x10,
-        Float      = 0x20,
+        Float      = 0x20,  // likely unused
         Signed32   = 0x40
     };
 
@@ -63,20 +64,137 @@ namespace libspeedwire {
         bool isSameSignature(const SpeedwireRawData& other) const;
 
         /** Return key for this instance. The key is formed by combining id and conn.
-         *  @return The key for this instance */
+         *  @return The key for this instance
+         */
         uint32_t toKey(void) const { return id | conn; }
 
         std::string toHexString(void) const;
         std::string toString(void) const;
 
-        /** Get number of data values available in the payload data */
         size_t getNumberOfValues(void) const;
+    };
 
-        /** Get data value from payload at the given position */
-        uint32_t    getValueAsUnsignedLong(size_t pos) const;
-        int32_t     getValueAsSignedLong(size_t pos) const;
-        float       getValueAsFloat(size_t pos) const;
-        std::string getValueAsString(size_t pos) const;
+
+    /**
+     *  Wrapper class to simplify access to SpeedwireRawData of type Unsigned32
+     */
+    class SpeedwireRawDataUnsigned32 {
+    protected:
+        const SpeedwireRawData& base;
+
+    public:
+        static const size_t value_size = 4u;
+        static const uint32_t nan = 0xffffffff;
+        static const uint32_t eod = 0xfffffffe;
+
+        SpeedwireRawDataUnsigned32(const SpeedwireRawData& raw_data) : base(raw_data) {}
+
+        size_t getNumberOfValues(void) const { return base.data_size / value_size; }
+        bool isNanValue(uint32_t value) const { return (value == nan); }
+        bool isEoDValue(uint32_t value) const { return (value == eod); }
+        uint32_t getValue(size_t pos) const { return SpeedwireByteEncoding::getUint32LittleEndian(base.data + pos * value_size); }
+        double convertValueToDouble(uint32_t value) const { return (double)value; }
+
+        std::string convertValueToString(uint32_t value) const {
+            if (value == nan) { return "NaN"; }
+            if (value == eod) { return "EoD"; }
+            char byte[32];
+            snprintf(byte, sizeof(byte), "0x%08lx", value);
+            return std::string(byte);
+        }
+    };
+
+
+    /**
+     *  Wrapper class to simplify access to SpeedwireRawData of type Signed32
+     */
+    class SpeedwireRawDataSigned32 {
+    protected:
+        const SpeedwireRawData& base;
+
+    public:
+        static const size_t value_size = 4u;
+        static const int32_t nan = 0x80000000;
+
+        SpeedwireRawDataSigned32(const SpeedwireRawData& raw_data) : base(raw_data) {}
+
+        size_t getNumberOfValues(void) const { return base.data_size / value_size; }
+        bool isNanValue(int32_t value) const { return (value == nan); }
+        int32_t getValue(size_t pos) const { return (int32_t)SpeedwireByteEncoding::getUint32LittleEndian(base.data + pos * value_size); }
+        double convertValueToDouble(int32_t value) const { return (double)value; }
+
+        std::string convertValueToString(int32_t value) const {
+            if (value == nan) { return "NaN"; }
+            char byte[32];
+            snprintf(byte, sizeof(byte), "0x%08lx", value);
+            return std::string(byte);
+        }
+    };
+
+
+    /**
+     *  Wrapper class to simplify access to SpeedwireRawData of type Status32
+     */
+    class SpeedwireRawDataStatus32 {
+    protected:
+        const SpeedwireRawData &base;
+
+    public:
+        static const size_t   value_size = 4u;
+        static const uint32_t value_mask = 0x00ffffff;
+        static const uint32_t marker_mask = 0xff000000;
+        static const uint32_t nan = 0x00fffffd;
+        static const uint32_t eod = 0x00fffffe;
+
+        SpeedwireRawDataStatus32(const SpeedwireRawData &raw_data) : base(raw_data) {}
+
+        size_t getNumberOfValues(void) const { return base.data_size / value_size; }
+        bool isNanValue(uint32_t value) const { return ((value & value_mask) == nan); }
+        bool isEoDValue(uint32_t value) const { return ((value & value_mask) == eod); }
+        uint32_t getValue(size_t pos) const { return SpeedwireByteEncoding::getUint32LittleEndian(base.data + pos * value_size); }
+
+        /** Get the index of the data value marked with 0x01000000; this is the selected value in the list of values */
+        size_t getSelectionIndex(void) const {
+            size_t num_values = getNumberOfValues();
+            for (size_t i = 0; i < num_values; ++i) {
+                uint32_t svalue = getValue(i);
+                if ((svalue & marker_mask) == 0x01000000) {
+                    return i;
+                }
+            }
+            return (size_t)-1;
+        }
+
+        double convertValueToDouble(uint32_t value) const {
+            return (double)(value & value_mask);
+        }
+
+        std::string convertValueToString(uint32_t value) const {
+            if (value == nan) { return "NaN"; }
+            if (value == (0x01000000 | nan)) { return "Sel.NaN"; }
+            if (value == eod) { return "EoD"; }
+            char byte[32];
+            snprintf(byte, sizeof(byte), "0x%08lx", value);
+            return std::string(byte);
+        }
+    };
+
+
+    /**
+     *  Wrapper class to simplify access to SpeedwireRawData of type String32
+     */
+    class SpeedwireRawDataString32 {
+        protected:
+            const SpeedwireRawData& base;
+
+        public:
+        static const size_t value_size = 32u;
+
+        SpeedwireRawDataString32(const SpeedwireRawData& raw_data) : base(raw_data) {}
+
+        size_t getNumberOfValues(void) const { return base.data_size / value_size; }
+        std::string getValue(size_t pos) { return std::string((char*)base.data + pos * value_size, base.data_size - pos * value_size); }
+
     };
 
 
@@ -98,6 +216,7 @@ namespace libspeedwire {
         static std::vector<SpeedwireData> getAllPredefined(void);
 
         // pre-defined static instances
+        static const SpeedwireData InverterDiscovery;              //!< Device discovery
         static const SpeedwireData InverterDeviceName;             //!< Device name string
         static const SpeedwireData InverterDeviceClass;            //!< Device class
         static const SpeedwireData InverterDeviceType;             //!< Device type
@@ -155,16 +274,29 @@ namespace libspeedwire {
 
     public:
         /**
+         *  Default constructor.
+         */
+        SpeedwireDataMap(void) : std::map<uint32_t, SpeedwireData>() {}
+
+        /**
+         *  Construct a new map from the given vector of SpeedwireData elements.
+         *  @param elements the vector of SpeedwireData elements
+         */
+        SpeedwireDataMap(const std::vector<SpeedwireData>& elements) {
+            this->add(elements);
+        }
+
+        /**
          *  Add a new element to the map of speedwire inverter reply data elements.
          *  @param element The SpeedwireData element to be added to the map
          */
-        inline void add(const SpeedwireData& element) { operator[](element.toKey()) = element; }
+        void add(const SpeedwireData& element) { operator[](element.toKey()) = element; }
 
         /**
          *  Add a vector of elements to the map of emeter obis data elements.
          *  @param elements The vector of ObisData element to be added to the map
          */
-        inline void add(const std::vector<SpeedwireData>& elements) {
+        void add(const std::vector<SpeedwireData>& elements) {
             for (auto& e : elements) {
                 add(e);
             }
@@ -174,19 +306,8 @@ namespace libspeedwire {
          *  Remove the given element from the map of emeter obis data elements.
          *  @param element The ObisData element to be removed from the map
          */
-        inline void remove(const SpeedwireData& entry) {
+        void remove(const SpeedwireData& entry) {
             erase(entry.toKey());
-        }
-
-        /**
-         *  Create a ObisDataMap from the given vector of ObisData elements
-         *  @param elements the vector of ObisData elements
-         *  @return the map
-         */
-        static SpeedwireDataMap createMap(const std::vector<SpeedwireData>& elements) {
-            SpeedwireDataMap map;
-            map.add(elements);
-            return map;
         }
 
         static const SpeedwireDataMap &getAllPredefined(void);

@@ -351,7 +351,7 @@ SpeedwireCommandTokenIndex SpeedwireCommand::sendQueryRequest(const SpeedwireInf
 /**
  *  query device type
  */
-SpeedwireInfo SpeedwireCommand::queryDeviceType(const SpeedwireInfo& peer) {
+SpeedwireInfo SpeedwireCommand::queryDeviceType(const SpeedwireInfo& peer, const int timeout_in_ms) {
     // create a copy of the peer
     SpeedwireInfo info = peer;
 
@@ -375,7 +375,7 @@ SpeedwireInfo SpeedwireCommand::queryDeviceType(const SpeedwireInfo& peer) {
 
     // wait for response
     unsigned char udp_packet[2048];
-    int32_t nbytes = receiveResponse(token_index, socket, udp_packet, sizeof(udp_packet), 3000);
+    int32_t nbytes = receiveResponse(token_index, socket, udp_packet, sizeof(udp_packet), timeout_in_ms);
 
     if (nbytes > 0) {
         //LocalHost::hexdump(udp_packet, nbytes);
@@ -394,31 +394,26 @@ SpeedwireInfo SpeedwireCommand::queryDeviceType(const SpeedwireInfo& peer) {
             std::string serial_number;
             uint16_t device_class = 0xffff;
             uint16_t device_type = 0xffff;
+
             for (auto& raw_data : raw_data_vector) {
-                switch (raw_data.id) {
-                case 0x00821E00:        // serial number as ascii string
-                    serial_number = raw_data.getValueAsString(0);
-                    break;
-                case 0x00821F00: {      // device class
-                    SpeedwireDeviceClass device_class = (SpeedwireDeviceClass)raw_data.getValueAsUnsignedLong(0);;
-                    info.deviceClass = libspeedwire::toString(device_class);
-                    break;
-                }
-                case 0x00822000: {      // device type
-                    device_type = raw_data.getValueAsUnsignedLong(0);
-                    size_t num_values = raw_data.getNumberOfValues();
-                    // if multiple device types are listed, choose the one with the 0x01 in the msb
-                    for (size_t i = 0; i < num_values; ++i) {
-                        uint32_t value = raw_data.getValueAsUnsignedLong(i);
-                        if (value >= 0x01000000) {
-                            SpeedwireDeviceType device_type = (SpeedwireDeviceType)value;
-                            SpeedwireDevice device = SpeedwireDevice::fromDeviceType(device_type);
-                            info.deviceType = device.name;
-                            break;
-                        }
+                if (raw_data.id == SpeedwireData::InverterDeviceClass.id && raw_data.type == SpeedwireDataType::Status32) {
+                    SpeedwireRawDataStatus32 status_data(raw_data);
+                    size_t index = status_data.getSelectionIndex();
+                    if (index != (size_t)-1) {
+                        uint32_t value = status_data.getValue(index);
+                        SpeedwireDeviceClass device_class = (SpeedwireDeviceClass)value;
+                        info.deviceClass = libspeedwire::toString(device_class);
                     }
-                    break;
                 }
+                else if (raw_data.id == SpeedwireData::InverterDeviceType.id && raw_data.type == SpeedwireDataType::Status32) {
+                    SpeedwireRawDataStatus32 status_data(raw_data);
+                    size_t index = status_data.getSelectionIndex();
+                    if (index != (size_t)-1) {
+                        uint32_t value = status_data.getValue(index);
+                        SpeedwireDeviceType device_type = (SpeedwireDeviceType)value;
+                        SpeedwireDevice device = SpeedwireDevice::fromDeviceType(device_type);
+                        info.deviceType = device.name;
+                    }
                 }
             }
         }
@@ -445,7 +440,12 @@ int32_t SpeedwireCommand::receiveResponse(const SpeedwireCommandTokenIndex token
     while (valid == false && nbytes != 0) {
 
         // wait for a packet on the configured socket
-        if (poll(&pollfds, 1, timeout_in_ms) < 0) {
+        int pollresult = poll(&pollfds, 1, timeout_in_ms);
+        if (pollresult == 0) {
+            //perror("poll timeout in SpeedwireCommand");
+            return 0;
+        }
+        if (pollresult < 0) {
             logger.print(LogLevel::LOG_ERROR, "poll failure");
             return -1;
         }

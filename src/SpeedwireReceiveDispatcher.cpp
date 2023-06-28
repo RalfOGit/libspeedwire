@@ -59,7 +59,12 @@ int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& so
     }
 
     // wait for a packet on the configured socket
-    if (poll(&pollfds[0], (unsigned)sockets.size(), poll_timeout_in_ms) < 0) {
+    int pollresult = poll(&pollfds[0], (unsigned)sockets.size(), poll_timeout_in_ms);
+    if (pollresult == 0) {
+        //perror("poll timeout in SpeedwireReceiveDispatcher");
+        return 0;
+    }
+    if (pollresult < 0) {
         perror("poll failure");
         return -1;
     }

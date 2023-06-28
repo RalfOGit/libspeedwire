@@ -7,23 +7,31 @@
 namespace libspeedwire {
 
     /**
-     *  Enumeration describing known device classes.
+     *  Enumeration describing known device classes. Definitions from: SMA_Modbus-TB-de-13 Version 1.3
      */
     enum class SpeedwireDeviceClass : uint16_t {
         UNKNOWN          = 0000,  //!< Unknown device class
         PV_INVERTER      = 8001,  //!< Photovoltaic inverter device class
+        WIND_INVERTER    = 8002,  //!< Wind turbine inverter device class
         BATTERY_INVERTER = 8007,  //!< Battery inverter device class
         HYBRID_INVERTER  = 8009,  //!< Hybrid inverter device class
-        EMETER           = 8065   //!< Electrical energy meter device class
+        ENERGY_CONSUMER  = 8033,  //!< Energy consumer device class
+        SENSOR           = 8064,  //!< General sensor device class
+        EMETER           = 8065,  //!< Electrical energy meter device class
+        COMMUNICATION    = 8128   //!< Communication product device class
     };
 
     //! Convert DeviceClass to a string
     inline std::string toString(const SpeedwireDeviceClass deviceclass) {
         switch (deviceclass) {
         case SpeedwireDeviceClass::PV_INVERTER:       return "PV-Inverter";
+        case SpeedwireDeviceClass::WIND_INVERTER:     return "Wind-Inverter";
         case SpeedwireDeviceClass::BATTERY_INVERTER:  return "Battery-Inverter";
         case SpeedwireDeviceClass::HYBRID_INVERTER:   return "Hybrid-Inverter";
+        case SpeedwireDeviceClass::ENERGY_CONSUMER:   return "Energy-Consumer";
+        case SpeedwireDeviceClass::SENSOR:            return "Sensor";
         case SpeedwireDeviceClass::EMETER:            return "Emeter";
+        case SpeedwireDeviceClass::COMMUNICATION:     return "Communication";
         default:                                      return "Unknown";
         }
     }
@@ -63,7 +71,7 @@ namespace libspeedwire {
         static const SpeedwireDevice& Tripower6000_3AV40(void) { static const SpeedwireDevice device(SpeedwireDeviceClass::PV_INVERTER, (SpeedwireDeviceType)9346, 378, "STP-6.0-3AV-40", "Sunny-Tripower-6.0-3AV-40"); return device; }
 
         // unknown device type
-        static const SpeedwireDevice&Unknown(void)       { static const SpeedwireDevice device(SpeedwireDeviceClass::UNKNOWN, SpeedwireDeviceType::UNKNOWN, 0, "UNKNOWN", "Unknown Device"); return device; }
+        static const SpeedwireDevice& Unknown(void)       { static const SpeedwireDevice device(SpeedwireDeviceClass::UNKNOWN, SpeedwireDeviceType::UNKNOWN, 0, "UNKNOWN", "Unknown Device"); return device; }
 
         /**
          * Return the SpeedwireDevice given the susy_id. This works only for emeter device types.

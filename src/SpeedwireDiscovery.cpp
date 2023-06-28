@@ -23,6 +23,7 @@
 #include <SpeedwireHeader.hpp>
 #include <SpeedwireEmeterProtocol.hpp>
 #include <SpeedwireInverterProtocol.hpp>
+#include <SpeedwireCommand.hpp>
 #include <SpeedwireSocket.hpp>
 #include <SpeedwireSocketFactory.hpp>
 #include <SpeedwireDevice.hpp>
@@ -379,10 +380,20 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 if (info.interface_ip_address == "" && socket.isIpAny() == false) {
                     info.interface_ip_address = socket.getLocalInterfaceAddress();
                 }
+#if 1
+                // try to get further information about the device
+                SpeedwireCommand command(localhost, speedwireDevices);
+                SpeedwireInfo updatedInfo = command.queryDeviceType(info);
+                if (registerDevice(updatedInfo)) {
+                    printf("%s\n", updatedInfo.toString().c_str());
+                    result = true;
+                }
+#else
                 if (registerDevice(info)) {
                     printf("%s\n", info.toString().c_str());
                     result = true;
                 }
+#endif
 #if 0
                 // dump reply information; this is just the src susyid and serialnumber together with some unknown bits
                 printf("%s\n", inverter_packet.toString().c_str());

@@ -300,7 +300,7 @@ const ObisData ObisData::SignedActivePowerL3        (0, 76, 7, 0, MeasurementTyp
  */
 const ObisDataMap& ObisDataMap::getAllPredefined(void) {
     if (allPredefined.size() == 0) {
-        allPredefined = createMap(ObisData::getAllPredefined());
+        allPredefined = ObisDataMap(ObisData::getAllPredefined());
     }
     return allPredefined;
 }
