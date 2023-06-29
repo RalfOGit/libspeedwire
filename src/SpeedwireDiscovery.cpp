@@ -174,6 +174,7 @@ const std::vector<SpeedwireInfo>& SpeedwireDiscovery::getDevices(void) const {
 
 /**
  *  Try to find SMA devices on the networks connected to this host.
+ *  @return the number of discovered devices
  */
 int SpeedwireDiscovery::discoverDevices(void) {
 
@@ -232,7 +233,14 @@ int SpeedwireDiscovery::discoverDevices(void) {
         }
     }
 
-    return 0;
+    // determine the number of discovered devices
+    int n =  0;
+    for (auto& device : getDevices()) {
+        if (device.isFullyRegistered()) {
+            ++n;
+        }
+    }
+    return n;
 }
 
 

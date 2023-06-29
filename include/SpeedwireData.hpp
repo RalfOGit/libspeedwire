@@ -145,20 +145,21 @@ namespace libspeedwire {
         static const uint32_t marker_mask = 0xff000000;
         static const uint32_t nan = 0x00fffffd;
         static const uint32_t eod = 0x00fffffe;
+        static const uint32_t sel = 0x01000000;
 
         SpeedwireRawDataStatus32(const SpeedwireRawData &raw_data) : base(raw_data) {}
 
         size_t getNumberOfValues(void) const { return base.data_size / value_size; }
         bool isNanValue(uint32_t value) const { return ((value & value_mask) == nan); }
         bool isEoDValue(uint32_t value) const { return ((value & value_mask) == eod); }
-        uint32_t getValue(size_t pos) const { return SpeedwireByteEncoding::getUint32LittleEndian(base.data + pos * value_size); }
+        uint32_t getValue(size_t pos, bool masked = false) const { return SpeedwireByteEncoding::getUint32LittleEndian(base.data + pos * value_size) & (masked ? value_mask : (marker_mask |value_mask)); }
 
         /** Get the index of the data value marked with 0x01000000; this is the selected value in the list of values */
         size_t getSelectionIndex(void) const {
             size_t num_values = getNumberOfValues();
             for (size_t i = 0; i < num_values; ++i) {
                 uint32_t svalue = getValue(i);
-                if ((svalue & marker_mask) == 0x01000000) {
+                if ((svalue & marker_mask) == sel) {
                     return i;
                 }
             }
@@ -171,7 +172,7 @@ namespace libspeedwire {
 
         std::string convertValueToString(uint32_t value) const {
             if (value == nan) { return "NaN"; }
-            if (value == (0x01000000 | nan)) { return "Sel.NaN"; }
+            if (value == (sel | nan)) { return "Sel.NaN"; }
             if (value == eod) { return "EoD"; }
             char byte[32];
             snprintf(byte, sizeof(byte), "0x%08lx", value);
