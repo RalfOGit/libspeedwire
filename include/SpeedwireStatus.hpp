@@ -6,7 +6,7 @@ namespace libspeedwire {
 
     /**
      *  Enumeration of speedwire status values. This is a weakly ordered set of arbitrarily assigned values.
-     *  From EDMx-Modbus-TI-en-16.pdf
+     *  From EDMx-Modbus-TI-en-16.pdf and from SBFspot
      */
     class SpeedwireStatus {
     public:
@@ -33,25 +33,59 @@ namespace libspeedwire {
         // pre-defined status instances
         static const SpeedwireStatus& Error(void) { static const SpeedwireStatus status(35, "Error", "Error"); return status; }
         static const SpeedwireStatus& Closed(void) { static const SpeedwireStatus status(51, "Closed", "Closed"); return status; }
+        static const SpeedwireStatus& None(void) { static const SpeedwireStatus status(302, "None", "None"); return status; }
         static const SpeedwireStatus& Off(void) { static const SpeedwireStatus status(303, "Off", "Off"); return status; }
         static const SpeedwireStatus& Ok(void) { static const SpeedwireStatus status(307, "OK", "OK"); return status; }
         static const SpeedwireStatus& On(void) { static const SpeedwireStatus status(308, "On", "On"); return status; }
         static const SpeedwireStatus& Operation(void) { static const SpeedwireStatus status(309, "Operation", "Operation"); return status; }
         static const SpeedwireStatus& Open(void) { static const SpeedwireStatus status(311, "Open", "Open"); return status; }
+        static const SpeedwireStatus& ContactSMA(void) { static const SpeedwireStatus status(336, "ContactSMA", "Contact SMA"); return status; }
+        static const SpeedwireStatus& ContactInstaller(void) { static const SpeedwireStatus status(337, "ContactInst", "Contact Installer"); return status; }
         static const SpeedwireStatus& Invalid(void) { static const SpeedwireStatus status(338, "Invalid", "Invalid"); return status; }
         static const SpeedwireStatus& Warning(void) { static const SpeedwireStatus status(455, "Warning", "Warning"); return status; }
+        static const SpeedwireStatus& Activated(void) { static const SpeedwireStatus status(569, "Activated", "Activated"); return status; }
+        static const SpeedwireStatus& Active(void) { static const SpeedwireStatus status(802, "Active", "Active"); return status; }
+        static const SpeedwireStatus& Inactive(void) { static const SpeedwireStatus status(803, "Inactive", "Inactive"); return status; }
+        static const SpeedwireStatus& NoDescription(void) { static const SpeedwireStatus status(885, "NoDescr", "No description available"); return status; }
+        static const SpeedwireStatus& NoMessage(void) { static const SpeedwireStatus status(886, "NoMessage", "No message available"); return status; }
+        static const SpeedwireStatus& NoAction(void) { static const SpeedwireStatus status(887, "NoAction", "No suggested action"); return status; }
+        static const SpeedwireStatus& Standby(void) { static const SpeedwireStatus status(1295, "Standby", "Standby"); return status; }
+        static const SpeedwireStatus& Locked(void) { static const SpeedwireStatus status(1795, "Locked", "Locked"); return status; }
+        static const SpeedwireStatus& UpdateRecv(void) { static const SpeedwireStatus status(3179, "UpdateRecv", "Update receiving"); return status; }
+        static const SpeedwireStatus& UpdateExec(void) { static const SpeedwireStatus status(3180, "UpdateExec", "Update executing"); return status; }
+        static const SpeedwireStatus& UpdateOK(void) { static const SpeedwireStatus status(3181, "UpdateOK", "Update installed OK"); return status; }
+        static const SpeedwireStatus& UpdateFailed(void) { static const SpeedwireStatus status(3182, "UpdateFail", "Update failed"); return status; }
+        static const SpeedwireStatus& NaN(void) { static const SpeedwireStatus status(0x00fffffd, "NaN", "Nan"); return status; }
+        static const SpeedwireStatus& EoD(void) { static const SpeedwireStatus status(0x00fffffe, "EoD", "EoD"); return status; }
 
         static std::vector<SpeedwireStatus> getAllPredefined(void) {
             std::vector<SpeedwireStatus> predefined;
             predefined.push_back(Error());
             predefined.push_back(Closed());
+            predefined.push_back(None());
             predefined.push_back(Off());
             predefined.push_back(Ok());
             predefined.push_back(On());
             predefined.push_back(Operation());
             predefined.push_back(Open());
+            predefined.push_back(ContactSMA());
+            predefined.push_back(ContactInstaller());
             predefined.push_back(Invalid());
             predefined.push_back(Warning());
+            predefined.push_back(Activated());
+            predefined.push_back(Active());
+            predefined.push_back(Inactive());
+            predefined.push_back(NoDescription());
+            predefined.push_back(NoMessage());
+            predefined.push_back(NoAction());
+            predefined.push_back(Standby());
+            predefined.push_back(Locked());
+            predefined.push_back(UpdateRecv());
+            predefined.push_back(UpdateExec());
+            predefined.push_back(UpdateOK());
+            predefined.push_back(UpdateFailed());
+            predefined.push_back(NaN());
+            predefined.push_back(EoD());
             return predefined;
         }
     };
@@ -119,7 +153,7 @@ namespace libspeedwire {
          */
         static const SpeedwireStatusMap::const_iterator findPredefined(uint32_t value) {
             const SpeedwireStatusMap& map = getAllPredefined();
-            return map.find(value);
+            return map.find(value & 0x00ffffff);
         }
 
         /**
@@ -129,7 +163,7 @@ namespace libspeedwire {
          */
         static bool isPredefined(uint32_t value) {
             const SpeedwireStatusMap& map = getAllPredefined();
-            const auto& it = map.find(value);
+            const auto& it = map.find(value & 0x00ffffff);
             return (it == map.cend());
         }
 
@@ -140,7 +174,7 @@ namespace libspeedwire {
          */
         static const SpeedwireStatus& getPredefined(uint32_t value) {
             const SpeedwireStatusMap& map = getAllPredefined();
-            const auto& it = map.find(value);
+            const auto& it = map.find(value & 0x00ffffff);
             if (it != map.cend()) {
                 return it->second;
             }

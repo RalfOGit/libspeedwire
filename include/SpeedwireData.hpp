@@ -173,11 +173,11 @@ namespace libspeedwire {
 
         std::string convertValueToString(uint32_t value) const {
             if (value == nan) { return "NaN"; }
-            if (value == (sel | nan)) { return "Sel.NaN"; }
+            if (value == (sel | nan)) { return "->NaN"; }
             if (value == eod) { return "EoD"; }
             const SpeedwireStatus& status = SpeedwireStatusMap::getPredefined(value & value_mask);
             if (status != SpeedwireStatus::NOTFOUND()) {
-                if (value == (sel | status.value)) { return "Sel." + status.name; }
+                if (value == (sel | status.value)) { return "->" + status.name; }
                 return status.name;
             }
             char byte[32];
