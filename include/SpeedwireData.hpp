@@ -9,6 +9,7 @@
 #include <MeasurementType.hpp>
 #include <MeasurementValues.hpp>
 #include <SpeedwireByteEncoding.hpp>
+#include <SpeedwireStatus.hpp>
 
 namespace libspeedwire {
 
@@ -174,6 +175,11 @@ namespace libspeedwire {
             if (value == nan) { return "NaN"; }
             if (value == (sel | nan)) { return "Sel.NaN"; }
             if (value == eod) { return "EoD"; }
+            const SpeedwireStatus& status = SpeedwireStatusMap::getPredefined(value & value_mask);
+            if (status != SpeedwireStatus::NOTFOUND()) {
+                if (value == (sel | status.value)) { return "Sel." + status.name; }
+                return status.name;
+            }
             char byte[32];
             snprintf(byte, sizeof(byte), "0x%08lx", value);
             return std::string(byte);
