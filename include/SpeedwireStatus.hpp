@@ -42,6 +42,7 @@ namespace libspeedwire {
         static const SpeedwireStatus& ContactSMA(void) { static const SpeedwireStatus status(336, "ContactSMA", "Contact SMA"); return status; }
         static const SpeedwireStatus& ContactInstaller(void) { static const SpeedwireStatus status(337, "ContactInst", "Contact Installer"); return status; }
         static const SpeedwireStatus& Invalid(void) { static const SpeedwireStatus status(338, "Invalid", "Invalid"); return status; }
+        static const SpeedwireStatus& Stop(void) { static const SpeedwireStatus status(381, "Stop", "Stop"); return status; }
         static const SpeedwireStatus& Warning(void) { static const SpeedwireStatus status(455, "Warning", "Warning"); return status; }
         static const SpeedwireStatus& Activated(void) { static const SpeedwireStatus status(569, "Activated", "Activated"); return status; }
         static const SpeedwireStatus& Active(void) { static const SpeedwireStatus status(802, "Active", "Active"); return status; }
@@ -71,6 +72,7 @@ namespace libspeedwire {
             predefined.push_back(ContactSMA());
             predefined.push_back(ContactInstaller());
             predefined.push_back(Invalid());
+            predefined.push_back(Stop());
             predefined.push_back(Warning());
             predefined.push_back(Activated());
             predefined.push_back(Active());

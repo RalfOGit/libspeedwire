@@ -348,7 +348,12 @@ std::vector<SpeedwireData> SpeedwireData::getAllPredefined(void) {
     predefined.push_back(InverterGridImportEnergyTotal);
     predefined.push_back(InverterOperationTime);
     predefined.push_back(InverterFeedInTime);
-    predefined.push_back(InverterStatus);
+    predefined.push_back(InverterOperationStatus);
+    predefined.push_back(InverterUpdateStatus);
+    predefined.push_back(InverterMessageStatus);
+    predefined.push_back(InverterActionStatus);
+    predefined.push_back(InverterDescriptionStatus);
+    predefined.push_back(InverterErrorStatus);
     predefined.push_back(InverterRelay);
 
     predefined.push_back(InverterPowerDCTotal);
@@ -399,8 +404,14 @@ const SpeedwireData SpeedwireData::InverterGridExportEnergyTotal(Command::COMMAN
 const SpeedwireData SpeedwireData::InverterGridImportEnergyTotal(Command::COMMAND_ENERGY_QUERY, 0x00462500, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterEnergy(Direction::POSITIVE), Wire::GRID_TOTAL, "Eimport");
 const SpeedwireData SpeedwireData::InverterOperationTime        (Command::COMMAND_ENERGY_QUERY, 0x00462e00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterDuration(), Wire::TOTAL, "htotal");
 const SpeedwireData SpeedwireData::InverterFeedInTime           (Command::COMMAND_ENERGY_QUERY, 0x00462f00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterDuration(), Wire::NO_WIRE, "hon");
-const SpeedwireData SpeedwireData::InverterStatus            (Command::COMMAND_STATUS_QUERY, 0x00214800, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(),  Wire::DEVICE_OK, "OpInvCtlStt");
-const SpeedwireData SpeedwireData::InverterRelay             (Command::COMMAND_STATUS_QUERY, 0x00416400, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterRelay(),   Wire::RELAY_ON, "OpGriSwStt");
+const SpeedwireData SpeedwireData::InverterOperationStatus      (Command::COMMAND_STATUS_QUERY, 0x00214800, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(),  Wire::DEVICE_OK, "OpInvCtlStt");
+const SpeedwireData SpeedwireData::InverterUpdateStatus         (Command::COMMAND_STATUS_QUERY, 0x00412900, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvUpdStt");
+const SpeedwireData SpeedwireData::InverterMessageStatus        (Command::COMMAND_STATUS_QUERY, 0x00414900, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvMsgStt");
+const SpeedwireData SpeedwireData::InverterActionStatus         (Command::COMMAND_STATUS_QUERY, 0x00414a00, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvActnStt");
+const SpeedwireData SpeedwireData::InverterDescriptionStatus    (Command::COMMAND_STATUS_QUERY, 0x00414b00, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvDscrStt");
+const SpeedwireData SpeedwireData::InverterErrorStatus          (Command::COMMAND_STATUS_QUERY, 0x00414c00, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvErrStt");
+const SpeedwireData SpeedwireData::InverterRelay                (Command::COMMAND_STATUS_QUERY, 0x00416400, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterRelay(),   Wire::RELAY_ON, "OpGriSwStt");
+
 
 // pre-defined instances of derived measurement values
 const SpeedwireData SpeedwireData::InverterPowerDCTotal   (0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(),      Wire::MPP_TOTAL, "Pdc");

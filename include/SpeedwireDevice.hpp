@@ -15,7 +15,7 @@ namespace libspeedwire {
         WIND_INVERTER    = 8002,  //!< Wind turbine inverter device class
         BATTERY_INVERTER = 8007,  //!< Battery inverter device class
         HYBRID_INVERTER  = 8009,  //!< Hybrid inverter device class
-        ENERGY_CONSUMER  = 8033,  //!< Energy consumer device class
+        LOAD             = 8033,  //!< Energy consumer device class
         SENSOR           = 8064,  //!< General sensor device class
         EMETER           = 8065,  //!< Electrical energy meter device class
         COMMUNICATION    = 8128   //!< Communication product device class
@@ -28,7 +28,7 @@ namespace libspeedwire {
         case SpeedwireDeviceClass::WIND_INVERTER:     return "Wind-Inverter";
         case SpeedwireDeviceClass::BATTERY_INVERTER:  return "Battery-Inverter";
         case SpeedwireDeviceClass::HYBRID_INVERTER:   return "Hybrid-Inverter";
-        case SpeedwireDeviceClass::ENERGY_CONSUMER:   return "Energy-Consumer";
+        case SpeedwireDeviceClass::LOAD:              return "Load";
         case SpeedwireDeviceClass::SENSOR:            return "Sensor";
         case SpeedwireDeviceClass::EMETER:            return "Emeter";
         case SpeedwireDeviceClass::COMMUNICATION:     return "Communication";

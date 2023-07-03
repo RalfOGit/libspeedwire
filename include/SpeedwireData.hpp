@@ -153,6 +153,8 @@ namespace libspeedwire {
         size_t getNumberOfValues(void) const { return base.data_size / value_size; }
         bool isNanValue(uint32_t value) const { return ((value & value_mask) == nan); }
         bool isEoDValue(uint32_t value) const { return ((value & value_mask) == eod); }
+        bool isM1Value(uint32_t value) const { return ((value & value_mask) == value_mask); }
+        bool isNumber(uint32_t value) const { return !(isNanValue(value) || isEoDValue(value) || isM1Value(value)); }
         uint32_t getValue(size_t pos, bool masked = false) const { return SpeedwireByteEncoding::getUint32LittleEndian(base.data + pos * value_size) & (masked ? value_mask : (marker_mask |value_mask)); }
 
         /** Get the index of the data value marked with 0x01000000; this is the selected value in the list of values */
@@ -257,7 +259,12 @@ namespace libspeedwire {
         static const SpeedwireData InverterGridImportEnergyTotal;  //!< Total energy consumed from the grid - as reported by the emeter at the grid connection point
         static const SpeedwireData InverterOperationTime;          //!< Total operation time of the inverter
         static const SpeedwireData InverterFeedInTime;             //!< Total feed-in time of the inverter
-        static const SpeedwireData InverterStatus;                 //!< Inverter operation status
+        static const SpeedwireData InverterOperationStatus;        //!< Inverter operation status
+        static const SpeedwireData InverterUpdateStatus;           //!< Inverter update status
+        static const SpeedwireData InverterMessageStatus;          //!< Inverter message status
+        static const SpeedwireData InverterActionStatus;           //!< Inverter action status
+        static const SpeedwireData InverterDescriptionStatus;      //!< Inverter description status
+        static const SpeedwireData InverterErrorStatus;            //!< Inverter error status
         static const SpeedwireData InverterRelay;                  //!< Grid relay status
 
         static const SpeedwireData InverterPowerDCTotal;           //!< Total power on direct current inverter inputs MPP1 + MPP2
