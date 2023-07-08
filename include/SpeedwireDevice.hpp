@@ -65,6 +65,11 @@ namespace libspeedwire {
         static const SpeedwireDevice& Emeter20(void)      { static const SpeedwireDevice device(SpeedwireDeviceClass::EMETER, (SpeedwireDeviceType)9327, 349, "EMETER-20", "Energy-Meter-2.0"); return device; }
         static const SpeedwireDevice& HomeManager20(void) { static const SpeedwireDevice device(SpeedwireDeviceClass::EMETER, (SpeedwireDeviceType)9343, 372, "HM-20", "Sunny-Home-Manager-2.0"); return device; }
 
+        // pre-defined battery inverter instances
+        static const SpeedwireDevice& SBS1500_1VL10(void) { static const SpeedwireDevice device(SpeedwireDeviceClass::BATTERY_INVERTER, (SpeedwireDeviceType)9324, 346, "SBS1.5-1VL-10", "Sunny-Boy-Storage-1.5-1VL-10"); return device; }
+        static const SpeedwireDevice& SBS2000_1VL10(void) { static const SpeedwireDevice device(SpeedwireDeviceClass::BATTERY_INVERTER, (SpeedwireDeviceType)9325, 346, "SBS2.0-1VL-10", "Sunny-Boy-Storage-2.0-1VL-10"); return device; }
+        static const SpeedwireDevice& SBS2500_1VL10(void) { static const SpeedwireDevice device(SpeedwireDeviceClass::BATTERY_INVERTER, (SpeedwireDeviceType)9326, 346, "SBS2.5-1VL-10", "Sunny-Boy-Storage-2.5-1VL-10"); return device; }
+
         // pre-defined pv inverter instances
         static const SpeedwireDevice& Tripower4000_3AV40(void) { static const SpeedwireDevice device(SpeedwireDeviceClass::PV_INVERTER, (SpeedwireDeviceType)9344, 378, "STP-4.0-3AV-40", "Sunny-Tripower-4.0-3AV-40"); return device; }
         static const SpeedwireDevice& Tripower5000_3AV40(void) { static const SpeedwireDevice device(SpeedwireDeviceClass::PV_INVERTER, (SpeedwireDeviceType)9345, 378, "STP-5.0-3AV-40", "Sunny-Tripower-5.0-3AV-40"); return device; }
@@ -78,9 +83,11 @@ namespace libspeedwire {
          * For other device types there is usually no unique relationship between susyid and device type.
          */
         static const SpeedwireDevice&fromSusyID(const uint16_t susy_id) {
-            if (susy_id == Emeter10().susyID)       { return Emeter10(); }
-            if (susy_id == Emeter20().susyID)       { return Emeter20(); }
-            if (susy_id == HomeManager20().susyID)  { return HomeManager20(); }
+            if (susy_id == Emeter10().susyID)           { return Emeter10(); }
+            if (susy_id == Emeter20().susyID)           { return Emeter20(); }
+            if (susy_id == HomeManager20().susyID)      { return HomeManager20(); }
+            if (susy_id == SBS2500_1VL10().susyID)      { return SBS2500_1VL10(); }
+            if (susy_id == Tripower5000_3AV40().susyID) { return Tripower5000_3AV40(); }
             return Unknown();
         }
 
@@ -94,6 +101,9 @@ namespace libspeedwire {
             if (device_type == Tripower4000_3AV40().deviceType) { return Tripower4000_3AV40(); }
             if (device_type == Tripower5000_3AV40().deviceType) { return Tripower5000_3AV40(); }
             if (device_type == Tripower6000_3AV40().deviceType) { return Tripower6000_3AV40(); }
+            if (device_type == SBS1500_1VL10().deviceType) { return SBS1500_1VL10(); }
+            if (device_type == SBS2000_1VL10().deviceType) { return SBS2000_1VL10(); }
+            if (device_type == SBS2500_1VL10().deviceType) { return SBS2500_1VL10(); }
             return Unknown();
         }
 

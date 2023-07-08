@@ -77,6 +77,8 @@ std::string libspeedwire::toString(const Quantity quantity) {
     case Quantity::CURRENT:      return "current";
     case Quantity::STATUS:       return "status";
     case Quantity::EFFICIENCY:   return "efficiency";
+    case Quantity::PERCENTAGE:   return "percentage";
+    case Quantity::TEMPERATURE:  return "temperature";
     case Quantity::DURATION:     return "duration";
     case Quantity::CURRENCY:     return "currency";
     case Quantity::NO_QUANTITY:  return "";

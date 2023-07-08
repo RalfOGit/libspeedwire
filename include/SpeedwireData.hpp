@@ -239,12 +239,12 @@ namespace libspeedwire {
         static const SpeedwireData InverterPowerL1;                //!< Power on alternating current inverter output phase L1
         static const SpeedwireData InverterPowerL2;                //!< Power on alternating current inverter output phase L2
         static const SpeedwireData InverterPowerL3;                //!< Power on alternating current inverter output phase L3
-        static const SpeedwireData InverterVoltageL1;              //!< Voltage on alternating current inverter output phase L1, measured between L1 and N
-        static const SpeedwireData InverterVoltageL2;              //!< Voltage on alternating current inverter output phase L2, measured between L2 and N
-        static const SpeedwireData InverterVoltageL3;              //!< Voltage on alternating current inverter output phase L3, measured between L3 and N
-        static const SpeedwireData InverterVoltageL1toL2;          //!< Voltage on alternating current inverter output phase L1, measured between L1 and L2
-        static const SpeedwireData InverterVoltageL2toL3;          //!< Voltage on alternating current inverter output phase L1, measured between L2 and L3
-        static const SpeedwireData InverterVoltageL3toL1;          //!< Voltage on alternating current inverter output phase L1, measured between L3 and L1
+        static const SpeedwireData InverterVoltageL1;              //!< Voltage on alternating current inverter output measured between L1 and N
+        static const SpeedwireData InverterVoltageL2;              //!< Voltage on alternating current inverter output measured between L2 and N
+        static const SpeedwireData InverterVoltageL3;              //!< Voltage on alternating current inverter output measured between L3 and N
+        static const SpeedwireData InverterVoltageL1toL2;          //!< Voltage on alternating current inverter output measured between L1 and L2
+        static const SpeedwireData InverterVoltageL2toL3;          //!< Voltage on alternating current inverter output measured between L2 and L3
+        static const SpeedwireData InverterVoltageL3toL1;          //!< Voltage on alternating current inverter output measured between L3 and L1
         static const SpeedwireData InverterPowerFactor;            //!< Power factor on alternating current inverter output
         static const SpeedwireData InverterCurrentL1;              //!< Current on alternating current inverter output phase L1
         static const SpeedwireData InverterCurrentL2;              //!< Current on alternating current inverter output phase L2
@@ -267,9 +267,42 @@ namespace libspeedwire {
         static const SpeedwireData InverterErrorStatus;            //!< Inverter error status
         static const SpeedwireData InverterRelay;                  //!< Grid relay status
 
+        static const SpeedwireData BatteryChargeStatus;            //!< Battery charge status
+        static const SpeedwireData BatteryDiagChargeCycles;        //!< Battery charge cycles
+        static const SpeedwireData BatteryDiagTotalAhIn;           //!< Battery total Ah charged
+        static const SpeedwireData BatteryDiagTotalAhOut;          //!< Battery total Ah discharged
+        static const SpeedwireData BatteryTemperature;             //!< Battery temperature
+        static const SpeedwireData BatteryVoltage;                 //!< Battery DC voltage
+        static const SpeedwireData BatteryCurrent;                 //!< Battery DC current
+        static const SpeedwireData BatteryPowerL1;                 //!< Power on alternating current battery inverter connector phase L1
+        static const SpeedwireData BatteryPowerL2;                 //!< Power on alternating current battery inverter connector phase L2
+        static const SpeedwireData BatteryPowerL3;                 //!< Power on alternating current battery inverter connector phase L3
+        static const SpeedwireData BatteryVoltageL1;               //!< Voltage on alternating current battery inverter connector measured between L1 and N
+        static const SpeedwireData BatteryVoltageL2;               //!< Voltage on alternating current battery inverter connector measured between L2 and N
+        static const SpeedwireData BatteryVoltageL3;               //!< Voltage on alternating current battery inverter connector measured between L3 and N
+        static const SpeedwireData BatteryVoltageL1toL2;           //!< Voltage on alternating current battery inverter connector measured between L1 and L2
+        static const SpeedwireData BatteryVoltageL2toL3;           //!< Voltage on alternating current battery inverter connector measured between L2 and L3
+        static const SpeedwireData BatteryVoltageL3toL1;           //!< Voltage on alternating current battery inverter connector measured between L3 and L1
+        static const SpeedwireData BatteryCurrentL1;               //!< Current on alternating current battery inverter connector phase L1
+        static const SpeedwireData BatteryCurrentL2;               //!< Current on alternating current battery inverter connector phase L2
+        static const SpeedwireData BatteryCurrentL3;               //!< Current on alternating current battery inverter connector phase L3
+        static const SpeedwireData BatteryGridVoltageL1;           //!< Voltage as reported by emeter on grid connection point measured between L1 and N
+        static const SpeedwireData BatteryGridVoltageL2;           //!< Voltage as reported by emeter on grid connection point measured between L2 and N
+        static const SpeedwireData BatteryGridVoltageL3;           //!< Voltage as reported by emeter on grid connection point measured between L3 and N
+        static const SpeedwireData BatteryGridPositivePowerL1;     //!< Active power consumed from the grid as reported by emeter phase L1
+        static const SpeedwireData BatteryGridPositivePowerL2;     //!< Active power consumed from the grid as reported by emeter phase L2
+        static const SpeedwireData BatteryGridPositivePowerL3;     //!< Active power consumed from the grid as reported by emeter phase L3
+        static const SpeedwireData BatteryGridNegativePowerL1;     //!< Active power fed to the grid as reported by emeter phase L1
+        static const SpeedwireData BatteryGridNegativePowerL2;     //!< Active power fed to the grid as reported by emeter phase L2
+        static const SpeedwireData BatteryGridNegativePowerL3;     //!< Active power fed to the grid as reported by emeter phase L3
+        static const SpeedwireData BatteryGridReactivePowerL1;     //!< Reactive power as reported by emeter on grid connection point phase L1
+        static const SpeedwireData BatteryGridReactivePowerL2;     //!< Reactive power as reported by emeter on grid connection point phase L2
+        static const SpeedwireData BatteryGridReactivePowerL3;     //!< Reactive power as reported by emeter on grid connection point phase L3
+
         static const SpeedwireData InverterPowerDCTotal;           //!< Total power on direct current inverter inputs MPP1 + MPP2
         static const SpeedwireData InverterPowerLoss;              //!< Total power loss
         static const SpeedwireData InverterPowerEfficiency;        //!< Total power efficiency
+        static const SpeedwireData BatteryPowerACTotal;            //!< Total power on alternating current battery inverter connector
 
         static const SpeedwireData HouseholdPowerTotal;            //!< Total power consumption of the household
         static const SpeedwireData HouseholdIncomeTotal;           //!< Income generated

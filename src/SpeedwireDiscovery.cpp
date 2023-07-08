@@ -54,6 +54,8 @@ const unsigned char  SpeedwireDiscovery::unicast_request[] = {
 // Request: 534d4100000402a00000000100260010 606509a0 ffffffffffff0000 7d0052be283a0000 000000000180 00020000 00000000 00000000 00000000  => command = 0x00000200, first = 0x00000000; last = 0x00000000; trailer = 0x00000000
 // Response 534d4100000402a000000001004e0010 606513a0 7d0052be283a00c0 7a01842a71b30000 000000000180 01020000 00000000 00000000 00030000 00ff0000 00000000 01007a01 842a71b3 00000a00 0c000000 00000000 00000000 01010000 00000000
 
+// Response from inverter: id 0x00000300 (Discovery) conn 0x00 type 0x00 (Unsigned32) time 0x0000ff00  data   0x00000000  0x017a0001  0xb3712a84  0x000a0000  0x0000000c  0x00000000  0x00000000  0x00000101
+// Response from battery:  id 0x00000300 (Discovery) conn 0x00 type 0x00 (Unsigned32) time 0x0000ff00  data   0x60024170  0x015a0001  0x714f5e45  0x000a0000  0x0000000c  0x00000000  0x00000003  0x00000101
 
 /**
  *  Constructor.
@@ -353,7 +355,7 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 SpeedwireInfo info;
                 info.susyID = emeter.getSusyID();
                 info.serialNumber = emeter.getSerialNumber();
-                const SpeedwireDevice&device = SpeedwireDevice::fromSusyID(info.susyID);
+                const SpeedwireDevice &device = SpeedwireDevice::fromSusyID(info.susyID);
                 if (device.deviceClass != SpeedwireDeviceClass::UNKNOWN) {
                     info.deviceClass = toString(device.deviceClass);
                     info.deviceType = device.name;
@@ -388,8 +390,14 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 if (info.interface_ip_address == "" && socket.isIpAny() == false) {
                     info.interface_ip_address = socket.getLocalInterfaceAddress();
                 }
+                // try to get further information about the device by examining the susy id; this is not accurate
+                const SpeedwireDevice& device = SpeedwireDevice::fromSusyID(info.susyID);
+                if (device.deviceClass != SpeedwireDeviceClass::UNKNOWN) {
+                    info.deviceClass = toString(device.deviceClass);
+                    info.deviceType = device.name;
+                }
 #if 1
-                // try to get further information about the device
+                // try to get further information about the device by querying device type information from the peer
                 SpeedwireCommand command(localhost, speedwireDevices);
                 SpeedwireInfo updatedInfo = command.queryDeviceType(info);
                 if (registerDevice(updatedInfo)) {
