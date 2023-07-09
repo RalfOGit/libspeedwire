@@ -5,9 +5,6 @@
 using namespace libspeedwire;
 
 
-static MeasurementValues experimentalValues(1024);
-
-
 // Calculate difference between all positive and negative measurement values and store it in diff values
 static void calculateValueDiffs(Measurement& diff, const Measurement& pos, const Measurement& neg) {
     const MeasurementValues& pos_values = pos.measurementValues;
@@ -44,10 +41,10 @@ CalculatedValueProcessor::~CalculatedValueProcessor(void) { }
 
 /**
  * Callback to produce the given obis data to the next stage in the processing pipeline.
- * @param device The originating inverter device.
+ * @param device The originating emeter device.
  * @param element A reference to a received ObisData instance, holding output data of the ObisFilter.
  */
-void CalculatedValueProcessor::consume(const SpeedwireDevice& device, ObisData& element) {
+void CalculatedValueProcessor::consume(const SpeedwireDevice &device, ObisData& element) {
     producer.produce(device, element.measurementType, element.wire, element.measurementValues.estimateMean(), element.measurementValues.getNewestElement().time);
 }
 
@@ -64,7 +61,7 @@ void CalculatedValueProcessor::consume(const SpeedwireDevice& device, SpeedwireD
 
 /**
  * Callback to notify that the last obis data in the emeter packet has been processed.
- * @param device The originating inverter device.
+ * @param device The originating emeter device.
  * @param timestamp The timestamp associated with the just finished emeter packet.
  */
 void CalculatedValueProcessor::endOfObisData(const SpeedwireDevice& device, const uint32_t timestamp) {
@@ -103,46 +100,32 @@ void CalculatedValueProcessor::endOfObisData(const SpeedwireDevice& device, cons
         producer.produce(device, ObisData::SignedActivePowerTotal.measurementType, ObisData::SignedActivePowerTotal.wire, sig->second.measurementValues.estimateMean(), timestamp);
 
         // experimental setup to feed time-accurate power measurements
-        for (size_t i = 0; i < sig->second.measurementValues.getNumberOfElements(); ++i) {
-            const TimestampDoublePair &pair = sig->second.measurementValues.at(i);
-            experimentalValues.addMeasurement(pair.value, pair.time);
-        }
         static uint32_t last_time = 0;
         SpeedwireDevice experimental_device;
         experimental_device.serialNumber = 0xdeadbeef;
+        const MeasurementValues& mvalues = sig->second.measurementValues;
         std::vector<MeasurementValueInterval> intervals;
-        if (LineSegmentEstimator::findPiecewiseConstantIntervals(experimentalValues, intervals) > 0) {
-            intervals.erase(intervals.end() - 1);
-            for (auto& iv : intervals) {
-                if (SpeedwireTime::calculateTimeDifference(experimentalValues[iv.end_index].time, last_time) <= 0) {
+        LineSegmentEstimator::findPiecewiseConstantIntervals(mvalues, intervals);
+        for (auto& iv : intervals) {
+            if (SpeedwireTime::calculateTimeDifference(mvalues[iv.end_index].time, last_time) <= 0) {
 #ifdef _DEBUG
-                    printf("interval %d %d - %lu %lu : %lf  => skipped\n", (int)iv.start_index, (int)iv.end_index, experimentalValues[iv.start_index].time, experimentalValues[iv.end_index].time, iv.mean_value);
+                printf("interval %d %d - %lu %lu : %lf  => skipped\n", (int)iv.start_index, (int)iv.end_index, mvalues[iv.start_index].time, mvalues[iv.end_index].time, iv.mean_value);
 #endif
-                    continue;
-                }
-                while (SpeedwireTime::calculateTimeDifference(experimentalValues[iv.start_index].time, last_time) <= 0 && iv.start_index < (experimentalValues.getNumberOfElements() - 1)) {
-#ifdef _DEBUG
-                    printf("interval %d %d - %lu %lu : %lf  => incremented start index\n", (int)iv.start_index, (int)iv.end_index, experimentalValues[iv.start_index].time, experimentalValues[iv.end_index].time, iv.mean_value);
-#endif
-                    iv.start_index++;
-                }
-#ifdef _DEBUG
-                printf("interval %d %d - %lu %lu : %lf\n", (int)iv.start_index, (int)iv.end_index, experimentalValues[iv.start_index].time, experimentalValues[iv.end_index].time, iv.mean_value);
-#endif
-                producer.produce(experimental_device, ObisData::SignedActivePowerTotal.measurementType, ObisData::SignedActivePowerTotal.wire, iv.mean_value, experimentalValues[iv.start_index].time);
-                producer.produce(experimental_device, ObisData::SignedActivePowerTotal.measurementType, ObisData::SignedActivePowerTotal.wire, iv.mean_value, experimentalValues[iv.end_index].time);
+                continue;
             }
+            while (SpeedwireTime::calculateTimeDifference(mvalues[iv.start_index].time, last_time) <= 0 && iv.start_index < (mvalues.getNumberOfElements() - 1)) {
+#ifdef _DEBUG
+                printf("interval %d %d - %lu %lu : %lf  => incremented start index\n", (int)iv.start_index, (int)iv.end_index, mvalues[iv.start_index].time, mvalues[iv.end_index].time, iv.mean_value);
+#endif
+                iv.start_index++;
+            }
+#ifdef _DEBUG
+            printf("interval %d %d - %lu %lu : %lf\n", (int)iv.start_index, (int)iv.end_index, mvalues[iv.start_index].time, mvalues[iv.end_index].time, iv.mean_value);
+#endif
+            producer.produce(experimental_device, ObisData::SignedActivePowerTotal.measurementType, ObisData::SignedActivePowerTotal.wire, iv.mean_value, mvalues[iv.start_index].time);
+            producer.produce(experimental_device, ObisData::SignedActivePowerTotal.measurementType, ObisData::SignedActivePowerTotal.wire, iv.mean_value, mvalues[iv.end_index].time);
         }
-
-        //std::vector<MeasurementValueInterval> intervals2;
-        //LineSegmentEstimator::findPiecewiseLinearIntervals(experimentalValues, intervals2);
-
-        // clear all measurements that have been sent to the producer
-        if (intervals.size() > 0) {
-            size_t end_index = intervals[intervals.size() - 1].end_index;
-            last_time = experimentalValues[end_index].time;
-            experimentalValues.removeElements(0, end_index + 1);
-        }
+        last_time = mvalues[intervals[intervals.size() - 1].end_index].time;
     }
 
     producer.flush();
@@ -151,7 +134,7 @@ void CalculatedValueProcessor::endOfObisData(const SpeedwireDevice& device, cons
 
 /**
  * Callback to notify that the last data in the inverter packet has been processed.
- * @param serial_number The serial number of the originating inverter device.
+ * @param device The originating inverter device.
  * @param timestamp The unix epoch time associated with the just finished inverter packet.
  */
 void CalculatedValueProcessor::endOfSpeedwireData(const SpeedwireDevice& device, const uint32_t timestamp) {
