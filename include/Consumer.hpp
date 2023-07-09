@@ -3,6 +3,7 @@
 
 #include <ObisData.hpp>
 #include <SpeedwireData.hpp>
+#include <SpeedwireDevice.hpp>
 
 namespace libspeedwire {
 
@@ -16,17 +17,17 @@ namespace libspeedwire {
 
         /**
          * Callback to produce the given obis data to the next stage in the processing pipeline.
-         * @param serial_number The serial number of the originating emeter device.
+         * @param device The originating inverter device.
          * @param element A reference to a received ObisData instance, holding output data of the ObisFilter.
          */
-        virtual void consume(const uint32_t serial_number, ObisData& element) = 0;
+        virtual void consume(const SpeedwireDevice& device, ObisData& element) = 0;
 
         /**
          * Callboack to notify that the last obis data in the emeter packet has been processed.
-         * @param serial_number The serial number of the originating emeter device.
+         * @param device The originating inverter device.
          * @param timestamp The timestamp associated with the just finished emeter packet.
          */
-        virtual void endOfObisData(const uint32_t serial_number, const uint32_t timestamp) {}
+        virtual void endOfObisData(const SpeedwireDevice& device, const uint32_t timestamp) {}
     };
 
 
@@ -40,17 +41,17 @@ namespace libspeedwire {
 
         /**
          * Consume a speedwire reply data element
-         * @param serial_number The serial number of the originating inverter device.
+         * @param device The originating inverter device.
          * @param element A reference to a received SpeedwireData instance.
          */
-        virtual void consume(const uint32_t serial_number, SpeedwireData& element) = 0;
+        virtual void consume(const SpeedwireDevice& device, SpeedwireData& element) = 0;
 
         /**
          * Callboack to notify that the last data in the inverter packet has been processed.
-         * @param serial_number The serial number of the originating inverter device.
+         * @param device The originating inverter device.
          * @param timestamp The timestamp associated with the just finished inverter packet.
          */
-        virtual void endOfSpeedwireData(const uint32_t serial_number, const uint32_t timestamp) {}
+        virtual void endOfSpeedwireData(const SpeedwireDevice&device, const uint32_t timestamp) {}
     };
 
 }   // namespace libspeedwire

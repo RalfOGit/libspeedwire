@@ -26,8 +26,8 @@ namespace libspeedwire {
         static constexpr unsigned long sma_src_serial_number_offset = sma_src_susy_id_offset + 2;       //!< Offset of the source serial number
         static constexpr unsigned long sma_src_control_offset = sma_src_serial_number_offset + 4;       //!< Offset of the source control field
         static constexpr unsigned long sma_error_code_offset = sma_src_control_offset + 2;              //!< Offset of the error code field
-        static constexpr unsigned long sma_fragment_id_offset = sma_error_code_offset + 2;              //!< Offset of the fragment id field
-        static constexpr unsigned long sma_packet_id_offset = sma_fragment_id_offset + 2;               //!< Offset of the packet id field
+        static constexpr unsigned long sma_fragment_counter_offset = sma_error_code_offset + 2;         //!< Offset of the fragment counter field
+        static constexpr unsigned long sma_packet_id_offset = sma_fragment_counter_offset + 2;          //!< Offset of the packet id field
         static constexpr unsigned long sma_command_id_offset = sma_packet_id_offset + 2;                //!< Offset of the command id field
         static constexpr unsigned long sma_first_register_id_offset = sma_command_id_offset + 4;        //!< Offset of the first register id field
         static constexpr unsigned long sma_last_register_id_offset = sma_first_register_id_offset + 4;  //!< Offset of the last register id fiele
@@ -50,7 +50,7 @@ namespace libspeedwire {
         uint32_t getSrcSerialNumber(void) const;
         uint16_t getSrcControl(void) const;
         uint16_t getErrorCode(void) const;
-        uint16_t getFragmentID(void) const;
+        uint16_t getFragmentCounter(void) const;
         uint16_t getPacketID(void) const;
         uint32_t getCommandID(void) const;
         uint32_t getFirstRegisterID(void) const;
@@ -74,7 +74,7 @@ namespace libspeedwire {
         void setSrcSerialNumber(const uint32_t value);
         void setSrcControl(const uint16_t value);
         void setErrorCode(const uint16_t value);
-        void setFragmentID(const uint16_t value);
+        void setFragmentCounter(const uint16_t value);
         void setPacketID(const uint16_t value);
         void setCommandID(const uint32_t value);
         void setFirstRegisterID(const uint32_t value);

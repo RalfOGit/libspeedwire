@@ -81,18 +81,18 @@ void AveragingProcessor::addConsumer(SpeedwireConsumer& speedwire_consumer) {
 
 /**
  * Internal implementation for temporal averaging of emeter obis values or inverter values.
- * @param serial_number The serial number of the device.
+ * @param device The originating inverter device.
  * @param device_type The device type.
  * @param type The measurement type.
  * @param measurement The measurement value.
  * @return true if the averaging time perios has elapsed, false otherwise.
  */
-bool AveragingProcessor::process(const uint32_t serial_number, const DeviceType& device_type, Measurement& measurement) {
+bool AveragingProcessor::process(const SpeedwireDevice& device, const DeviceType& device_type, Measurement& measurement) {
 
     // find device
-    int index = findStateIndex(serial_number);
+    int index = findStateIndex(device.serialNumber);
     if (index < 0) {
-        index = initializeState(serial_number, device_type);
+        index = initializeState(device.serialNumber, device_type);
     }
     AveragingState& state = states[index];
 
@@ -128,14 +128,14 @@ bool AveragingProcessor::process(const uint32_t serial_number, const DeviceType&
 
 /**
  * Callback to consume the given obis data element - implements the temporal averaging of obis values.
- * @param serial_number The serial number of the originating emeter device.
+ * @param device The originating inverter device.
  * @param element A reference to an ObisData instance, holding output data of the ObisFilter.
  */
-void AveragingProcessor::consume(const uint32_t serial_number, ObisData &element) {
+void AveragingProcessor::consume(const SpeedwireDevice& device, ObisData &element) {
     //element.print(stdout);
-    if (process(serial_number, DeviceType::EMETER, element) == true) {
+    if (process(device, DeviceType::EMETER, element) == true) {
         for (int i = 0; i < obisConsumerTable.size(); ++i) {
-            obisConsumerTable[i]->consume(serial_number, element);
+            obisConsumerTable[i]->consume(device, element);
         }
     }
 }
@@ -143,14 +143,14 @@ void AveragingProcessor::consume(const uint32_t serial_number, ObisData &element
 
 /**
  * Callback to consume the given inverter reply data element - implements the temporal averaging of inverter values.
- * @param serial_number The serial number of the originating inverter device.
+ * @param device The originating inverter device.
  * @param element A reference to an SpeedwireData instance.
  */
-void AveragingProcessor::consume(const uint32_t serial_number, SpeedwireData& element) {
+void AveragingProcessor::consume(const SpeedwireDevice& device, SpeedwireData& element) {
     //element.print(stdout); fprintf(stdout, "speedwire_currentTimestamp %ld\n", speedwire_currentTimestamp);
-    if (process(serial_number, DeviceType::INVERTER, element) == true) {
+    if (process(device, DeviceType::INVERTER, element) == true) {
         for (int i = 0; i < speedwireConsumerTable.size(); ++i) {
-            speedwireConsumerTable[i]->consume(serial_number, element);
+            speedwireConsumerTable[i]->consume(device, element);
         }
     }
 }
@@ -161,12 +161,12 @@ void AveragingProcessor::consume(const uint32_t serial_number, SpeedwireData& el
  * @param serial_number The serial number of the originating emeter device.
  * @param time The timestamp associated with the just finished emeter packet.
  */
-void AveragingProcessor::endOfObisData(const uint32_t serial_number, const uint32_t time) {
+void AveragingProcessor::endOfObisData(const SpeedwireDevice& device, const uint32_t time) {
     // if averaging time has been reached, signal end of obis data
-    int index = findStateIndex(serial_number);
+    int index = findStateIndex(device.serialNumber);
     if (index >= 0 && states[index].averagingTimeReached == true) {
         for (int i = 0; i < obisConsumerTable.size(); ++i) {
-            obisConsumerTable[i]->endOfObisData(serial_number, time);
+            obisConsumerTable[i]->endOfObisData(device, time);
         }
     }
 }
@@ -174,15 +174,15 @@ void AveragingProcessor::endOfObisData(const uint32_t serial_number, const uint3
 
 /**
  * Callback to notify that the last obis data in the inverter packet has been processed.
- * @param serial_number The serial number of the originating inverter device.
+ * @param device The originating inverter device.
  * @param time The timestamp associated with the just finished inverter packet.
  */
-void AveragingProcessor::endOfSpeedwireData(const uint32_t serial_number, const uint32_t time) {
+void AveragingProcessor::endOfSpeedwireData(const SpeedwireDevice& device, const uint32_t time) {
     // if averaging time has been reached, signal end of obis data
-    int index = findStateIndex(serial_number);
+    int index = findStateIndex(device.serialNumber);
     if (index >= 0 && states[index].averagingTimeReached == true) {
         for (int i = 0; i < speedwireConsumerTable.size(); ++i) {
-            speedwireConsumerTable[i]->endOfSpeedwireData(serial_number, time);
+            speedwireConsumerTable[i]->endOfSpeedwireData(device, time);
         }
     }
 }

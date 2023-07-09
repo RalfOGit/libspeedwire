@@ -69,7 +69,7 @@ namespace libspeedwire {
         static constexpr uint32_t local_serial_id = 0x3a28be42;     // arbitrarily choosen local serial number
 
         const LocalHost& localhost;
-        const std::vector<SpeedwireInfo>& devices;
+        const std::vector<SpeedwireDevice>& devices;
         std::vector<SpeedwireSocket> sockets;
 
         typedef int SocketIndex;
@@ -82,19 +82,19 @@ namespace libspeedwire {
         SpeedwireCommandTokenRepository token_repository;
 
     public:
-        SpeedwireCommand(const LocalHost& localhost, const std::vector<SpeedwireInfo>& devices);
+        SpeedwireCommand(const LocalHost& localhost, const std::vector<SpeedwireDevice>& devices);
         ~SpeedwireCommand(void);
 
         // synchronous command methods - send command requests and wait for the response
-        bool    login(const SpeedwireInfo& peer, const bool user, const char* password, const int timeout_in_ms = 1000);
-        bool    logoff(const SpeedwireInfo& peer);
-        int32_t query(const SpeedwireInfo& peer, const Command command, const uint32_t first_register, const uint32_t last_register, void* udp_buffer, const size_t udp_buffer_size, const int timeout_in_ms = 1000);
-        SpeedwireInfo queryDeviceType(const SpeedwireInfo& peer, const int timeout_in_ms = 1000);
+        bool    login(const SpeedwireDevice& peer, const bool user, const char* password, const int timeout_in_ms = 1000);
+        bool    logoff(const SpeedwireDevice& peer);
+        int32_t query(const SpeedwireDevice& peer, const Command command, const uint32_t first_register, const uint32_t last_register, void* udp_buffer, const size_t udp_buffer_size, const int timeout_in_ms = 1000);
+        SpeedwireDevice queryDeviceType(const SpeedwireDevice& peer, const int timeout_in_ms = 1000);
 
         // asynchronous send command methods - send command requests and return immediately
-        void sendLogoffRequest(const SpeedwireInfo& peer);
-        SpeedwireCommandTokenIndex sendLoginRequest(const SpeedwireInfo& peer, const bool user, const char* password);
-        SpeedwireCommandTokenIndex sendQueryRequest(const SpeedwireInfo& peer, const Command command, const uint32_t first_register, const uint32_t last_register);
+        void sendLogoffRequest(const SpeedwireDevice& peer);
+        SpeedwireCommandTokenIndex sendLoginRequest(const SpeedwireDevice& peer, const bool user, const char* password);
+        SpeedwireCommandTokenIndex sendQueryRequest(const SpeedwireDevice& peer, const Command command, const uint32_t first_register, const uint32_t last_register);
 
         // synchronous receive method - receive command reply packet for the given command token; this method will block until the packet is received or it times out
         // (for asynchronous receive handling, see class SpeedwireReceiveDispatcher)

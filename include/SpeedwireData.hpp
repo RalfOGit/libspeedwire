@@ -267,7 +267,7 @@ namespace libspeedwire {
         static const SpeedwireData InverterErrorStatus;            //!< Inverter error status
         static const SpeedwireData InverterRelay;                  //!< Grid relay status
 
-        static const SpeedwireData BatteryChargeStatus;            //!< Battery charge status
+        static const SpeedwireData BatteryStateOfCharge;           //!< Battery charge status
         static const SpeedwireData BatteryDiagChargeCycles;        //!< Battery charge cycles
         static const SpeedwireData BatteryDiagTotalAhIn;           //!< Battery total Ah charged
         static const SpeedwireData BatteryDiagTotalAhOut;          //!< Battery total Ah discharged
@@ -298,6 +298,8 @@ namespace libspeedwire {
         static const SpeedwireData BatteryGridReactivePowerL1;     //!< Reactive power as reported by emeter on grid connection point phase L1
         static const SpeedwireData BatteryGridReactivePowerL2;     //!< Reactive power as reported by emeter on grid connection point phase L2
         static const SpeedwireData BatteryGridReactivePowerL3;     //!< Reactive power as reported by emeter on grid connection point phase L3
+        static const SpeedwireData BatteryGridReactivePower;       //!< Reactive power as reported by emeter on grid connection point total
+        static const SpeedwireData BatterySetVoltage;              //!< Battery DC target set voltage
 
         static const SpeedwireData InverterPowerDCTotal;           //!< Total power on direct current inverter inputs MPP1 + MPP2
         static const SpeedwireData InverterPowerLoss;              //!< Total power loss

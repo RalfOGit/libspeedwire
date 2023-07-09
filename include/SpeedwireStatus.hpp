@@ -56,6 +56,7 @@ namespace libspeedwire {
         static const SpeedwireStatus& UpdateExec(void) { static const SpeedwireStatus status(3180, "UpdateExec", "Update executing"); return status; }
         static const SpeedwireStatus& UpdateOK(void) { static const SpeedwireStatus status(3181, "UpdateOK", "Update installed OK"); return status; }
         static const SpeedwireStatus& UpdateFailed(void) { static const SpeedwireStatus status(3182, "UpdateFail", "Update failed"); return status; }
+        static const SpeedwireStatus& UpdateNone(void) { static const SpeedwireStatus status(3584, "UpdateNone", "Update none"); return status; }
         static const SpeedwireStatus& NaN(void) { static const SpeedwireStatus status(0x00fffffd, "NaN", "Nan"); return status; }
         static const SpeedwireStatus& EoD(void) { static const SpeedwireStatus status(0x00fffffe, "EoD", "EoD"); return status; }
 
@@ -86,6 +87,7 @@ namespace libspeedwire {
             predefined.push_back(UpdateExec());
             predefined.push_back(UpdateOK());
             predefined.push_back(UpdateFailed());
+            predefined.push_back(UpdateNone());
             predefined.push_back(NaN());
             predefined.push_back(EoD());
             return predefined;

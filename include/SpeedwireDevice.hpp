@@ -18,7 +18,8 @@ namespace libspeedwire {
         LOAD             = 8033,  //!< Energy consumer device class
         SENSOR           = 8064,  //!< General sensor device class
         EMETER           = 8065,  //!< Electrical energy meter device class
-        COMMUNICATION    = 8128   //!< Communication product device class
+        COMMUNICATION    = 8128,  //!< Communication product device class
+        USER_DEFINED     = 8999   //!< User defined device class - not used by SMA
     };
 
     //! Convert DeviceClass to a string
@@ -36,53 +37,91 @@ namespace libspeedwire {
         }
     }
 
-    enum class SpeedwireDeviceType : uint16_t {
-        UNKNOWN = 0000  //!< Unknown device type
+    enum class SpeedwireDeviceModel : uint16_t {
+        UNKNOWN = 0000  //!< Unknown device model
     };
 
+
     /**
-     *  Class describing known speedwire device.
+     *  Class encapsulating information about a speedwire device instance.
      */
     class SpeedwireDevice {
     public:
+        uint16_t    susyID;                //!< Susy ID of the speedwire device.
+        uint32_t    serialNumber;          //!< Serial number of the speedwire device.
+        std::string deviceClass;           //!< Device class of the speedwire device, i.e. emeter or inverter.
+        std::string deviceModel;           //!< Device model of the speedwire device, i.e. emeter or inverter.
+        std::string peer_ip_address;       //!< IP address of the device, either on the local subnet or somewhere else.
+        std::string interface_ip_address;  //!< IP address of the local interface through which the device is reachable.
+
+        /** Default constructor.
+         *  Just initialize all member variables to a defined state; set susyId and serialNumber to 0. */
+        SpeedwireDevice(void) : susyID(0), serialNumber(0), deviceClass(), deviceModel(), peer_ip_address(), interface_ip_address() {}
+
+        /** Convert speedwire information to a single line string. */
+        std::string toString(void) const {
+            char buffer[256] = { 0 };
+            snprintf(buffer, sizeof(buffer), "SusyID %u  Serial %u  Class %-16s  Model %-14s  IP %s  IF %s",
+                susyID, serialNumber, deviceClass.c_str(), deviceModel.c_str(), peer_ip_address.c_str(), interface_ip_address.c_str());
+            return std::string(buffer);
+        }
+
+        /** Compare two instances; assume that if SusyID, Serial and IP is the same, it is the same device. */
+        bool operator==(const SpeedwireDevice& rhs) const { return (susyID == rhs.susyID && serialNumber == rhs.serialNumber && peer_ip_address == rhs.peer_ip_address); }
+
+        /** Check if this instance is just pre-registered, i.e a device ip address is given. */
+        bool isPreRegistered(void) const { return (peer_ip_address.length() > 0 && susyID == 0 && serialNumber == 0); }
+
+        /** Check if this instance is fully registered, i.e all device information is given. */
+        bool SpeedwireDevice::isFullyRegistered(void) const {
+            return (susyID != 0 && serialNumber != 0 && deviceClass.length() > 0 && deviceModel.length() > 0 && peer_ip_address.length() > 0 && interface_ip_address.length() > 0);
+        }
+    };
+
+
+    /**
+     *  Class describing known speedwire device types.
+     */
+    class SpeedwireDeviceType {
+    public:
         SpeedwireDeviceClass deviceClass;    //!< Device class
-        SpeedwireDeviceType  deviceType;     //!< Device type
+        SpeedwireDeviceModel deviceModel;    //!< Device model
         uint16_t             susyID;         //!< SusyID
         std::string          name;           //!< Brief technical short name
         std::string          longName;       //!< Longer marketing name
 
         //! Constructor
-        SpeedwireDevice(const SpeedwireDeviceClass& device_class, const SpeedwireDeviceType& device_type, const uint16_t susy_id, const std::string& name_, const std::string& long_name) :
+        SpeedwireDeviceType(const SpeedwireDeviceClass& device_class, const SpeedwireDeviceModel& device_model, const uint16_t susy_id, const std::string& name_, const std::string& long_name) :
             deviceClass(device_class),
-            deviceType(device_type),
+            deviceModel(device_model),
             susyID(susy_id),
             name(name_),
             longName(long_name)
         {}
 
-        // pre-defined emeter instances
-        static const SpeedwireDevice& Emeter10(void)      { static const SpeedwireDevice device(SpeedwireDeviceClass::EMETER, (SpeedwireDeviceType)9307, 270, "EMETER-10", "Energy-Meter-1.0"); return device; }
-        static const SpeedwireDevice& Emeter20(void)      { static const SpeedwireDevice device(SpeedwireDeviceClass::EMETER, (SpeedwireDeviceType)9327, 349, "EMETER-20", "Energy-Meter-2.0"); return device; }
-        static const SpeedwireDevice& HomeManager20(void) { static const SpeedwireDevice device(SpeedwireDeviceClass::EMETER, (SpeedwireDeviceType)9343, 372, "HM-20", "Sunny-Home-Manager-2.0"); return device; }
+        // pre-defined emeter types
+        static const SpeedwireDeviceType& Emeter10(void)      { static const SpeedwireDeviceType device(SpeedwireDeviceClass::EMETER, (SpeedwireDeviceModel)9307, 270, "EMETER-10", "Energy-Meter-1.0"); return device; }
+        static const SpeedwireDeviceType& Emeter20(void)      { static const SpeedwireDeviceType device(SpeedwireDeviceClass::EMETER, (SpeedwireDeviceModel)9327, 349, "EMETER-20", "Energy-Meter-2.0"); return device; }
+        static const SpeedwireDeviceType& HomeManager20(void) { static const SpeedwireDeviceType device(SpeedwireDeviceClass::EMETER, (SpeedwireDeviceModel)9343, 372, "HM-20", "Sunny-Home-Manager-2.0"); return device; }
 
-        // pre-defined battery inverter instances
-        static const SpeedwireDevice& SBS1500_1VL10(void) { static const SpeedwireDevice device(SpeedwireDeviceClass::BATTERY_INVERTER, (SpeedwireDeviceType)9324, 346, "SBS1.5-1VL-10", "Sunny-Boy-Storage-1.5-1VL-10"); return device; }
-        static const SpeedwireDevice& SBS2000_1VL10(void) { static const SpeedwireDevice device(SpeedwireDeviceClass::BATTERY_INVERTER, (SpeedwireDeviceType)9325, 346, "SBS2.0-1VL-10", "Sunny-Boy-Storage-2.0-1VL-10"); return device; }
-        static const SpeedwireDevice& SBS2500_1VL10(void) { static const SpeedwireDevice device(SpeedwireDeviceClass::BATTERY_INVERTER, (SpeedwireDeviceType)9326, 346, "SBS2.5-1VL-10", "Sunny-Boy-Storage-2.5-1VL-10"); return device; }
+        // pre-defined battery inverter types
+        static const SpeedwireDeviceType& SBS1500_1VL10(void) { static const SpeedwireDeviceType device(SpeedwireDeviceClass::BATTERY_INVERTER, (SpeedwireDeviceModel)9324, 346, "SBS1.5-1VL-10", "Sunny-Boy-Storage-1.5-1VL-10"); return device; }
+        static const SpeedwireDeviceType& SBS2000_1VL10(void) { static const SpeedwireDeviceType device(SpeedwireDeviceClass::BATTERY_INVERTER, (SpeedwireDeviceModel)9325, 346, "SBS2.0-1VL-10", "Sunny-Boy-Storage-2.0-1VL-10"); return device; }
+        static const SpeedwireDeviceType& SBS2500_1VL10(void) { static const SpeedwireDeviceType device(SpeedwireDeviceClass::BATTERY_INVERTER, (SpeedwireDeviceModel)9326, 346, "SBS2.5-1VL-10", "Sunny-Boy-Storage-2.5-1VL-10"); return device; }
 
-        // pre-defined pv inverter instances
-        static const SpeedwireDevice& Tripower4000_3AV40(void) { static const SpeedwireDevice device(SpeedwireDeviceClass::PV_INVERTER, (SpeedwireDeviceType)9344, 378, "STP-4.0-3AV-40", "Sunny-Tripower-4.0-3AV-40"); return device; }
-        static const SpeedwireDevice& Tripower5000_3AV40(void) { static const SpeedwireDevice device(SpeedwireDeviceClass::PV_INVERTER, (SpeedwireDeviceType)9345, 378, "STP-5.0-3AV-40", "Sunny-Tripower-5.0-3AV-40"); return device; }
-        static const SpeedwireDevice& Tripower6000_3AV40(void) { static const SpeedwireDevice device(SpeedwireDeviceClass::PV_INVERTER, (SpeedwireDeviceType)9346, 378, "STP-6.0-3AV-40", "Sunny-Tripower-6.0-3AV-40"); return device; }
+        // pre-defined pv inverter types
+        static const SpeedwireDeviceType& Tripower4000_3AV40(void) { static const SpeedwireDeviceType device(SpeedwireDeviceClass::PV_INVERTER, (SpeedwireDeviceModel)9344, 378, "STP-4.0-3AV-40", "Sunny-Tripower-4.0-3AV-40"); return device; }
+        static const SpeedwireDeviceType& Tripower5000_3AV40(void) { static const SpeedwireDeviceType device(SpeedwireDeviceClass::PV_INVERTER, (SpeedwireDeviceModel)9345, 378, "STP-5.0-3AV-40", "Sunny-Tripower-5.0-3AV-40"); return device; }
+        static const SpeedwireDeviceType& Tripower6000_3AV40(void) { static const SpeedwireDeviceType device(SpeedwireDeviceClass::PV_INVERTER, (SpeedwireDeviceModel)9346, 378, "STP-6.0-3AV-40", "Sunny-Tripower-6.0-3AV-40"); return device; }
 
         // unknown device type
-        static const SpeedwireDevice& Unknown(void)       { static const SpeedwireDevice device(SpeedwireDeviceClass::UNKNOWN, SpeedwireDeviceType::UNKNOWN, 0, "UNKNOWN", "Unknown Device"); return device; }
+        static const SpeedwireDeviceType& Unknown(void)       { static const SpeedwireDeviceType device(SpeedwireDeviceClass::UNKNOWN, SpeedwireDeviceModel::UNKNOWN, 0, "UNKNOWN", "Unknown Device"); return device; }
 
         /**
-         * Return the SpeedwireDevice given the susy_id. This works only for emeter device types.
+         * Return the SpeedwireDeviceType given the susy_id. This works only for emeter device types.
          * For other device types there is usually no unique relationship between susyid and device type.
          */
-        static const SpeedwireDevice&fromSusyID(const uint16_t susy_id) {
+        static const SpeedwireDeviceType& fromSusyID(const uint16_t susy_id) {
             if (susy_id == Emeter10().susyID)           { return Emeter10(); }
             if (susy_id == Emeter20().susyID)           { return Emeter20(); }
             if (susy_id == HomeManager20().susyID)      { return HomeManager20(); }
@@ -92,18 +131,18 @@ namespace libspeedwire {
         }
 
         /**
-         * Return the SpeedwireDevice given the device type.
+         * Return the SpeedwireDeviceType given the device model.
          */
-        static const SpeedwireDevice& fromDeviceType(const SpeedwireDeviceType device_type) {
-            if (device_type == Emeter10().deviceType) { return Emeter10(); }
-            if (device_type == Emeter20().deviceType) { return Emeter20(); }
-            if (device_type == HomeManager20().deviceType) { return HomeManager20(); }
-            if (device_type == Tripower4000_3AV40().deviceType) { return Tripower4000_3AV40(); }
-            if (device_type == Tripower5000_3AV40().deviceType) { return Tripower5000_3AV40(); }
-            if (device_type == Tripower6000_3AV40().deviceType) { return Tripower6000_3AV40(); }
-            if (device_type == SBS1500_1VL10().deviceType) { return SBS1500_1VL10(); }
-            if (device_type == SBS2000_1VL10().deviceType) { return SBS2000_1VL10(); }
-            if (device_type == SBS2500_1VL10().deviceType) { return SBS2500_1VL10(); }
+        static const SpeedwireDeviceType& fromDeviceModel(const SpeedwireDeviceModel model) {
+            if (model == Emeter10().deviceModel) { return Emeter10(); }
+            if (model == Emeter20().deviceModel) { return Emeter20(); }
+            if (model == HomeManager20().deviceModel) { return HomeManager20(); }
+            if (model == Tripower4000_3AV40().deviceModel) { return Tripower4000_3AV40(); }
+            if (model == Tripower5000_3AV40().deviceModel) { return Tripower5000_3AV40(); }
+            if (model == Tripower6000_3AV40().deviceModel) { return Tripower6000_3AV40(); }
+            if (model == SBS1500_1VL10().deviceModel) { return SBS1500_1VL10(); }
+            if (model == SBS2000_1VL10().deviceModel) { return SBS2000_1VL10(); }
+            if (model == SBS2500_1VL10().deviceModel) { return SBS2500_1VL10(); }
             return Unknown();
         }
 

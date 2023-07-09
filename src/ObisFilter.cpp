@@ -45,13 +45,13 @@ void ObisFilter::addConsumer(ObisConsumer& obisConsumer) {
     consumerTable.push_back(&obisConsumer);
 }
 
-bool ObisFilter::consume(const uint32_t serial, const void *const obis, const uint32_t time) {
+bool ObisFilter::consume(const SpeedwireDevice& device, const void *const obis, const uint32_t time) {
     ObisType element(SpeedwireEmeterProtocol::getObisChannel(obis),
                      SpeedwireEmeterProtocol::getObisIndex(obis),
                      SpeedwireEmeterProtocol::getObisType(obis),
                      SpeedwireEmeterProtocol::getObisTariff(obis));
 
-    ObisData *const filteredElement = filter(serial, element);
+    ObisData *const filteredElement = filter(device, element);
     if (filteredElement != NULL) {
         switch (filteredElement->type) {
         case 0:
@@ -69,14 +69,14 @@ bool ObisFilter::consume(const uint32_t serial, const void *const obis, const ui
         default:
             perror("obis identifier not implemented");
         }
-        produce(serial, *filteredElement);
+        produce(device, *filteredElement);
 
         return true;
     }
     return false;
 }
 
-ObisData *const ObisFilter::filter(const uint32_t serial, const ObisType &element) {
+ObisData *const ObisFilter::filter(const SpeedwireDevice& device, const ObisType &element) {
     const auto& it = filterMap.find(element.toKey());
     if (it != filterMap.end()) {
         return &(it->second);
@@ -84,14 +84,14 @@ ObisData *const ObisFilter::filter(const uint32_t serial, const ObisType &elemen
     return NULL;
 }
 
-void ObisFilter::produce(const uint32_t serial, ObisData &element) {
+void ObisFilter::produce(const SpeedwireDevice& device, ObisData &element) {
     for (std::vector<ObisConsumer*>::iterator it = consumerTable.begin(); it != consumerTable.end(); it++) {
-        (*it)->consume(serial, element);
+        (*it)->consume(device, element);
     }
 }
 
-void ObisFilter::endOfObisData(const uint32_t serial, const uint32_t time) {
+void ObisFilter::endOfObisData(const SpeedwireDevice& device, const uint32_t time) {
     for (std::vector<ObisConsumer*>::iterator it = consumerTable.begin(); it != consumerTable.end(); it++) {
-        (*it)->endOfObisData(serial, time);
+        (*it)->endOfObisData(device, time);
     }
 }

@@ -27,7 +27,7 @@ using namespace libspeedwire;
 static Logger logger("SpeedwireCommand");
 
 
-SpeedwireCommand::SpeedwireCommand(const LocalHost &_localhost, const std::vector<SpeedwireInfo> &_devices) :
+SpeedwireCommand::SpeedwireCommand(const LocalHost &_localhost, const std::vector<SpeedwireDevice> &_devices) :
     localhost(_localhost),
     devices(_devices) {
     // loop across all speedwire devices
@@ -58,7 +58,7 @@ SpeedwireCommand::~SpeedwireCommand(void) {
 /**
  *  synchronous login method - send inverter login command to the given peer, wait for the response and check for error codes
  */
-bool SpeedwireCommand::login(const SpeedwireInfo& peer, const bool user, const char* password, const int timeout_in_ms) {
+bool SpeedwireCommand::login(const SpeedwireDevice& peer, const bool user, const char* password, const int timeout_in_ms) {
 
     // determine receive socket
     SocketIndex socket_index = socket_map[peer.interface_ip_address];
@@ -73,7 +73,6 @@ bool SpeedwireCommand::login(const SpeedwireInfo& peer, const bool user, const c
     if (token_index < 0) {
         return false;
     }
-
 
     // wait for the response
     unsigned char response_buffer[2048];
@@ -113,7 +112,7 @@ bool SpeedwireCommand::login(const SpeedwireInfo& peer, const bool user, const c
 /**
  *  synchronous logoff method - send inverter logoff command to the given peer and return; there is no reply from the inverter for logoff commands
  */
-bool SpeedwireCommand::logoff(const SpeedwireInfo& peer) {
+bool SpeedwireCommand::logoff(const SpeedwireDevice& peer) {
     sendLogoffRequest(peer);
     return true;
 }
@@ -121,8 +120,9 @@ bool SpeedwireCommand::logoff(const SpeedwireInfo& peer) {
 
 /**
  *  synchronous query method - send inverter query command to the given peer, wait for the response and check for error codes
+ *  this method cannot handle fragmented response packets
  */
-int32_t SpeedwireCommand::query(const SpeedwireInfo& peer, const Command command, const uint32_t first_register, const uint32_t last_register, void* udp_buffer, const size_t udp_buffer_size, const int timeout_in_ms) {
+int32_t SpeedwireCommand::query(const SpeedwireDevice& peer, const Command command, const uint32_t first_register, const uint32_t last_register, void* udp_buffer, const size_t udp_buffer_size, const int timeout_in_ms) {
 
     // determine receive socket
     SocketIndex socket_index = socket_map[peer.interface_ip_address];
@@ -167,7 +167,7 @@ int32_t SpeedwireCommand::query(const SpeedwireInfo& peer, const Command command
 /**
  *  send inverter login command to the given peer
  */
-SpeedwireCommandTokenIndex SpeedwireCommand::sendLoginRequest(const SpeedwireInfo& peer, const bool user, const char* password) {
+SpeedwireCommandTokenIndex SpeedwireCommand::sendLoginRequest(const SpeedwireDevice& peer, const bool user, const char* password) {
     // Request  534d4100000402a000000001003a0010 60650ea0 7a01842a71b30001 7d0042be283a0001 000000000280 0c04fdff 07000000 84030000 00d8e85f 00000000 c1c1c1c18888888888888888 00000000   => login command = 0xfffd040c, first = 0x00000007 (user 7, installer a), last = 0x00000384 (hier timeout), time = 0x5fdf9ae8, 0x00000000, pw 12 bytes
     // Response 534d4100000402a000000001002e0010 60650be0 7d0042be283a0001 7a01842a71b30001 000000000280 0d04fdff 07000000 84030000 00d8e85f 00000000 00000000 => login OK
     // Response 534d4100000402a000000001002e0010 60650be0 7d0042be283a0001 7a01842a71b30001 000100000280 0d04fdff 07000000 84030000 fddbe85f 00000000 00000000 => login INVALID PASSWORD
@@ -185,7 +185,7 @@ SpeedwireCommandTokenIndex SpeedwireCommand::sendLoginRequest(const SpeedwireInf
     request.setSrcSerialNumber(local_serial_id);
     request.setSrcControl(0x0100);
     request.setErrorCode(0);
-    request.setFragmentID(0);
+    request.setFragmentCounter(0);
     request.setPacketID(packet_id);
     request.setCommandID(0xfffd040c);
     request.setFirstRegisterID((user?0x00000007:0x0000000a));    // user: 0x7  installer: 0xa
@@ -226,7 +226,7 @@ SpeedwireCommandTokenIndex SpeedwireCommand::sendLoginRequest(const SpeedwireInf
 /**
  *  send inverter logoff command to the given peer
  */
-void SpeedwireCommand::sendLogoffRequest(const SpeedwireInfo& peer) {
+void SpeedwireCommand::sendLogoffRequest(const SpeedwireDevice& peer) {
     // Request 534d4100000402a00000000100220010 606508a0 ffffffffffff0003 7d0052be283a0003 000000000280 0e01fdff ffffffff 00000000   => logoff command = 0xfffd01e0 (fehlt hier last?)
     // Request 534d4100000402a00000000100220010 606508a0 ffffffffffff0003 7d0042be283a0003 000000000180 e001fdff ffffffff 00000000
     // assemble unicast device logoff packet
@@ -242,7 +242,7 @@ void SpeedwireCommand::sendLogoffRequest(const SpeedwireInfo& peer) {
     request.setSrcSerialNumber(local_serial_id);
     request.setSrcControl(0x0300);
     request.setErrorCode(0);
-    request.setFragmentID(0);
+    request.setFragmentCounter(0);
     request.setPacketID(packet_id);
     request.setCommandID(0xfffd01e0);
     request.setFirstRegisterID(0xffffffff);
@@ -269,7 +269,7 @@ void SpeedwireCommand::sendLogoffRequest(const SpeedwireInfo& peer) {
 /**
  *  assemble inverter query command and send it to the given peer
  */
-SpeedwireCommandTokenIndex SpeedwireCommand::sendQueryRequest(const SpeedwireInfo& peer, const Command command, const uint32_t first_register, const uint32_t last_register) {
+SpeedwireCommandTokenIndex SpeedwireCommand::sendQueryRequest(const SpeedwireDevice& peer, const Command command, const uint32_t first_register, const uint32_t last_register) {
     // Request  534d4100000402a00000000100260010 606509a0 7a01842a71b30001 7d0042be283a0001 000000000380 00020058 00348200 ff348200 00000000 =>  query software version
     // Response 534d4100000402a000000001004e0010 606513a0 7d0042be283a00a1 7a01842a71b30001 000000000380 01020058 0a000000 0a000000 01348200 2ae5e65f 00000000 00000000 feffffff feffffff 040a1003 040a1003 00000000 00000000 00000000  code = 0x00823401    3 (BCD).10 (BCD).10 (BIN) Typ R (Enum)
     // Request  534d4100000402a00000000100260010 606509a0 7a01842a71b30001 7d0042be283a0001 000000000480 00020058 001e8200 ff208200 00000000 =>  query device type
@@ -317,7 +317,7 @@ SpeedwireCommandTokenIndex SpeedwireCommand::sendQueryRequest(const SpeedwireInf
     request.setSrcSerialNumber(local_serial_id);
     request.setSrcControl(0x0100);
     request.setErrorCode(0);
-    request.setFragmentID(0);
+    request.setFragmentCounter(0);
     request.setPacketID(packet_id);
     request.setCommandID(command);
     request.setFirstRegisterID(first_register);
@@ -351,14 +351,14 @@ SpeedwireCommandTokenIndex SpeedwireCommand::sendQueryRequest(const SpeedwireInf
 /**
  *  query device type
  */
-SpeedwireInfo SpeedwireCommand::queryDeviceType(const SpeedwireInfo& peer, const int timeout_in_ms) {
+SpeedwireDevice SpeedwireCommand::queryDeviceType(const SpeedwireDevice& peer, const int timeout_in_ms) {
     // create a copy of the peer
-    SpeedwireInfo info = peer;
+    SpeedwireDevice info = peer;
 
     // Request  534d4100000402a00000000100260010 606509a0 7a01842a71b30001 7d0042be283a0001 000000000380 00020058 00348200 ff348200 00000000 =>  query software version
     // Response 534d4100000402a000000001004e0010 606513a0 7d0042be283a00a1 7a01842a71b30001 000000000380 01020058 0a000000 0a000000 01348200 2ae5e65f 00000000 00000000 feffffff feffffff 040a1003 040a1003 00000000 00000000 00000000  code = 0x00823401    3 (BCD).10 (BCD).10 (BIN) Typ R (Enum)
     // Request  534d4100000402a00000000100260010 606509a0 7a01842a71b30001 7d0042be283a0001 000000000480 00020058 001e8200 ff208200 00000000 =>  query device type
-    // Response 534d4100000402a000000001009e0010 606527a0 7d0042be283a00a1 7a01842a71b30001 000000000480 01020058 01000000 03000000 011e8210 6f89e95f 534e3a20 33303130 35333831 31360000 00000000 00000000 00000000 00000000 
+    // Response 534d4100 000402a000000001 009e0010 606527a0 7d0042be283a00a1 7a01842a71b30001 000000000480 01020058 01000000 03000000 011e8210 6f89e95f 534e3a20 33303130 35333831 31360000 00000000 00000000 00000000 00000000 
     //                                                                                                                              011f8208 6f89e95f 411f0001 feffff00 00000000 00000000 00000000 00000000 00000000 00000000  => 1f41 solar inverter
     //                                                                                                                              01208208 6f89e95f 96240000 80240000 81240001 82240000 feffff00 00000000 00000000 00000000 00000000
     // send unicast query device type request
@@ -391,17 +391,12 @@ SpeedwireInfo SpeedwireCommand::queryDeviceType(const SpeedwireInfo& peer, const
             std::vector<SpeedwireRawData> raw_data_vector = inverter_packet.getRawDataElements();
 
             // augment the device information with data obtained the peer
-            std::string serial_number;
-            uint16_t device_class = 0xffff;
-            uint16_t device_type = 0xffff;
-
             for (auto& raw_data : raw_data_vector) {
                 if (raw_data.id == SpeedwireData::InverterDeviceClass.id && raw_data.type == SpeedwireDataType::Status32) {
                     SpeedwireRawDataStatus32 status_data(raw_data);
                     size_t index = status_data.getSelectionIndex();
                     if (index != (size_t)-1) {
-                        uint32_t value = status_data.getValue(index);
-                        SpeedwireDeviceClass device_class = (SpeedwireDeviceClass)value;
+                        SpeedwireDeviceClass device_class = (SpeedwireDeviceClass)status_data.getValue(index);;
                         info.deviceClass = libspeedwire::toString(device_class);
                     }
                 }
@@ -409,10 +404,9 @@ SpeedwireInfo SpeedwireCommand::queryDeviceType(const SpeedwireInfo& peer, const
                     SpeedwireRawDataStatus32 status_data(raw_data);
                     size_t index = status_data.getSelectionIndex();
                     if (index != (size_t)-1) {
-                        uint32_t value = status_data.getValue(index);
-                        SpeedwireDeviceType device_type = (SpeedwireDeviceType)value;
-                        SpeedwireDevice device = SpeedwireDevice::fromDeviceType(device_type);
-                        info.deviceType = device.name;
+                        SpeedwireDeviceModel device_model = (SpeedwireDeviceModel)status_data.getValue(index);;
+                        SpeedwireDeviceType device = SpeedwireDeviceType::fromDeviceModel(device_model);
+                        info.deviceModel = device.name;
                     }
                 }
             }
@@ -568,7 +562,7 @@ bool SpeedwireCommand::checkReply(const SpeedwireHeader& speedwire_reply_packet,
         printf("source serial number %u is not peer serial number %u\n", (unsigned)inverter.getSrcSerialNumber(), (unsigned)token.serialnumber);
         return false;
     }
-    if (inverter.getPacketID() !=token.packetid) {
+    if ((inverter.getPacketID() | 0x8000) != token.packetid) {
         printf("reply packet id %u is not equal request packet id %u\n", (unsigned)inverter.getPacketID(), (unsigned)token.packetid);
         return false;
     }
@@ -623,7 +617,7 @@ void SpeedwireCommandTokenRepository::remove(const SpeedwireCommandTokenIndex in
 int SpeedwireCommandTokenRepository::find(const uint16_t susyid, const uint32_t serialnumber, const uint16_t packetid) const {
     for (int i = 0; i < token.size(); ++i) {
         const SpeedwireCommandToken& t = token[i];
-        if (t.susyid == susyid && t.serialnumber == serialnumber && t.packetid == packetid) {
+        if (t.susyid == susyid && t.serialnumber == serialnumber && t.packetid == (packetid | 0x8000)) {
             return i;
         }
     }

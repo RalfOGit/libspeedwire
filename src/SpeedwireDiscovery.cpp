@@ -113,7 +113,7 @@ SpeedwireDiscovery::~SpeedwireDiscovery(void) {
  *  @param peer_ip_address The IP address of the speedwire peer in dot (ipv4) or colon (ipv6) notation.
  */
 bool SpeedwireDiscovery::preRegisterDevice(const std::string peer_ip_address) {
-    SpeedwireInfo info;
+    SpeedwireDevice info;
     info.peer_ip_address = peer_ip_address;
     bool new_device = true;
     for (auto& device : speedwireDevices) {
@@ -131,7 +131,7 @@ bool SpeedwireDiscovery::preRegisterDevice(const std::string peer_ip_address) {
 /**
  *  Fully register a device, i.e. provide a full information data set of the device.
  */
-bool SpeedwireDiscovery::registerDevice(const SpeedwireInfo& info) {
+bool SpeedwireDiscovery::registerDevice(const SpeedwireDevice& info) {
     bool new_device = true;
     bool updated_device = false;
     for (auto& device : speedwireDevices) {
@@ -155,8 +155,8 @@ bool SpeedwireDiscovery::registerDevice(const SpeedwireInfo& info) {
 /**
  *  Unregister a device, i.e. delete it from the device list.
  */
-void SpeedwireDiscovery::unregisterDevice(const SpeedwireInfo& info) {
-    for (std::vector<SpeedwireInfo>::iterator it = speedwireDevices.begin(); it != speedwireDevices.end(); ) {
+void SpeedwireDiscovery::unregisterDevice(const SpeedwireDevice& info) {
+    for (std::vector<SpeedwireDevice>::iterator it = speedwireDevices.begin(); it != speedwireDevices.end(); ) {
         if (*it == info) {
             it = speedwireDevices.erase(it);
         } else {
@@ -169,7 +169,7 @@ void SpeedwireDiscovery::unregisterDevice(const SpeedwireInfo& info) {
 /**
  *  Get a vector of all known devices.
  */
-const std::vector<SpeedwireInfo>& SpeedwireDiscovery::getDevices(void) const {
+const std::vector<SpeedwireDevice>& SpeedwireDiscovery::getDevices(void) const {
     return speedwireDevices;
 }
 
@@ -352,17 +352,17 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
             else if (protocol.isEmeterProtocolID() || protocol.isExtendedEmeterProtocolID()) {
                 //LocalHost::hexdump(udp_packet, nbytes);
                 SpeedwireEmeterProtocol emeter(protocol);
-                SpeedwireInfo info;
+                SpeedwireDevice info;
                 info.susyID = emeter.getSusyID();
                 info.serialNumber = emeter.getSerialNumber();
-                const SpeedwireDevice &device = SpeedwireDevice::fromSusyID(info.susyID);
+                const SpeedwireDeviceType &device = SpeedwireDeviceType::fromSusyID(info.susyID);
                 if (device.deviceClass != SpeedwireDeviceClass::UNKNOWN) {
                     info.deviceClass = toString(device.deviceClass);
-                    info.deviceType = device.name;
+                    info.deviceModel = device.name;
                 }
                 else {
                     info.deviceClass = "Emeter";
-                    info.deviceType = "Emeter";
+                    info.deviceModel = "Emeter";
                 }
                 info.peer_ip_address = peer_ip_address;
                 info.interface_ip_address = localhost.getMatchingLocalIPAddress(peer_ip_address);
@@ -380,26 +380,26 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 SpeedwireInverterProtocol inverter_packet(protocol);
                 //LocalHost::hexdump(udp_packet, nbytes);
                 //printf("%s\n", inverter_packet.toString().c_str());
-                SpeedwireInfo info;
+                SpeedwireDevice info;
                 info.susyID = inverter_packet.getSrcSusyID();
                 info.serialNumber = inverter_packet.getSrcSerialNumber();
                 info.deviceClass = "Inverter";
-                info.deviceType = "Inverter";
+                info.deviceModel = "Inverter";
                 info.peer_ip_address = peer_ip_address;
                 info.interface_ip_address = localhost.getMatchingLocalIPAddress(peer_ip_address);
                 if (info.interface_ip_address == "" && socket.isIpAny() == false) {
                     info.interface_ip_address = socket.getLocalInterfaceAddress();
                 }
                 // try to get further information about the device by examining the susy id; this is not accurate
-                const SpeedwireDevice& device = SpeedwireDevice::fromSusyID(info.susyID);
+                const SpeedwireDeviceType& device = SpeedwireDeviceType::fromSusyID(info.susyID);
                 if (device.deviceClass != SpeedwireDeviceClass::UNKNOWN) {
                     info.deviceClass = toString(device.deviceClass);
-                    info.deviceType = device.name;
+                    info.deviceModel = device.name;
                 }
 #if 1
                 // try to get further information about the device by querying device type information from the peer
                 SpeedwireCommand command(localhost, speedwireDevices);
-                SpeedwireInfo updatedInfo = command.queryDeviceType(info);
+                SpeedwireDevice updatedInfo = command.queryDeviceType(info);
                 if (registerDevice(updatedInfo)) {
                     printf("%s\n", updatedInfo.toString().c_str());
                     result = true;
@@ -431,49 +431,4 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
         }
     }
     return result;
-}
-
-
-/*====================================*/
-
-/**
- *  Default constructor.
- *  Just initialize all member variables to a defined state; set susyId and serialNumber to 0
- */
-SpeedwireInfo::SpeedwireInfo(void) : susyID(0), serialNumber(0), deviceClass(), deviceType(), peer_ip_address(), interface_ip_address() {}
-
-
-/**
- *  Convert speedwire information to a single line string.
- */
-std::string SpeedwireInfo::toString(void) const {
-    char buffer[256] = { 0 };
-    snprintf(buffer, sizeof(buffer), "SusyID %u  Serial %u  Class %-16s  Type %-14s  IP %s  IF %s", 
-             susyID, serialNumber, deviceClass.c_str(), deviceType.c_str(), peer_ip_address.c_str(), interface_ip_address.c_str());
-    return std::string(buffer);
-}
-
-
-/**
- *  Compare two instances; assume that if SusyID, Serial and IP is the same, it is the same device.
- */
-bool SpeedwireInfo::operator==(const SpeedwireInfo& rhs) const {
-    return (susyID == rhs.susyID && serialNumber == rhs.serialNumber && peer_ip_address == rhs.peer_ip_address);
-}
-
-
-/**
- *  Check if this instance is just pre-registered, i.e a device ip address is given.
- */
-bool SpeedwireInfo::isPreRegistered(void) const {
-    return (peer_ip_address.length() > 0 && susyID == 0 && serialNumber == 0);
-}
-
-
-/**
- *  Check if this instance is fully registered, i.e all device information is given.
- */
-bool SpeedwireInfo::isFullyRegistered(void) const {
-    return (susyID != 0 && serialNumber != 0 && deviceClass.length() > 0 && deviceType.length() > 0 && 
-            peer_ip_address.length() > 0 && interface_ip_address.length() > 0);
 }

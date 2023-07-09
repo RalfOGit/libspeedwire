@@ -59,7 +59,7 @@ namespace libspeedwire {
         VOLTAGE,            //!< Electrical voltage
         STATUS,             //!< Device status
         EFFICIENCY,         //!< Energy efficiency
-        PERCENTAGE,         //!< Percentage value
+        STATE_OF_CHARGE,    //!< State of charge
         TEMPERATURE,        //!< Temperature
         DURATION,           //!< Time duration
         CURRENCY,           //!< Monetary amount
@@ -141,8 +141,8 @@ namespace libspeedwire {
         static MeasurementType InverterStatus(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::STATUS, "", 1); }
         static MeasurementType InverterRelay(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::STATUS, "", 1); }
         static MeasurementType InverterEfficiency(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::EFFICIENCY, "%", 1); }
-        static MeasurementType InverterPercentage(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::PERCENTAGE, "%", 1); }
-        static MeasurementType InverterTemperature(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::TEMPERATURE, "°C", 1); }
+        static MeasurementType InverterStateOfChargee(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::STATE_OF_CHARGE, "%", 1); }
+        static MeasurementType InverterTemperature(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::TEMPERATURE, "°C", 10); }
         static MeasurementType InverterLoss(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::POWER, "W", 1); }
         static MeasurementType InverterEnergy(const Direction direction = Direction::NO_DIRECTION) { return MeasurementType(direction, Type::ACTIVE, Quantity::ENERGY, "Wh", 1); }
         static MeasurementType InverterDuration(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::DURATION, "s", 1); }

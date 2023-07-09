@@ -69,19 +69,19 @@ std::string libspeedwire::toString(const Wire wire) {
 
 std::string libspeedwire::toString(const Quantity quantity) {
     switch (quantity) {
-    case Quantity::POWER:        return "power";
-    case Quantity::ENERGY:       return "energy";
-    case Quantity::POWER_FACTOR: return "power_factor";
-    case Quantity::FREQUENCY:    return "frequency";
-    case Quantity::VOLTAGE:      return "voltage";
-    case Quantity::CURRENT:      return "current";
-    case Quantity::STATUS:       return "status";
-    case Quantity::EFFICIENCY:   return "efficiency";
-    case Quantity::PERCENTAGE:   return "percentage";
-    case Quantity::TEMPERATURE:  return "temperature";
-    case Quantity::DURATION:     return "duration";
-    case Quantity::CURRENCY:     return "currency";
-    case Quantity::NO_QUANTITY:  return "";
+    case Quantity::POWER:           return "power";
+    case Quantity::ENERGY:          return "energy";
+    case Quantity::POWER_FACTOR:    return "power_factor";
+    case Quantity::FREQUENCY:       return "frequency";
+    case Quantity::VOLTAGE:         return "voltage";
+    case Quantity::CURRENT:         return "current";
+    case Quantity::STATUS:          return "status";
+    case Quantity::EFFICIENCY:      return "efficiency";
+    case Quantity::STATE_OF_CHARGE: return "state_of_charge";
+    case Quantity::TEMPERATURE:     return "temperature";
+    case Quantity::DURATION:        return "duration";
+    case Quantity::CURRENCY:        return "currency";
+    case Quantity::NO_QUANTITY:     return "";
     }
     return "undefined quantity";
 }

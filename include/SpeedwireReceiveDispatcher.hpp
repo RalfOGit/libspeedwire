@@ -15,7 +15,7 @@ namespace libspeedwire {
      */
     class SpeedwirePacketReceiverBase {
     public:
-        uint16_t protocolID;        //!< Protocol ID that the receiver is convrigured to receive
+        uint16_t protocolID;        //!< Protocol ID that the receiver is configured to receive
 
         /**
          * Constructor - must be overridden; it initialzes protocolID to 0x0000.

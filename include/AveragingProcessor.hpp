@@ -44,7 +44,7 @@ namespace libspeedwire {
 
         int initializeState(const uint32_t serial_number, const DeviceType& device_type);
         int findStateIndex(const uint32_t serial_number);
-        bool process(const uint32_t serial_number, const DeviceType& device_type, Measurement& measurement);
+        bool process(const SpeedwireDevice& device, const DeviceType& device_type, Measurement& measurement);
 
     public:
 
@@ -54,10 +54,10 @@ namespace libspeedwire {
         void addConsumer(ObisConsumer& obis_consumer);
         void addConsumer(SpeedwireConsumer& speedwire_consumer);
 
-        virtual void consume(const uint32_t serial_number, ObisData& element);
-        virtual void consume(const uint32_t serial_number, SpeedwireData& element);
-        virtual void endOfObisData(const uint32_t serial_number, const uint32_t time);
-        virtual void endOfSpeedwireData(const uint32_t serial_number, const uint32_t time);
+        virtual void consume(const SpeedwireDevice& device, ObisData& element);
+        virtual void consume(const SpeedwireDevice& device, SpeedwireData& element);
+        virtual void endOfObisData(const SpeedwireDevice& device, const uint32_t time);
+        virtual void endOfSpeedwireData(const SpeedwireDevice& device, const uint32_t time);
     };
 
 }   // namespace libspeedwire

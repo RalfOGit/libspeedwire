@@ -5,6 +5,7 @@
 #include <vector>
 #include <Consumer.hpp>
 #include <ObisData.hpp>
+#include <SpeedwireDevice.hpp>
 
 namespace libspeedwire {
 
@@ -35,11 +36,11 @@ namespace libspeedwire {
 
         void addConsumer(ObisConsumer& obisConsumer);
 
-        bool consume(const uint32_t serial, const void* const obis, const uint32_t time);
-        ObisData* const filter(const uint32_t serial, const ObisType& element);
-        void produce(const uint32_t serial, ObisData& element);
+        bool consume(const SpeedwireDevice&device, const void* const obis, const uint32_t time);
+        ObisData* const filter(const SpeedwireDevice& device, const ObisType& element);
+        void produce(const SpeedwireDevice& device, ObisData& element);
 
-        void endOfObisData(const uint32_t serial, const uint32_t time);
+        void endOfObisData(const SpeedwireDevice& device, const uint32_t time);
     };
 
 }   // namespace libspeedwire

@@ -63,9 +63,9 @@ uint16_t SpeedwireInverterProtocol::getErrorCode(void) const {
     return SpeedwireByteEncoding::getUint16LittleEndian(udp + sma_error_code_offset);
 }
 
-/** Fet fragment id. */
-uint16_t SpeedwireInverterProtocol::getFragmentID(void) const {
-    return SpeedwireByteEncoding::getUint16LittleEndian(udp + sma_fragment_id_offset);
+/** Get fragment counter. */
+uint16_t SpeedwireInverterProtocol::getFragmentCounter(void) const {
+    return SpeedwireByteEncoding::getUint16LittleEndian(udp + sma_fragment_counter_offset);
 }
 
 /** Get packet id. */
@@ -198,9 +198,9 @@ std::string SpeedwireInverterProtocol::toString(void) const {
     char buffer[1024];
     snprintf(buffer, sizeof(buffer),
         "DstSusyID 0x%04x  DstSerialNumber 0x%06lx  DstControl 0x%04x  SrcSusyID 0x%04x  SrcSerialNumber 0x%06lx  SrcControl 0x%04x\n"
-        "ErrorCode 0x%04x  FragmentID 0x%04x  PacketID 0x%04x  CommandID 0x%08lx  FirstRegisterID 0x%08lx  LastRegisterID 0x%08lx\n",
+        "ErrorCode 0x%04x  FragmentCounter 0x%04x  PacketID 0x%04x  CommandID 0x%08lx  FirstRegisterID 0x%08lx  LastRegisterID 0x%08lx\n",
         getDstSusyID(), getDstSerialNumber(), getDstControl(), getSrcSusyID(), getSrcSerialNumber(), getSrcControl(),
-        getErrorCode(), getFragmentID(), getPacketID(), getCommandID(), getFirstRegisterID(), getLastRegisterID());
+        getErrorCode(), getFragmentCounter(), getPacketID(), getCommandID(), getFirstRegisterID(), getLastRegisterID());
     std::string result(buffer);
 
     std::vector<SpeedwireRawData> elements = getRawDataElements();
@@ -249,9 +249,9 @@ void SpeedwireInverterProtocol::setErrorCode(const uint16_t value) {
     SpeedwireByteEncoding::setUint16LittleEndian(udp + sma_error_code_offset, value);
 }
 
-/** Set fragment id. */
-void SpeedwireInverterProtocol::setFragmentID(const uint16_t value) {
-    SpeedwireByteEncoding::setUint16LittleEndian(udp + sma_fragment_id_offset, value);
+/** Set fragment counter. */
+void SpeedwireInverterProtocol::setFragmentCounter(const uint16_t value) {
+    SpeedwireByteEncoding::setUint16LittleEndian(udp + sma_fragment_counter_offset, value);
 }
 
 /** Set packet id. */

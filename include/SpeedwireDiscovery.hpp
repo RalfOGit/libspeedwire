@@ -6,28 +6,9 @@
 #include <vector>
 #include <LocalHost.hpp>
 #include <SpeedwireSocket.hpp>
+#include <SpeedwireDevice.hpp>
 
 namespace libspeedwire {
-
-    /**
-     *  Class encapsulating information about a speedwire device.
-     */
-    class SpeedwireInfo {
-    public:
-        uint16_t    susyID;                //!< Susy ID of the speedwire device.
-        uint32_t    serialNumber;          //!< Serial number of the speedwire device.
-        std::string deviceClass;           //!< Device class of the speedwire device, i.e. emeter or inverter.
-        std::string deviceType;            //!< Device type of the speedwire device, i.e. emeter or inverter.
-        std::string peer_ip_address;       //!< IP address of the device, either on the local subnet or somewhere else.
-        std::string interface_ip_address;  //!< IP address of the local interface through which the device is reachable.
-
-        SpeedwireInfo(void);
-        std::string toString(void) const;
-        bool operator==(const SpeedwireInfo& rhs) const;
-        bool isPreRegistered(void) const;
-        bool isFullyRegistered(void) const;
-    };
-
 
     /**
      *  Class implementing a discovery mechanism for speedwire devices.
@@ -46,7 +27,7 @@ namespace libspeedwire {
 
         const LocalHost& localhost;
 
-        std::vector<SpeedwireInfo> speedwireDevices;
+        std::vector<SpeedwireDevice> speedwireDevices;
 
         bool sendNextDiscoveryPacket(size_t& broadcast_counter, size_t& prereg_counter, size_t& subnet_counter, size_t& socket_counter);
         bool recvDiscoveryPackets(const SpeedwireSocket& socket);
@@ -58,10 +39,10 @@ namespace libspeedwire {
 
         bool preRegisterDevice(const std::string peer_ip_address);
 
-        bool registerDevice(const SpeedwireInfo& info);
-        void unregisterDevice(const SpeedwireInfo& info);
+        bool registerDevice(const SpeedwireDevice& info);
+        void unregisterDevice(const SpeedwireDevice& info);
 
-        const std::vector<SpeedwireInfo>& getDevices(void) const;
+        const std::vector<SpeedwireDevice>& getDevices(void) const;
 
         int discoverDevices(void);
     };
