@@ -73,7 +73,7 @@ namespace libspeedwire {
         bool isPreRegistered(void) const { return (peer_ip_address.length() > 0 && susyID == 0 && serialNumber == 0); }
 
         /** Check if this instance is fully registered, i.e all device information is given. */
-        bool SpeedwireDevice::isFullyRegistered(void) const {
+        bool isFullyRegistered(void) const {
             return (susyID != 0 && serialNumber != 0 && deviceClass.length() > 0 && deviceModel.length() > 0 && peer_ip_address.length() > 0 && interface_ip_address.length() > 0);
         }
     };
