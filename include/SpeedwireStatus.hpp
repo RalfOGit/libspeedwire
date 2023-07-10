@@ -50,6 +50,9 @@ namespace libspeedwire {
         static const SpeedwireStatus& NoDescription(void) { static const SpeedwireStatus status(885, "NoDescr", "No description available"); return status; }
         static const SpeedwireStatus& NoMessage(void) { static const SpeedwireStatus status(886, "NoMessage", "No message available"); return status; }
         static const SpeedwireStatus& NoAction(void) { static const SpeedwireStatus status(887, "NoAction", "No suggested action"); return status; }
+        static const SpeedwireStatus& Yes(void) { static const SpeedwireStatus status(1129, "Yes", "Yes"); return status; }
+        static const SpeedwireStatus& No(void) { static const SpeedwireStatus status(1130, "No", "No"); return status; }
+        static const SpeedwireStatus& GridSwOpen(void) { static const SpeedwireStatus status(1131, "GrSwOpen", "Grid switch open"); return status; }
         static const SpeedwireStatus& Standby(void) { static const SpeedwireStatus status(1295, "Standby", "Standby"); return status; }
         static const SpeedwireStatus& Locked(void) { static const SpeedwireStatus status(1795, "Locked", "Locked"); return status; }
         static const SpeedwireStatus& UpdateRecv(void) { static const SpeedwireStatus status(3179, "UpdateRecv", "Update receiving"); return status; }
@@ -81,6 +84,9 @@ namespace libspeedwire {
             predefined.push_back(NoDescription());
             predefined.push_back(NoMessage());
             predefined.push_back(NoAction());
+            predefined.push_back(Yes());
+            predefined.push_back(No());
+            predefined.push_back(GridSwOpen());
             predefined.push_back(Standby());
             predefined.push_back(Locked());
             predefined.push_back(UpdateRecv());
