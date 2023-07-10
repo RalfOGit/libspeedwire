@@ -41,10 +41,10 @@ CalculatedValueProcessor::~CalculatedValueProcessor(void) { }
 
 /**
  * Callback to produce the given obis data to the next stage in the processing pipeline.
- * @param device The originating emeter device.
+ * @param device The originating inverter device.
  * @param element A reference to a received ObisData instance, holding output data of the ObisFilter.
  */
-void CalculatedValueProcessor::consume(const SpeedwireDevice &device, ObisData& element) {
+void CalculatedValueProcessor::consume(const SpeedwireDevice& device, ObisData& element) {
     producer.produce(device, element.measurementType, element.wire, element.measurementValues.estimateMean(), element.measurementValues.getNewestElement().time);
 }
 
@@ -61,7 +61,7 @@ void CalculatedValueProcessor::consume(const SpeedwireDevice& device, SpeedwireD
 
 /**
  * Callback to notify that the last obis data in the emeter packet has been processed.
- * @param device The originating emeter device.
+ * @param device The originating inverter device.
  * @param timestamp The timestamp associated with the just finished emeter packet.
  */
 void CalculatedValueProcessor::endOfObisData(const SpeedwireDevice& device, const uint32_t timestamp) {
@@ -134,7 +134,7 @@ void CalculatedValueProcessor::endOfObisData(const SpeedwireDevice& device, cons
 
 /**
  * Callback to notify that the last data in the inverter packet has been processed.
- * @param device The originating inverter device.
+ * @param serial_number The serial number of the originating inverter device.
  * @param timestamp The unix epoch time associated with the just finished inverter packet.
  */
 void CalculatedValueProcessor::endOfSpeedwireData(const SpeedwireDevice& device, const uint32_t timestamp) {
@@ -228,6 +228,16 @@ void CalculatedValueProcessor::endOfSpeedwireData(const SpeedwireDevice& device,
                     household = pos->second.measurementValues.interpolateClosestValues(ac_time_emeter) + ac_total - neg->second.measurementValues.interpolateClosestValues(ac_time_emeter);
                     if (household < 0.0) household = 0.0;  // this can happen if there is a steep change in solar production or energy consumption and measurements are taken at different points in time
                 }
+                // consider battery inverter power: household power + battery inverter power
+                if ((value1 = speedwire_data_map.find(SpeedwireData::BatteryPowerACTotal.toKey())) != end &&
+                    (value1_time = value1->second.measurementValues.getNewestElement().time)) {
+                    uint32_t bat_ac_age = (uint32_t)SpeedwireTime::calculateAbsTimeDifference(inverter_time, value1_time);
+                    if (SpeedwireTime::calculateAbsTimeDifference(bat_ac_age, ac_age) <= 10) {
+                        household += value1->second.measurementValues.interpolateClosestValues(ac_time);
+                        if (household < 0.0) household = 0.0;  // this can happen if there is a steep change in solar production or energy consumption and measurements are taken at different points in time
+                    }
+                }
+
                 SpeedwireDevice household_device;
                 household_device.serialNumber = 0xcafebabe;
 
