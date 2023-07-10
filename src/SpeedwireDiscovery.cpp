@@ -398,7 +398,7 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                     device.interface_ip_address = socket.getLocalInterfaceAddress();
                 }
                 if (registerDevice(device)) {
-                    //printf("%s\n", device.toString().c_str());
+                    printf("found susyid %u serial %lu ip %s\n", device.susyID, device.serialNumber, device.peer_ip_address.c_str());
                     result = true;
                 }
             }
@@ -425,7 +425,7 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                     device.deviceModel = device_type.name;
                 }
                 if (registerDevice(device)) {
-                    //printf("%s\n", device.toString().c_str());
+                    printf("found susyid %u serial %lu ip %s\n", device.susyID, device.serialNumber, device.peer_ip_address.c_str());
                     result = true;
                 }
 #if 0
