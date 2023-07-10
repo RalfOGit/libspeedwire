@@ -44,7 +44,10 @@ namespace libspeedwire {
 
         const std::vector<SpeedwireDevice>& getDevices(void) const;
 
-        int discoverDevices(void);
+        const unsigned long getNumberOfFullyRegisteredDevices(void) const;
+        const unsigned long getNumberOfDevices(void) const;
+
+        int discoverDevices(const bool full_scan = false);
     };
 
 }   // namespace libspeedwire

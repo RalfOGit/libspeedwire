@@ -274,6 +274,7 @@ namespace libspeedwire {
         static const SpeedwireData BatteryTemperature;             //!< Battery temperature
         static const SpeedwireData BatteryVoltage;                 //!< Battery DC voltage
         static const SpeedwireData BatteryCurrent;                 //!< Battery DC current
+        static const SpeedwireData BatteryPowerACTotal;            //!< Total power on alternating current battery inverter connector
         static const SpeedwireData BatteryPowerL1;                 //!< Power on alternating current battery inverter connector phase L1
         static const SpeedwireData BatteryPowerL2;                 //!< Power on alternating current battery inverter connector phase L2
         static const SpeedwireData BatteryPowerL3;                 //!< Power on alternating current battery inverter connector phase L3
@@ -300,11 +301,12 @@ namespace libspeedwire {
         static const SpeedwireData BatteryGridReactivePowerL3;     //!< Reactive power as reported by emeter on grid connection point phase L3
         static const SpeedwireData BatteryGridReactivePower;       //!< Reactive power as reported by emeter on grid connection point total
         static const SpeedwireData BatterySetVoltage;              //!< Battery DC target set voltage
+        static const SpeedwireData BatteryOperationStatus;        //!< Inverter operation status
+        static const SpeedwireData BatteryRelay;                   //!< Grid relay status
 
         static const SpeedwireData InverterPowerDCTotal;           //!< Total power on direct current inverter inputs MPP1 + MPP2
         static const SpeedwireData InverterPowerLoss;              //!< Total power loss
         static const SpeedwireData InverterPowerEfficiency;        //!< Total power efficiency
-        static const SpeedwireData BatteryPowerACTotal;            //!< Total power on alternating current battery inverter connector
 
         static const SpeedwireData HouseholdPowerTotal;            //!< Total power consumption of the household
         static const SpeedwireData HouseholdIncomeTotal;           //!< Income generated

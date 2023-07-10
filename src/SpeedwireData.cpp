@@ -476,6 +476,7 @@ const SpeedwireData SpeedwireData::InverterDescriptionStatus    (Command::COMMAN
 const SpeedwireData SpeedwireData::InverterErrorStatus          (Command::COMMAND_STATUS_QUERY, 0x00414c00, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvErrStt");
 const SpeedwireData SpeedwireData::InverterRelay                (Command::COMMAND_STATUS_QUERY, 0x00416400, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterRelay(),   Wire::RELAY_ON, "OpGriSwStt");
 
+const SpeedwireData SpeedwireData::BatteryPowerACTotal       (Command::COMMAND_AC_QUERY, 0x00263F00, 0x07, SpeedwireDataType::Signed32,   0, NULL, 0, MeasurementType::InverterPower(), Wire::TOTAL, "BatPacTotal");
 const SpeedwireData SpeedwireData::BatteryStateOfCharge      (Command::COMMAND_AC_QUERY, 0x00295a00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterStateOfChargee(), Wire::NO_WIRE, "BatSoC");
 const SpeedwireData SpeedwireData::BatteryDiagChargeCycles   (Command::COMMAND_AC_QUERY, 0x00491e00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterRelay(), Wire::NO_WIRE, "BatChargeCycl");
 const SpeedwireData SpeedwireData::BatteryDiagTotalAhIn      (Command::COMMAND_AC_QUERY, 0x00492600, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterRelay(), Wire::NO_WIRE, "BatTotAhIn");
@@ -509,12 +510,13 @@ const SpeedwireData SpeedwireData::BatteryGridReactivePowerL2(Command::COMMAND_A
 const SpeedwireData SpeedwireData::BatteryGridReactivePowerL3(Command::COMMAND_AC_QUERY, 0x0046f000, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterReactivePower(), Wire::NO_WIRE, "GridQacL3");
 const SpeedwireData SpeedwireData::BatteryGridReactivePower  (Command::COMMAND_AC_QUERY, 0x0046f100, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterReactivePower(), Wire::NO_WIRE, "GridQac");
 const SpeedwireData SpeedwireData::BatterySetVoltage         (Command::COMMAND_AC_QUERY, 0x00493300, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::NO_WIRE, "BatSetUdc");
+const SpeedwireData SpeedwireData::BatteryOperationStatus    (Command::COMMAND_STATUS_QUERY, 0x00214800, 0x07, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::DEVICE_OK, "OpInvCtlStt");
+const SpeedwireData SpeedwireData::BatteryRelay              (Command::COMMAND_STATUS_QUERY, 0x00416400, 0x07, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterRelay(),   Wire::RELAY_ON, "OpGriSwStt");
 
 // pre-defined instances of derived measurement values
 const SpeedwireData SpeedwireData::InverterPowerDCTotal   (0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(),      Wire::MPP_TOTAL, "Pdc");
 const SpeedwireData SpeedwireData::InverterPowerLoss      (0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterLoss(),       Wire::LOSS_TOTAL, "Ploss");
 const SpeedwireData SpeedwireData::InverterPowerEfficiency(0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterEfficiency(), Wire::NO_WIRE, "Peff");
-const SpeedwireData SpeedwireData::BatteryPowerACTotal    (0, 0, 0, SpeedwireDataType::Signed32,   0, NULL, 0, MeasurementType::InverterPower(),      Wire::TOTAL, "BatPacTotal");
 
 // pre-defined instances for miscellaneous measurement types
 const SpeedwireData SpeedwireData::HouseholdPowerTotal           (0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::TOTAL, "Phh");
