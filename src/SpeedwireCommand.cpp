@@ -459,7 +459,7 @@ int32_t SpeedwireCommand::receiveResponse(const SpeedwireCommandTokenIndex token
             // check if the reply packet is a valid sma speedwire packet
             SpeedwireHeader speedwire_packet(udp_buffer, nbytes);
             bool valid_speedwire_packet = speedwire_packet.checkHeader();
-            if (valid_speedwire_packet == true) {
+            if (valid_speedwire_packet == true && speedwire_packet.isInverterProtocolID()) {
                 //LocalHost::hexdump(udp_buffer, nbytes);
 
                 // check reply packet for validity

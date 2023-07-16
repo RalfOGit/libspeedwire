@@ -69,11 +69,14 @@ namespace libspeedwire {
         /** Compare two instances; assume that if SusyID, Serial and IP is the same, it is the same device. */
         bool operator==(const SpeedwireDevice& rhs) const { return (susyID == rhs.susyID && serialNumber == rhs.serialNumber && peer_ip_address == rhs.peer_ip_address); }
 
-        /** Check if this instance is just pre-registered, i.e a device ip address is given. */
-        bool isPreRegistered(void) const { return (peer_ip_address.length() > 0 && susyID == 0 && serialNumber == 0); }
+        /** Check if this instance is just pre-registered with a given IP, i.e the device ip address is given. */
+        bool hasIPAddressOnly(void) const { return (peer_ip_address.length() > 0 && susyID == 0 && serialNumber == 0); }
+
+        /** Check if this instance is just pre-registered with a given serial number, i.e the device serial number is given. */
+        bool hasSerialNumberOnly(void) const { return (peer_ip_address.length() == 0 && susyID == 0 && serialNumber != 0); }
 
         /** Check if this instance is fully registered, i.e all device information is given. */
-        bool isFullyRegistered(void) const {
+        bool isComplete(void) const {
             return (susyID != 0 && serialNumber != 0 && deviceClass.length() > 0 && deviceModel.length() > 0 && peer_ip_address.length() > 0 && interface_ip_address.length() > 0);
         }
     };

@@ -107,7 +107,7 @@ SpeedwireDiscovery::~SpeedwireDiscovery(void) {
 
 
 /**
- *  Pre-register a device, i.e. just provide the ip address of the device.
+ *  Pre-register a device IP address, i.e. just provide the ip address of the device.
  *  A pre-registered device is explicitly queried during the device discovery process. As this discovery 
  *  is based on unicast upd packets, the ip address can be on a different subnet or somewhere on the internet.
  *  @param peer_ip_address The IP address of the speedwire peer in dot (ipv4) or colon (ipv6) notation.
@@ -129,24 +129,66 @@ bool SpeedwireDiscovery::preRegisterDevice(const std::string peer_ip_address) {
 
 
 /**
+ *  Pre-register a required device by its serial number.
+ *  A reqistered device will receive more discovery effort, in case it is not detected.
+ *  is based on unicast upd packets, the ip address can be on a different subnet or somewhere on the internet.
+ *  @param serial_number the serial number of the required device.
+ */
+bool SpeedwireDiscovery::requireDevice(const uint32_t serial_number) {
+    SpeedwireDevice info;
+    info.serialNumber = serial_number;
+    bool new_device = true;
+    for (auto& device : speedwireDevices) {
+        if (info.serialNumber == device.serialNumber) {
+            new_device = false;
+        }
+    }
+    if (new_device == true) {
+        speedwireDevices.push_back(info);
+    }
+    return new_device;
+}
+
+
+/**
  *  Fully register a device, i.e. provide a full information data set of the device.
  */
 bool SpeedwireDiscovery::registerDevice(const SpeedwireDevice& info) {
     bool new_device = true;
     bool updated_device = false;
     for (auto& device : speedwireDevices) {
-        if (device.isPreRegistered() && info.peer_ip_address == device.peer_ip_address) {
+        if (device.hasIPAddressOnly() && info.peer_ip_address == device.peer_ip_address) {
             device = info;
             new_device = false;
             updated_device = true;
         }
-        else if (device.isFullyRegistered() && info == device) {
+        else if (device.hasSerialNumberOnly() && info.serialNumber == device.serialNumber) {
+            device = info;
             new_device = false;
+            updated_device = true;
+        }
+        else if (device.isComplete() && info == device) {
+            device = info;
+            new_device = false;
+            //updated_device = true;
         }
     }
     if (new_device) {
         speedwireDevices.push_back(info);
         updated_device = true;
+    }
+    // remove duplicate device entries, this can happen if the same device was pre-registered by IP and by serial number
+    if (new_device == false) {
+        for (std::vector<SpeedwireDevice>::iterator it1 = speedwireDevices.begin(); it1 != speedwireDevices.end(); it1++) {
+            for (std::vector<SpeedwireDevice>::iterator it2 = it1 + 1; it2 != speedwireDevices.end(); ) {
+                if (*it1 == *it2) {
+                    it2 = speedwireDevices.erase(it2);
+                }
+                else {
+                    it2++;
+                }
+            }
+        }
     }
     return updated_device;
 }
@@ -175,12 +217,36 @@ const std::vector<SpeedwireDevice>& SpeedwireDiscovery::getDevices(void) const {
 
 
 /**
- *  Get the number of all known devices.
+ *  Get the number of all pre-registered devices, where just the ip address is known.
+ */
+const unsigned long SpeedwireDiscovery::getNumberOfPreRegisteredIPDevices(void) const {
+    unsigned long count = 0;
+    for (const auto& device : speedwireDevices) {
+        count += (device.hasIPAddressOnly() ? 1 : 0);
+    }
+    return count;
+}
+
+
+/**
+ *  Get the number of all pre-registered required devices, but they are still not yet discovered.
+ */
+const unsigned long SpeedwireDiscovery::getNumberOfMissingDevices(void) const {
+    unsigned long count = 0;
+    for (const auto& device : speedwireDevices) {
+        count += (device.hasSerialNumberOnly() ? 1 : 0);
+    }
+    return count;
+}
+
+
+/**
+ *  Get the number of all fully registered devices.
  */
 const unsigned long SpeedwireDiscovery::getNumberOfFullyRegisteredDevices(void) const {
     unsigned long count = 0;
     for (const auto& device : speedwireDevices) {
-        count += (device.isFullyRegistered() ? 1 : 0);
+        count += (device.isComplete() ? 1 : 0);
     }
     return count;
 }
@@ -217,6 +283,7 @@ int SpeedwireDiscovery::discoverDevices(const bool full_scan) {
     const uint64_t maxWaitTimeInMillis = 2000u;
     uint64_t startTimeInMillis = localhost.getTickCountInMs();
     size_t broadcast_counter = 0;
+    size_t wakeup_counter = 0;
     size_t prereg_counter = 0;
     size_t subnet_counter = (full_scan ? 1 : 0xffffffff);
     size_t socket_counter = 0;
@@ -231,7 +298,7 @@ int SpeedwireDiscovery::discoverDevices(const bool full_scan) {
 
         // send discovery request packet and update counters
         for (int i = 0; i < 10; ++i) {
-            if (sendNextDiscoveryPacket(broadcast_counter, prereg_counter, subnet_counter, socket_counter) == false) {
+            if (sendNextDiscoveryPacket(broadcast_counter, wakeup_counter, prereg_counter, subnet_counter, socket_counter) == false) {
                 break;  // done with sending all discovery packets
             }
             startTimeInMillis = localhost.getTickCountInMs();
@@ -257,12 +324,14 @@ int SpeedwireDiscovery::discoverDevices(const bool full_scan) {
 
     for (const auto& device : speedwireDevices) {
 #if 1
-        // try to get further information about the device by querying device type information from the peer
-        SpeedwireCommand command(localhost, speedwireDevices);
-        SpeedwireDevice updatedDevice = command.queryDeviceType(device);
-        if (updatedDevice.isFullyRegistered()) {
-            registerDevice(updatedDevice);
-            printf("%s\n", updatedDevice.toString().c_str());
+        if (!device.hasSerialNumberOnly()) {
+            // try to get further information about the device by querying device type information from the peer
+            SpeedwireCommand command(localhost, speedwireDevices);
+            SpeedwireDevice updatedDevice = command.queryDeviceType(device);
+            if (updatedDevice.isComplete()) {
+                registerDevice(updatedDevice);
+                printf("%s\n", updatedDevice.toString().c_str());
+            }
         }
 #else
         printf("%s\n", device.toString().c_str());
@@ -281,7 +350,7 @@ int SpeedwireDiscovery::discoverDevices(const bool full_scan) {
  *  - unicast speedwire discovery requests to pre-registered hosts
  *  - unicast speedwire discovery requests to all hosts on the network (only if the network prefix is < /16)
  */
-bool SpeedwireDiscovery::sendNextDiscoveryPacket(size_t& broadcast_counter, size_t& prereg_counter, size_t& subnet_counter, size_t& socket_counter) {
+bool SpeedwireDiscovery::sendNextDiscoveryPacket(size_t& broadcast_counter, size_t& wakeup_counter, size_t& prereg_counter, size_t& subnet_counter, size_t& socket_counter) {
 
     // sequentially first send multicast speedwire discovery requests
     const std::vector<std::string>& localIPs = localhost.getLocalIPv4Addresses();
@@ -293,10 +362,37 @@ bool SpeedwireDiscovery::sendNextDiscoveryPacket(size_t& broadcast_counter, size
         broadcast_counter++;
         return true;
     }
+    // followed by a wakeup sequence for all preregistered devices
+    static const int num_retries = 1;
+    if (wakeup_counter < num_retries * localIPs.size()) {
+        // then send the same multicast speedwire discovery requests as a unicast request to all pre-registered devices
+        for (auto& device : speedwireDevices) {
+            if (device.hasIPAddressOnly()) {
+                const std::string& addr = localIPs[wakeup_counter / num_retries];
+                struct in_addr if_addr  = AddressConversion::toInAddress(addr);
+                struct in_addr dev_addr = AddressConversion::toInAddress(device.peer_ip_address);
+                if (AddressConversion::resideOnSameSubnet(if_addr, dev_addr, 24)) {
+                    SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::SocketType::UNICAST, addr);
+                    sockaddr_in sockaddr;
+                    sockaddr.sin_family = AF_INET;
+                    sockaddr.sin_addr = dev_addr;
+                    sockaddr.sin_port = htons(9522);
+                    //fprintf(stdout, "send multicast discovery request to %s (via interface %s)\n", device.peer_ip_address.c_str(), socket.getLocalInterfaceAddress().c_str());
+                    int nbytes = socket.sendto(multicast_request, sizeof(multicast_request), sockaddr);
+                    if (num_retries > 1) {
+                        printf("wait for %s to wake up ...\n", device.peer_ip_address.c_str());
+                        LocalHost::sleep(1000);
+                    }
+                }
+            }
+        }
+        wakeup_counter++;
+        return true;
+    }
     // followed by pre-registered ip addresses
     if (prereg_counter < localIPs.size()) {
         for (auto& device : speedwireDevices) {
-            if (device.isPreRegistered()) {
+            if (device.hasIPAddressOnly()) {
                 SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::SocketType::UNICAST, localIPs[prereg_counter]);
                 sockaddr_in sockaddr;
                 sockaddr.sin_family = AF_INET;

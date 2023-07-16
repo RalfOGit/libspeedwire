@@ -29,7 +29,7 @@ namespace libspeedwire {
 
         std::vector<SpeedwireDevice> speedwireDevices;
 
-        bool sendNextDiscoveryPacket(size_t& broadcast_counter, size_t& prereg_counter, size_t& subnet_counter, size_t& socket_counter);
+        bool sendNextDiscoveryPacket(size_t& broadcast_counter, size_t& wakeup_counter, size_t& prereg_counter, size_t& subnet_counter, size_t& socket_counter);
         bool recvDiscoveryPackets(const SpeedwireSocket& socket);
 
     public:
@@ -38,12 +38,15 @@ namespace libspeedwire {
         ~SpeedwireDiscovery(void);
 
         bool preRegisterDevice(const std::string peer_ip_address);
+        bool requireDevice(const uint32_t serial_number);
 
         bool registerDevice(const SpeedwireDevice& info);
         void unregisterDevice(const SpeedwireDevice& info);
 
         const std::vector<SpeedwireDevice>& getDevices(void) const;
 
+        const unsigned long getNumberOfPreRegisteredIPDevices(void) const;
+        const unsigned long getNumberOfMissingDevices(void) const;
         const unsigned long getNumberOfFullyRegisteredDevices(void) const;
         const unsigned long getNumberOfDevices(void) const;
 
