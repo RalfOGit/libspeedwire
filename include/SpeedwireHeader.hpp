@@ -2,6 +2,7 @@
 #define __LIBSPEEDWIRE_SPEEDWIREPROTOCOL_H__
 
 #include <cstdint>
+#include <SpeedwireByteEncoding.hpp>
 
 namespace libspeedwire {
 
@@ -35,9 +36,14 @@ namespace libspeedwire {
 
         uint8_t* udp;
         unsigned long size;
+        void* data2;
 
     public:
 
+        // Protocol ids used by SMA. These follow recommendations stated in RFC1661 for PPP traffic:
+        static constexpr uint16_t sma_data1_protodol_id = 0x4041;           //!< Protocol id used for SMA data1 packets
+        static constexpr uint16_t sma_susy_protocol_id = 0x4043;            //!< Protocol id used for SMA software update system packets
+        static constexpr uint16_t sma_tcpip_suppl_protocol_id = 0x4051;     //!< Protocol id used for SMA TCP/IP supplementary module packets
         static constexpr uint16_t sma_emeter_protocol_id = 0x6069;          //!< Protocol id used for SMA emeter packets
         static constexpr uint16_t sma_extended_emeter_protocol_id = 0x6081; //!< Protocol id used for SMA emeter packets sent by home manager
         static constexpr uint16_t sma_inverter_protocol_id = 0x6065;        //!< Protocol id used for SMA inverter packets
@@ -58,6 +64,9 @@ namespace libspeedwire {
         uint16_t getProtocolID(void) const;
         uint8_t  getLongWords(void) const;
         uint8_t  getControl(void) const;
+        static bool isEmeterProtocolID        (uint16_t protocol_id) { return (protocol_id == sma_emeter_protocol_id); }
+        static bool isExtendedEmeterProtocolID(uint16_t protocol_id) { return (protocol_id == sma_extended_emeter_protocol_id); }
+        static bool isInverterProtocolID      (uint16_t protocol_id) { return (protocol_id == sma_inverter_protocol_id); }
         bool isEmeterProtocolID(void) const;
         bool isExtendedEmeterProtocolID(void) const;
         bool isInverterProtocolID(void) const;

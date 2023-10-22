@@ -25,7 +25,7 @@ SpeedwireSocket::SpeedwireSocket(const LocalHost &_localhost) :
     socket_fd = -1;
     socket_fd_ref_counter = (int*) malloc(sizeof(int));
     if (socket_fd_ref_counter != NULL) *socket_fd_ref_counter = 1;
-    socket_protocol = AF_UNSPEC;
+    socket_family = AF_UNSPEC;
     socket_interface_v4.s_addr = INADDR_ANY;
     memcpy(&socket_interface_v6, &IN6_ADDRESS_ANY, sizeof(socket_interface_v6));
     isInterfaceAny = false;
@@ -51,7 +51,7 @@ SpeedwireSocket::SpeedwireSocket(const SpeedwireSocket& rhs) :
     if (socket_fd_ref_counter != NULL) {
         ++(*socket_fd_ref_counter);
     }
-    socket_protocol = rhs.socket_protocol;
+    socket_family = rhs.socket_family;
     socket_interface_v4 = rhs.socket_interface_v4;
     memcpy(&socket_interface_v6, &rhs.socket_interface_v6, sizeof(socket_interface_v6));
     isInterfaceAny = rhs.isInterfaceAny;
@@ -94,21 +94,21 @@ int SpeedwireSocket::getSocketFd(void) const {
  *  Get socket protocol, either AF_INET, AF_INET6 or AF_UNSPEC
  */
 int SpeedwireSocket::getProtocol(void) const {
-    return socket_protocol;
+    return socket_family;
 }
 
 /**
  *  Return true, if socket protocol is AF_INET
  */
 bool SpeedwireSocket::isIpv4(void) const {
-    return (socket_protocol == AF_INET);
+    return (socket_family == AF_INET);
 }
 
 /**
  *  Return true, if socket protocol is AF_INET6
  */
 bool SpeedwireSocket::isIpv6(void) const {
-    return (socket_protocol == AF_INET6);
+    return (socket_family == AF_INET6);
 }
 
 /**
@@ -147,15 +147,15 @@ const sockaddr_in6 SpeedwireSocket::getSpeedwireMulticastIn6Address(void) const 
 int SpeedwireSocket::openSocket(const std::string &local_interface_address, const bool multicast) {
     socket_interface = local_interface_address;
     if (AddressConversion::isIpv4(local_interface_address) == true) {
-        socket_protocol = AF_INET;
+        socket_family = AF_INET;
         socket_fd = openSocketV4(local_interface_address, multicast);
     }
     else if (AddressConversion::isIpv6(local_interface_address) == true) {
-        socket_protocol = AF_INET6;
+        socket_family = AF_INET6;
         socket_fd = openSocketV6(local_interface_address, multicast);
     }
     else {
-        socket_protocol = AF_UNSPEC;
+        socket_family = AF_UNSPEC;
         perror("openSocket error - unknown protocol");
     }
     socket_interface = local_interface_address;
@@ -176,7 +176,7 @@ int SpeedwireSocket::closeSocket(void) {
         result = close(socket_fd);
 #endif
         socket_fd = -1;
-        socket_protocol = AF_UNSPEC;
+        socket_family = AF_UNSPEC;
         socket_interface.clear();
     }
     return result;

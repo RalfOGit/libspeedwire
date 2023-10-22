@@ -34,9 +34,9 @@ using namespace libspeedwire;
 //! Multicast device discovery request packet, according to SMA documentation.
 //! However, this does not seem to be supported anymore with version 3.x devices
 const unsigned char  SpeedwireDiscovery::multicast_request[] = {
-    0x53, 0x4d, 0x41, 0x00, 0x00, 0x04, 0x02, 0xa0,     // sma signature, tag0
-    0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x20,     // 0xffffffff group, 0x0000 length, 0x0020 "SMA Net ?", Version ?
-    0x00, 0x00, 0x00, 0x00                              // 0x0000 protocol, 0x00 #long words, 0x00 ctrl
+    0x53, 0x4d, 0x41, 0x00, 0x00, 0x04, 0x02, 0xa0,     // sma signature, 0x0004 length, 0x02a0 tag0
+    0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x20,     // 0xffffffff group, 0x0000 length, 0x0020 discovery tag
+    0x00, 0x00, 0x00, 0x00                              // 0x0000 length, 0x0000 end-of-data tag
 };
 
 //! Unicast device discovery request packet, according to SMA documentation
@@ -529,11 +529,7 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 printf("%s\n", inverter_packet.toString().c_str());
                 std::vector<SpeedwireRawData> raw_data = inverter_packet.getRawDataElements();
                 for (auto& rd : raw_data) {
-                    size_t num_values = rd.getNumberOfValues();
-                    for (size_t i = 0; i < num_values; ++i) {
-                        uint32_t value = rd.getValueAsUnsignedLong(i);
-                        printf("0x%08lx  %ld\n", value, value);
-                    }
+                    printf("%s\n", rd.toString().c_str());
                 }
 #endif
             }

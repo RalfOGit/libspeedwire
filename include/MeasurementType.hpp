@@ -141,7 +141,7 @@ namespace libspeedwire {
         static MeasurementType InverterStatus(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::STATUS, "", 1); }
         static MeasurementType InverterRelay(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::STATUS, "", 1); }
         static MeasurementType InverterEfficiency(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::EFFICIENCY, "%", 1); }
-        static MeasurementType InverterStateOfChargee(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::STATE_OF_CHARGE, "%", 1); }
+        static MeasurementType InverterStateOfCharge(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::STATE_OF_CHARGE, "%", 1); }
         static MeasurementType InverterTemperature(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::TEMPERATURE, "°C", 10); }
         static MeasurementType InverterLoss(void) { return MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::POWER, "W", 1); }
         static MeasurementType InverterEnergy(const Direction direction = Direction::NO_DIRECTION) { return MeasurementType(direction, Type::ACTIVE, Quantity::ENERGY, "Wh", 1); }

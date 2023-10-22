@@ -282,11 +282,11 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
         PIP_ADAPTER_ADDRESSES pAdapterAddresses = AdapterAdresses;
         while (pAdapterAddresses != NULL) {
             if (pAdapterAddresses->OperStatus == IF_OPER_STATUS::IfOperStatusUp && pAdapterAddresses->PhysicalAddressLength == 6) {  // PhysicalAddressLength == 0 for loopback interfaces
-                char mac_addr[18];
-                snprintf(mac_addr, sizeof(mac_addr), "%02X:%02X:%02X:%02X:%02X:%02X",
-                    pAdapterAddresses->PhysicalAddress[0], pAdapterAddresses->PhysicalAddress[1],
-                    pAdapterAddresses->PhysicalAddress[2], pAdapterAddresses->PhysicalAddress[3],
-                    pAdapterAddresses->PhysicalAddress[4], pAdapterAddresses->PhysicalAddress[5]);
+                std::array<uint8_t, 6> mac_addr_bytes;
+                for (size_t i = 0; i < mac_addr_bytes.size(); ++i) {
+                    mac_addr_bytes[i] = pAdapterAddresses->PhysicalAddress[i];
+                }
+                std::string mac_addr = AddressConversion::toString(mac_addr_bytes);
                 LocalHost::InterfaceInfo info;
                 char friendly[256];
                 snprintf(friendly, sizeof(friendly), "%S", pAdapterAddresses->FriendlyName);
@@ -299,7 +299,7 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
                     std::string ip_name = AddressConversion::toString(*(sockaddr*)(unicast_address->Address.lpSockaddr));
                     info.ip_addresses.push_back(ip_name);
                     info.ip_address_prefix_lengths[ip_name] = unicast_address->OnLinkPrefixLength;
-                    fprintf(stdout, "address: %28.*s  prefixlength: %d  mac: %s  name: \"%s\"\n", (int)ip_name.length(), ip_name.c_str(), unicast_address->OnLinkPrefixLength, mac_addr, info.if_name.c_str());
+                    fprintf(stdout, "address: %28.*s  prefixlength: %d  mac: %s  name: \"%s\"\n", (int)ip_name.length(), ip_name.c_str(), unicast_address->OnLinkPrefixLength, mac_addr.c_str(), info.if_name.c_str());
                     unicast_address = unicast_address->Next;
                 } while (unicast_address != NULL);
 
@@ -331,10 +331,11 @@ std::vector<LocalHost::InterfaceInfo> LocalHost::queryLocalInterfaceInfos(void) 
 #ifndef __APPLE__
             if (ioctl(s, SIOCGIFHWADDR, &buffer) == 0) {
                 struct sockaddr saddr = buffer.ifr_ifru.ifru_hwaddr;
-                char mac_addr[18];
-                snprintf(mac_addr, sizeof(mac_addr), "%02X:%02X:%02X:%02X:%02X:%02X",
-                    (uint8_t)saddr.sa_data[0], (uint8_t)saddr.sa_data[1], (uint8_t)saddr.sa_data[2],
-                    (uint8_t)saddr.sa_data[3], (uint8_t)saddr.sa_data[4], (uint8_t)saddr.sa_data[5]);
+                std::array<uint8_t, 6> mac_addr_bytes;
+                for (size_t i = 0; i < mac_addr_bytes.size(); ++i) {
+                    mac_addr_bytes[i] = (uint8_t)saddr.sa_data[i];
+                }
+                std::string mac_addr = AddressConversion::toString(mac_addr_bytes);
                 info.mac_address = mac_addr;
             }
             size_t len = sizeof(struct ifreq);

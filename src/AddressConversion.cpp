@@ -201,7 +201,7 @@ bool AddressConversion::resideOnSameSubnet(const struct in6_addr& host1, const s
 /**
  *  Remove non-ip address related characters like []%/, subnet masks, escape characters, etc
  */
-const std::string AddressConversion::stripIPAddress(const std::string& ip_address) {
+std::string AddressConversion::stripIPAddress(const std::string& ip_address) {
     std::string::size_type first_1 = ip_address.find('[');
     std::string::size_type first_index = (first_1 != std::string::npos ? first_1 : 0);
     std::string::size_type last_1 = ip_address.find('%');
@@ -236,3 +236,76 @@ const struct sockaddr_in& AddressConversion::toSockAddrIn(const struct sockaddr&
 
 /** Cast the given const binary generic ipv4/ipv6 socket address reference into a binary const ipv6 socket address reference in a type safe way */
 const struct sockaddr_in6& AddressConversion::toSockAddrIn6(const struct sockaddr& src) { return (const struct sockaddr_in6&)src; }
+
+
+struct sockaddr AddressConversion::toSockAddr(const struct in_addr& address, const uint16_t port) {
+    struct sockaddr_in socket_address;
+    memset(&socket_address, 0, sizeof(socket_address));
+    socket_address.sin_family = AF_INET;
+    socket_address.sin_port = htons(port);
+    socket_address.sin_addr = address;
+    return toSockAddr(socket_address);
+}
+
+struct sockaddr AddressConversion::toSockAddr(const struct in6_addr& address, const uint16_t port) {
+    struct sockaddr_in6 socket_address;
+    memset(&socket_address, 0, sizeof(socket_address));
+    socket_address.sin6_family = AF_INET6;
+    socket_address.sin6_port = htons(port);
+    socket_address.sin6_addr = address;
+    return toSockAddr(socket_address);
+}
+
+/**
+ *  Convert a string representation of a an ethernet mac address into its binary format
+ */
+std::array<uint8_t, 6> AddressConversion::toMacAddress(const std::string& mac) {
+    std::array<uint8_t, 6> arr;
+    //arr.fill(0);
+    size_t n = 0, i = 0;
+    for (; i + 1 < mac.length() && n < arr.size(); i += 2) {
+        int i1 = hexToInt(mac[i]);
+        int i2 = hexToInt(mac[i+1]);
+        if (i1 < 0 || i2 < 0) {
+            break;
+        }
+        arr[n++] = i1 * 16 + i2;
+        if (i + 2 < mac.length() && (mac[i + 2] == ':' || mac[i + 2] == '-')) {  // skip delimiter characters : or -
+            ++i;
+        }
+    }
+    if (i < mac.length() || n != arr.size()) {
+        //perror("ethernet string to mac address failure");
+        arr.fill(0);
+    }
+    return arr;
+}
+
+/**
+ *  Convert a binary ethernet mac address into a string
+ */
+std::string AddressConversion::toString(const std::array<uint8_t, 6>& mac) {
+    char temp[18];
+    int n = snprintf(temp, sizeof(temp), "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    if (n == 17) {
+        return temp;
+    }
+    return std::string();
+}
+
+/**
+ *  Convert a hexadecimal character to an int value
+ */
+int AddressConversion::hexToInt(const char c) {
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    }
+    if (c >= 'a' && c <= 'f') {
+        return c - 'a' + 10;
+    }
+    if (c >= 'A' && c <= 'F') {
+        return c - 'A' + 10;
+    }
+    return -1;
+}
+

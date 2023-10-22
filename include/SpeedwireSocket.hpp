@@ -20,11 +20,11 @@ namespace libspeedwire {
      */
     class SpeedwireSocket {
 
-    private:
+    protected:
 
         int socket_fd;
         int* socket_fd_ref_counter;
-        int socket_protocol;
+        int socket_family;
 
         std::string     socket_interface;
         struct in_addr  socket_interface_v4;

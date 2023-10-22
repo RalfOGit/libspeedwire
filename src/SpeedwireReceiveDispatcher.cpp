@@ -89,20 +89,6 @@ int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& so
             SpeedwireHeader speedwire_packet(udp_packet, nbytes);
             bool valid_speedwire_packet = speedwire_packet.checkHeader();
             if (valid_speedwire_packet) {
-#if 0
-                uint8_t* ptr = speedwire_packet.getPacketPointer();
-                ptr += 4;
-                uint16_t len = SpeedwireByteEncoding::getUint16BigEndian(ptr);  // len is number of data bytes following the tag
-                uint16_t tag = SpeedwireByteEncoding::getUint16BigEndian(ptr + 2);
-                uint16_t subtag = SpeedwireByteEncoding::getUint16BigEndian(ptr + 4);
-                uint32_t group0 = speedwire_packet.getGroup();
-                while (len != 0) {
-                    ptr += len + 4;
-                    len = SpeedwireByteEncoding::getUint16BigEndian(ptr);
-                    tag = SpeedwireByteEncoding::getUint16BigEndian(ptr+2);
-                    subtag = SpeedwireByteEncoding::getUint16BigEndian(ptr + 4);
-                }
-#endif
                 uint32_t group      = speedwire_packet.getGroup();
                 uint16_t length     = speedwire_packet.getLength();
                 uint16_t protocolID = speedwire_packet.getProtocolID();
@@ -112,8 +98,8 @@ int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& so
                 bool valid_inverter_packet = false;
 
                 // check if it is an sma emeter packet
-                if (speedwire_packet.isEmeterProtocolID() ||
-                    speedwire_packet.isExtendedEmeterProtocolID()) {
+                if (speedwire_packet.isEmeterProtocolID(protocolID) ||
+                    speedwire_packet.isExtendedEmeterProtocolID(protocolID)) {
                     SpeedwireEmeterProtocol emeter(speedwire_packet);
                     uint16_t susyid = emeter.getSusyID();
                     uint32_t serial = emeter.getSerialNumber();
@@ -123,7 +109,7 @@ int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& so
                     ++npackets;
                 }
                 // check if it is an sma inverter packet
-                else if (speedwire_packet.isInverterProtocolID()) {
+                else if (speedwire_packet.isInverterProtocolID(protocolID)) {
                     uint8_t longwords = speedwire_packet.getLongWords();
 
                     // a few quick sanity checks

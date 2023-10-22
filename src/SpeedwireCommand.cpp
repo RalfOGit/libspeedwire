@@ -306,6 +306,7 @@ SpeedwireCommandTokenIndex SpeedwireCommand::sendQueryRequest(const SpeedwireDev
 
     // assemble unicast device login packet                                                                                 
     unsigned char request_buffer[24 + 8 + 8 + 6 + 4 + 4 + 4];
+    memset(request_buffer, 0, sizeof(request_buffer));
     SpeedwireHeader request_header(request_buffer, sizeof(request_buffer));
     request_header.setDefaultHeader(1, sizeof(request_buffer) - 20, SpeedwireHeader::sma_inverter_protocol_id);
     request_header.setControl(0xa0);

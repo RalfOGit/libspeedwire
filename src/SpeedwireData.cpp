@@ -477,7 +477,7 @@ const SpeedwireData SpeedwireData::InverterErrorStatus          (Command::COMMAN
 const SpeedwireData SpeedwireData::InverterRelay                (Command::COMMAND_STATUS_QUERY, 0x00416400, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterRelay(),   Wire::RELAY_ON, "OpGriSwStt");
 
 const SpeedwireData SpeedwireData::BatteryPowerACTotal       (Command::COMMAND_AC_QUERY, 0x00263F00, 0x07, SpeedwireDataType::Signed32,   0, NULL, 0, MeasurementType::InverterPower(), Wire::TOTAL, "BatPacTotal");
-const SpeedwireData SpeedwireData::BatteryStateOfCharge      (Command::COMMAND_AC_QUERY, 0x00295a00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterStateOfChargee(), Wire::NO_WIRE, "BatSoC");
+const SpeedwireData SpeedwireData::BatteryStateOfCharge      (Command::COMMAND_AC_QUERY, 0x00295a00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterStateOfCharge(), Wire::NO_WIRE, "BatSoC");
 const SpeedwireData SpeedwireData::BatteryDiagChargeCycles   (Command::COMMAND_AC_QUERY, 0x00491e00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterRelay(), Wire::NO_WIRE, "BatChargeCycl");
 const SpeedwireData SpeedwireData::BatteryDiagTotalAhIn      (Command::COMMAND_AC_QUERY, 0x00492600, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterRelay(), Wire::NO_WIRE, "BatTotAhIn");
 const SpeedwireData SpeedwireData::BatteryDiagTotalAhOut     (Command::COMMAND_AC_QUERY, 0x00492700, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterRelay(), Wire::NO_WIRE, "BatTotAhOut");
