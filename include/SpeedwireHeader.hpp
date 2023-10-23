@@ -87,6 +87,12 @@ namespace libspeedwire {
         unsigned long getPayloadOffset(void) const;
         uint8_t* getPacketPointer(void) const;
         unsigned long getPacketSize(void) const;
+
+        // methods to retrieve tag headers
+        void* const getFirstTagPacket(void) const;
+        void* const getNextTagPacket(const void* const current_tag) const;
+        void* const findTagPacket(uint16_t tag_id) const;
+        bool tagPacketFitsIntoUdp(const void* const tag) const;
     };
 
 }   // namespace libspeedwire
