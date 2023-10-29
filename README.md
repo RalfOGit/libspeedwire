@@ -1,7 +1,31 @@
 # speedwire-lib
 Code implementing a SMA Speedwire(TM) access library. It implements a full parser for the sma header and the emeter datagram structure, including obis filtering. In addition, it implements some parsing functionality for inverter query and response datagrams.
 
-The software comes as is. No warrantees whatsoever are given and no responsibility is assumed in case of failure or damage being caused to your wallbox.
+The overall speedwire packet format is:
+- The packets start with a 4 byte SMA Signature containing the ascii encoded string "SMA\0".
+- After the signature follows a sequence of tag packets, where each tag packet starts with a tag header followed a sequence of tag payload bytes.
+- The last tag packet is an end-of-data packet with 0 bytes of tag payload and a tag id of 0.
+
+Emeter and inverter speedwire packets follow a standard format consisting of a tag0 packet holding the group id, a data2 packet holding the payload and an end-of-data packet.
+
+    +---------------------------------------------------------------------------------+
+    +      4 Bytes   | SMA Signature "SMA\0"                                          +
+    +---------------------------------------------------------------------------------+
+    +  Tag Packet 0                                                                   +
+    +      2 Bytes   | Tag0 Length            | 4                                     +
+    +      2 Bytes   | Tag0 ID                | 0x02a0                                +
+    +      4 Bytes   | Group ID               | 0x00000001                            +
+    +---------------------------------------------------------------------------------+
+    +  Tag Packet 1                                                                   +
+    +      2 Bytes   | Data2 Tag Length       | # of bytes following Data2 Tag ID     +
+    +      2 Bytes   | Data2 Tag ID           | 0x0010                                +
+    +      2 Bytes   | Protocol ID            | always encoded for Data2 tag packets  +
+    +        Bytes   | Data                   |                                       +
+    +---------------------------------------------------------------------------------+
+    +  Tag Packet 2                                                                   +
+    +      2 Bytes   | End-of-Data Tag Length | 0x0000                                +
+    +      2 Bytes   | End-of-Data Tag ID     | 0x0000                                +
+    +---------------------------------------------------------------------------------+
 
 Useful examples on how to use this library can be found in the accompanying repositories:
 - https://github.com/RalfOGit/sma-emeter-and-inverter-to-influxdb-cpp,
@@ -9,6 +33,8 @@ Useful examples on how to use this library can be found in the accompanying repo
 - https://github.com/RalfOGit/speedwire-router.
 
 The implementation comes with Doxygen comments. Thus you can use Doxygen to create the documentation.
+
+The software comes as is. No warrantees whatsoever are given and no responsibility is assumed in case of failure or damage being caused to your equipment.
 
 The simplest way to build this library together with your code is to checkout this library into a separate folder and use unix symbolic links (ln -s ...) or ntfs junctions (mklink /J ...) to integrate it as a sub-folder within your projects folder.
 
