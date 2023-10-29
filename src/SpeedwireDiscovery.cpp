@@ -41,8 +41,8 @@ const unsigned char  SpeedwireDiscovery::multicast_request[] = {
 
 //! Unicast device discovery request packet, according to SMA documentation
 const unsigned char  SpeedwireDiscovery::unicast_request[] = {
-    0x53, 0x4d, 0x41, 0x00, 0x00, 0x04, 0x02, 0xa0,     // sma signature, tag0
-    0x00, 0x00, 0x00, 0x01, 0x00, 0x26, 0x00, 0x10,     // 0x26 length, 0x0010 "SMA Net 2", Version 0
+    0x53, 0x4d, 0x41, 0x00, 0x00, 0x04, 0x02, 0xa0,     // sma signature, 0x0004 length, 0x02a0 tag0
+    0x00, 0x00, 0x00, 0x01, 0x00, 0x26, 0x00, 0x10,     // 0x00000001 group, 0x0026 length, 0x0010 "SMA Net 2", Version 0
     0x60, 0x65, 0x09, 0xa0, 0xff, 0xff, 0xff, 0xff,     // 0x6065 protocol, 0x09 #long words, 0xa0 ctrl, 0xffff dst susyID any, 0xffffffff dst serial any
     0xff, 0xff, 0x00, 0x00, 0x7d, 0x00, 0x52, 0xbe,     // 0x0000 dst cntrl, 0x007d src susy id, 0x3a28be52 src serial
     0x28, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // 0x0000 src cntrl, 0x0000 error code, 0x0000 fragment ID
@@ -466,14 +466,19 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
     }
     if (nbytes > 0) {
         SpeedwireHeader protocol(udp_packet, nbytes);
-        if (protocol.checkHeader()) {
-            unsigned long payload_offset = protocol.getPayloadOffset();
+        bool valid_data2_packet = protocol.isValidData2Packet();
+        if (valid_data2_packet) {
+
+            SpeedwireData2Packet data2_packet(protocol);
+            uint16_t length = data2_packet.getTagLength();
+            uint16_t protocolID = data2_packet.getProtocolID();
+
             // check for speedwire multicast device discovery responses
-            if (protocol.getProtocolID() == 0x0001) {
+            if (protocolID == 0x0001) {
                 printf("received speedwire discovery response packet\n");
             }
             // check for emeter protocol
-            else if (protocol.isEmeterProtocolID() || protocol.isExtendedEmeterProtocolID()) {
+            else if (SpeedwireData2Packet::isEmeterProtocolID(protocolID) || SpeedwireData2Packet::isExtendedEmeterProtocolID(protocolID)) {
                 //LocalHost::hexdump(udp_packet, nbytes);
                 SpeedwireEmeterProtocol emeter(protocol);
                 SpeedwireDevice device;
@@ -499,7 +504,7 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 }
             }
             // check for inverter protocol and ignore loopback packets
-            else if (protocol.isInverterProtocolID() &&
+            else if (SpeedwireData2Packet::isInverterProtocolID(protocolID) &&
                 (nbytes != sizeof(unicast_request) || memcmp(udp_packet, unicast_request, sizeof(unicast_request)) != 0)) {
                 SpeedwireInverterProtocol inverter_packet(protocol);
                 //LocalHost::hexdump(udp_packet, nbytes);
@@ -533,9 +538,8 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 }
 #endif
             }
-            else if (!protocol.isInverterProtocolID()) {
-                uint16_t id = protocol.getProtocolID();
-                printf("received unknown response packet 0x%04x\n", id);
+            else if (!SpeedwireData2Packet::isInverterProtocolID(protocolID)) {
+                printf("received unknown response packet 0x%04x\n", protocolID);
                 perror("unexpected response");
             }
         }

@@ -11,6 +11,7 @@
 
 #include <AddressConversion.hpp>
 #include <Logger.hpp>
+#include <SpeedwireTagHeader.hpp>
 #include <SpeedwireReceiveDispatcher.hpp>
 using namespace libspeedwire;
 
@@ -85,21 +86,21 @@ int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& so
                 nbytes = socket.recvfrom(udp_packet, sizeof(udp_packet), AddressConversion::toSockAddrIn6(src));
             }
 
-            // check if it is an sma speedwire packet
+            // check if it is an sma data2 speedwire packet
             SpeedwireHeader speedwire_packet(udp_packet, nbytes);
-            bool valid_speedwire_packet = speedwire_packet.checkHeader();
-            if (valid_speedwire_packet) {
-                uint32_t group      = speedwire_packet.getGroup();
-                uint16_t length     = speedwire_packet.getLength();
-                uint16_t protocolID = speedwire_packet.getProtocolID();
-                int      offset     = speedwire_packet.getPayloadOffset();
+            bool valid_data2_packet = speedwire_packet.isValidData2Packet();
+            if (valid_data2_packet) {
+
+                SpeedwireData2Packet data2_packet(speedwire_packet);
+                uint16_t length     = data2_packet.getTagLength();
+                uint16_t protocolID = data2_packet.getProtocolID();
 
                 bool valid_emeter_packet = false;
                 bool valid_inverter_packet = false;
 
                 // check if it is an sma emeter packet
-                if (speedwire_packet.isEmeterProtocolID(protocolID) ||
-                    speedwire_packet.isExtendedEmeterProtocolID(protocolID)) {
+                if (SpeedwireData2Packet::isEmeterProtocolID(protocolID) ||
+                    SpeedwireData2Packet::isExtendedEmeterProtocolID(protocolID)) {
                     SpeedwireEmeterProtocol emeter(speedwire_packet);
                     uint16_t susyid = emeter.getSusyID();
                     uint32_t serial = emeter.getSerialNumber();
@@ -109,8 +110,8 @@ int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& so
                     ++npackets;
                 }
                 // check if it is an sma inverter packet
-                else if (speedwire_packet.isInverterProtocolID(protocolID)) {
-                    uint8_t longwords = speedwire_packet.getLongWords();
+                else if (SpeedwireData2Packet::isInverterProtocolID(protocolID)) {
+                    uint8_t longwords = data2_packet.getLongWords();
 
                     // a few quick sanity checks
                     if ((length + (size_t)20) > sizeof(udp_packet)) {    // packet length - starting to count from the byte following protocolID, # of long words and control byte, i.e. with byte #20
@@ -126,7 +127,6 @@ int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& so
                         return -1;
                     }
 
-                    SpeedwireInverterProtocol inverter(speedwire_packet);
                     logger.print(LogLevel::LOG_INFO_2, "received inverter packet  time %lu\n", (uint32_t)LocalHost::getUnixEpochTimeInMs());
                     valid_inverter_packet = true;
                     ++npackets;
@@ -174,7 +174,7 @@ void SpeedwireReceiveDispatcher::registerReceiver(SpeedwirePacketReceiverBase& r
  * @param receiver Reference to the packet receiver instance.
  */
 void SpeedwireReceiveDispatcher::registerReceiver(EmeterPacketReceiverBase& receiver) {
-    receiver.protocolID = SpeedwireHeader::sma_emeter_protocol_id;
+    receiver.protocolID = SpeedwireData2Packet::sma_emeter_protocol_id;
     receivers.push_back(&receiver);
 }
 
@@ -183,6 +183,6 @@ void SpeedwireReceiveDispatcher::registerReceiver(EmeterPacketReceiverBase& rece
  * @param receiver Reference to the packet receiver instance.
  */
 void SpeedwireReceiveDispatcher::registerReceiver(InverterPacketReceiverBase& receiver) {
-    receiver.protocolID = SpeedwireHeader::sma_inverter_protocol_id;
+    receiver.protocolID = SpeedwireData2Packet::sma_inverter_protocol_id;
     receivers.push_back(&receiver);
 }

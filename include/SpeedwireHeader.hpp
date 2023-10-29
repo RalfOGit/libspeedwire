@@ -4,17 +4,53 @@
 #include <cstdint>
 #include <SpeedwireByteEncoding.hpp>
 
+#if defined(__GNUC__) || defined(__clang__)
+#define DEPRECATED __attribute__((deprecated))
+#elif defined(_MSC_VER)
+#define DEPRECATED __declspec(deprecated)
+#else
+#pragma message("WARNING: You need to implement DEPRECATED for this compiler")
+#define DEPRECATED
+#endif
+
 namespace libspeedwire {
 
     /**
      * Class for parsing and assembling of speedwire protocol headers.
      *
      * This class provides accessor methods and validity checks for a speedwire packet stored in memory.
+     * 
+     * The overall speedwire packet format is:
+     * - The packets start with a 4 byte SMA Signature containing the ascii encoded string "SMA\0".
+     * - After the signature follows a sequence of tag packets, where each tag packet starts with a tag
+     *   header followed a sequence of tag payload bytes.
+     * - The last tag packet is an end-of-data packet with 0 bytes of tag payload and a tag id of 0.
+     * 
+     * Emeter and inverter speedwire packets follow a standard format consisting of a tag0 packet holding
+     * the group id, a data2 packet holding the payload and an end-of-data packet.
+     * 
+     *      +---------------------------------------------------------------------------------+
+     *      +      4 Bytes   | SMA Signature "SMA\0"                                          +
+     *      +---------------------------------------------------------------------------------+
+     *      +  Tag Packet 0                                                                   +
+     *      +      2 Bytes   | Tag0 Length            | 4: # of bytes following Tag0 ID       +
+     *      +      2 Bytes   | Tag0 ID                | 0x02a0                                +
+     *      +      4 Bytes   | Group ID               | 0x00000001                            +
+     *      +---------------------------------------------------------------------------------+
+     *      +  Tag Packet 1                                                                   +
+     *      +      2 Bytes   | Data2 Tag Length       | # of bytes following Data2 Tag ID     +
+     *      +      2 Bytes   | Data2 Tag ID           | 0x0010                                +
+     *      +      2 Bytes   | Protocol ID            | always encoded for Data2 tag packets  +
+     *      +        Bytes   | Data                   |                                       +
+     *      +---------------------------------------------------------------------------------+
+     *      +  Tag Packet 2                                                                   +
+     *      +      2 Bytes   | End-of-Data Tag Length | 0x0000: # of bytes following Tag ID   +
+     *      +      2 Bytes   | End-of-Data Tag ID     | 0x0000                                +
+     *      +---------------------------------------------------------------------------------+
      *
-     * The header is in the first 24 bytes of a speedwire udp packet. The header format is
-     * described in a public technical SMA document: "SMA Energy Meter Zählerprotokoll". The
-     * english version is called "SMA Energy Meter Protocol" and can be found here:
-     * https://www.sma.de/fileadmin/content/global/Partner/Documents/SMA_Labs/EMETER-Protokoll-TI-en-10.pdf
+     * The header format is described in a public technical SMA document: "SMA Energy Meter Zählerprotokoll".
+     * The english version is called "SMA Energy Meter Protocol" and can be found here:
+     * https://developer.sma.de/fileadmin/content/global/Partner/Documents/SMA_Labs/EMETER-Protokoll-TI-en-10.pdf
      */
     class SpeedwireHeader {
 
@@ -41,50 +77,55 @@ namespace libspeedwire {
     public:
 
         // Protocol ids used by SMA. These follow recommendations stated in RFC1661 for PPP traffic:
-        static constexpr uint16_t sma_data1_protodol_id = 0x4041;           //!< Protocol id used for SMA data1 packets
-        static constexpr uint16_t sma_susy_protocol_id = 0x4043;            //!< Protocol id used for SMA software update system packets
-        static constexpr uint16_t sma_tcpip_suppl_protocol_id = 0x4051;     //!< Protocol id used for SMA TCP/IP supplementary module packets
-        static constexpr uint16_t sma_emeter_protocol_id = 0x6069;          //!< Protocol id used for SMA emeter packets
-        static constexpr uint16_t sma_extended_emeter_protocol_id = 0x6081; //!< Protocol id used for SMA emeter packets sent by home manager
-        static constexpr uint16_t sma_inverter_protocol_id = 0x6065;        //!< Protocol id used for SMA inverter packets
-        static constexpr uint16_t sma_discovery_protocol_id = 0xffff;       //!< Protocol id used for SMA discovery packets
+        DEPRECATED static constexpr uint16_t sma_data1_protodol_id = 0x4041;           //!< Protocol id used for SMA data1 packets
+        DEPRECATED static constexpr uint16_t sma_susy_protocol_id = 0x4043;            //!< Protocol id used for SMA software update system packets
+        DEPRECATED static constexpr uint16_t sma_tcpip_suppl_protocol_id = 0x4051;     //!< Protocol id used for SMA TCP/IP supplementary module packets
+        /* DEPRECATED */ static constexpr uint16_t sma_emeter_protocol_id = 0x6069;          //!< Protocol id used for SMA emeter packets
+        /* DEPRECATED */ static constexpr uint16_t sma_extended_emeter_protocol_id = 0x6081; //!< Protocol id used for SMA emeter packets sent by home manager
+        /* DEPRECATED */ static constexpr uint16_t sma_inverter_protocol_id = 0x6065;        //!< Protocol id used for SMA inverter packets
 
 
         SpeedwireHeader(const void* const udp_packet, const unsigned long udp_packet_size);
         ~SpeedwireHeader(void);
 
-        bool checkHeader(void) const;
+        bool isSMAPacket(void) const;
+        bool isValidData2Packet(bool fullcheck = false) const;
+        DEPRECATED bool checkHeader(void) const;
 
         // getter methods to retrieve header fields
         uint32_t getSignature(void) const;
-        uint32_t getTag0(void) const;
-        uint32_t getGroup(void) const;
-        uint16_t getLength(void) const;
-        uint16_t getNetworkVersion(void) const;
-        uint16_t getProtocolID(void) const;
-        uint8_t  getLongWords(void) const;
-        uint8_t  getControl(void) const;
-        static bool isEmeterProtocolID        (uint16_t protocol_id) { return (protocol_id == sma_emeter_protocol_id); }
-        static bool isExtendedEmeterProtocolID(uint16_t protocol_id) { return (protocol_id == sma_extended_emeter_protocol_id); }
-        static bool isInverterProtocolID      (uint16_t protocol_id) { return (protocol_id == sma_inverter_protocol_id); }
-        bool isEmeterProtocolID(void) const;
-        bool isExtendedEmeterProtocolID(void) const;
-        bool isInverterProtocolID(void) const;
+        DEPRECATED uint32_t getTag0(void) const;
+        DEPRECATED uint32_t getGroup(void) const;
+        DEPRECATED uint16_t getLength(void) const;
+        DEPRECATED uint16_t getNetworkVersion(void) const;
+        DEPRECATED uint16_t getProtocolID(void) const;
+        DEPRECATED uint8_t  getLongWords(void) const;
+        DEPRECATED uint8_t  getControl(void) const;
+        DEPRECATED static bool isEmeterProtocolID        (uint16_t protocol_id) { return (protocol_id == sma_emeter_protocol_id); }
+        DEPRECATED static bool isExtendedEmeterProtocolID(uint16_t protocol_id) { return (protocol_id == sma_extended_emeter_protocol_id); }
+        DEPRECATED static bool isInverterProtocolID      (uint16_t protocol_id) { return (protocol_id == sma_inverter_protocol_id); }
+        DEPRECATED bool isEmeterProtocolID(void) const;
+        DEPRECATED bool isExtendedEmeterProtocolID(void) const;
+        DEPRECATED bool isInverterProtocolID(void) const;
 
         // setter methods to fill header fields
         void setDefaultHeader(void);
         void setDefaultHeader(uint32_t group, uint16_t length, uint16_t protocolID);
-        void setSignature(uint32_t value);
-        void setTag0(uint32_t value);
-        void setGroup(uint32_t value);
-        void setLength(uint16_t value);
-        void setNetworkVersion(uint16_t value);
-        void setProtocolID(uint16_t value);
-        void setLongWords(uint8_t value);
-        void setControl(uint8_t value);
+        unsigned long getDefaultHeaderTotalLength(uint32_t group, uint16_t length, uint16_t protocolID) const;
 
-        static unsigned long getPayloadOffset(uint16_t protocol_id);
-        unsigned long getPayloadOffset(void) const;
+        void setSignature(uint32_t value);
+
+        DEPRECATED void setTag0(uint32_t value);
+        DEPRECATED void setGroup(uint32_t value);
+        DEPRECATED void setLength(uint16_t value);
+        DEPRECATED void setNetworkVersion(uint16_t value);
+        DEPRECATED void setProtocolID(uint16_t value);
+        DEPRECATED void setLongWords(uint8_t value);
+        DEPRECATED void setControl(uint8_t value);
+
+        // methods to retrieve packet pointers, offsets and payload sizes
+        DEPRECATED static unsigned long getPayloadOffset(uint16_t protocol_id);
+        DEPRECATED unsigned long getPayloadOffset(void) const;
         uint8_t* getPacketPointer(void) const;
         unsigned long getPacketSize(void) const;
 

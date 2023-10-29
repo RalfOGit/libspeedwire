@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <string>
 #include <SpeedwireHeader.hpp>
+#include <SpeedwireData2Packet.hpp>
+#include <SpeedwireTagHeader.hpp>
 
 namespace libspeedwire {
 
@@ -33,6 +35,7 @@ namespace libspeedwire {
     public:
         //SpeedwireEmeterProtocol(const void* const udp_packet, const unsigned long udp_packet_size);
         SpeedwireEmeterProtocol(const SpeedwireHeader& protocol);
+        SpeedwireEmeterProtocol(const SpeedwireData2Packet& data2_packet);
         ~SpeedwireEmeterProtocol(void);
 
         // accessor methods

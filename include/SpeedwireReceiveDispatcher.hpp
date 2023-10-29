@@ -43,7 +43,7 @@ namespace libspeedwire {
          * @param host Reference to LocalHost instance.
          */
         EmeterPacketReceiverBase(LocalHost& host) : SpeedwirePacketReceiverBase(host) {
-            protocolID = SpeedwireHeader::sma_emeter_protocol_id;
+            protocolID = SpeedwireData2Packet::sma_emeter_protocol_id;
         }
 
         /**
@@ -66,7 +66,7 @@ namespace libspeedwire {
          * @param host Reference to LocalHost instance.
          */
         InverterPacketReceiverBase(LocalHost& host) : SpeedwirePacketReceiverBase(host) {
-            protocolID = SpeedwireHeader::sma_inverter_protocol_id;
+            protocolID = SpeedwireData2Packet::sma_inverter_protocol_id;
         }
 
         /**

@@ -83,26 +83,33 @@ bool SpeedwireCommand::login(const SpeedwireDevice& peer, const bool user, const
 
     // check error code
     const SpeedwireHeader speedwire_packet(response_buffer, sizeof(response_buffer));
-    const SpeedwireInverterProtocol inverter_packet(speedwire_packet);
-    uint16_t error_code = inverter_packet.getErrorCode();
-    if (error_code != 0x0000) {
-        if (error_code == 0x0017) {
-            logger.print(LogLevel::LOG_ERROR, "lost connection - not authenticated (error code 0x0017)");
-            token_repository.needs_login = true;
-        }
-        else if (token_repository.at(token_index).command == 0xfffd040c) { // login command
-            if (error_code == 0x0100) {
-                logger.print(LogLevel::LOG_ERROR, "invalid password - not authenticated");
+    if (speedwire_packet.isValidData2Packet()) {
+        const SpeedwireData2Packet data2_packet(speedwire_packet);
+
+        if (data2_packet.isInverterProtocolID()) {
+            const SpeedwireInverterProtocol inverter_packet(data2_packet);
+
+            uint16_t error_code = inverter_packet.getErrorCode();
+            if (error_code != 0x0000) {
+                if (error_code == 0x0017) {
+                    logger.print(LogLevel::LOG_ERROR, "lost connection - not authenticated (error code 0x0017)");
+                    token_repository.needs_login = true;
+                }
+                else if (token_repository.at(token_index).command == 0xfffd040c) { // login command
+                    if (error_code == 0x0100) {
+                        logger.print(LogLevel::LOG_ERROR, "invalid password - not authenticated");
+                    }
+                    else {
+                        logger.print(LogLevel::LOG_ERROR, "login failure - not authenticated");
+                    }
+                }
+                else {
+                    logger.print(LogLevel::LOG_ERROR, "query error code received");
+                }
+                token_repository.remove(token_index);
+                return false;
             }
-            else {
-                logger.print(LogLevel::LOG_ERROR, "login failure - not authenticated");
-            }
         }
-        else {
-            logger.print(LogLevel::LOG_ERROR, "query error code received");
-        }
-        token_repository.remove(token_index);
-        return false;
     }
     token_repository.remove(token_index);
     return true;
@@ -174,9 +181,15 @@ SpeedwireCommandTokenIndex SpeedwireCommand::sendLoginRequest(const SpeedwireDev
     // command  0xfffd040c => 0x400 set?  0x00c bytecount=12?
     // assemble unicast device login packet
     unsigned char request_buffer[24 + 8 + 8 + 6 + 4 + 4 + 4 + 4 + 12 + 4];
+    memset(request_buffer, 0, sizeof(request_buffer));
+
     SpeedwireHeader request_header(request_buffer, sizeof(request_buffer));
-    request_header.setDefaultHeader(1, sizeof(request_buffer)-20, SpeedwireHeader::sma_inverter_protocol_id);
-    request_header.setControl(0xa0);
+    request_header.setDefaultHeader(1, sizeof(request_buffer)-20, SpeedwireData2Packet::sma_inverter_protocol_id);   // 4 + 8 + 4 => es fehlen 4 byte an der Länge, prüfen of tagLength erst nach dem control word zählt
+    //LocalHost::hexdump(request_buffer, sizeof(request_buffer));
+
+    SpeedwireData2Packet data2_packet(request_header);
+    data2_packet.setControl(0xa0);
+
     SpeedwireInverterProtocol request(request_header);
     request.setDstSusyID(peer.susyID);
     request.setDstSerialNumber(peer.serialNumber);
@@ -198,7 +211,6 @@ SpeedwireCommandTokenIndex SpeedwireCommand::sendLoginRequest(const SpeedwireDev
         encoded_password[i] = password[i] + (user ? 0x88 : 0xBB);
     }
     request.setDataUint8Array(8, encoded_password, sizeof(encoded_password));
-    request.setTrailer(20);
 
     // send login request packet to peer
     SocketIndex socket_index = socket_map[peer.interface_ip_address];
@@ -231,9 +243,14 @@ void SpeedwireCommand::sendLogoffRequest(const SpeedwireDevice& peer) {
     // Request 534d4100000402a00000000100220010 606508a0 ffffffffffff0003 7d0042be283a0003 000000000180 e001fdff ffffffff 00000000
     // assemble unicast device logoff packet
     unsigned char request_buffer[24 + 8 + 8 + 6 + 4 + 4];
+    memset(request_buffer, 0, sizeof(request_buffer));
+
     SpeedwireHeader request_header(request_buffer, sizeof(request_buffer));
-    request_header.setDefaultHeader(1, sizeof(request_buffer)-20, SpeedwireHeader::sma_inverter_protocol_id);
-    request_header.setControl(0xa0);
+    request_header.setDefaultHeader(1, sizeof(request_buffer)-20, SpeedwireData2Packet::sma_inverter_protocol_id);
+
+    SpeedwireData2Packet data2_packet(request_header);
+    data2_packet.setControl(0xa0);
+
     SpeedwireInverterProtocol request(request_header);
     request.setDstSusyID(0xffff);
     request.setDstSerialNumber(0xffffffff);
@@ -247,7 +264,6 @@ void SpeedwireCommand::sendLogoffRequest(const SpeedwireDevice& peer) {
     request.setCommandID(0xfffd01e0);
     request.setFirstRegisterID(0xffffffff);
     request.setLastRegisterID(0x00000000);
-    //request.Trailer(0);  // set trailer
 
     SocketIndex socket_index = socket_map.at(peer.interface_ip_address);
     if (socket_index < 0) {
@@ -307,9 +323,14 @@ SpeedwireCommandTokenIndex SpeedwireCommand::sendQueryRequest(const SpeedwireDev
     // assemble unicast device login packet                                                                                 
     unsigned char request_buffer[24 + 8 + 8 + 6 + 4 + 4 + 4];
     memset(request_buffer, 0, sizeof(request_buffer));
+
     SpeedwireHeader request_header(request_buffer, sizeof(request_buffer));
-    request_header.setDefaultHeader(1, sizeof(request_buffer) - 20, SpeedwireHeader::sma_inverter_protocol_id);
-    request_header.setControl(0xa0);
+    request_header.setDefaultHeader(1, sizeof(request_buffer) - 20, SpeedwireData2Packet::sma_inverter_protocol_id);
+
+    SpeedwireData2Packet data2_packet(request_header);
+    data2_packet.setControl(0xa0);
+    //LocalHost::hexdump(request_buffer, sizeof(request_buffer));
+
     SpeedwireInverterProtocol request(request_header);
     request.setDstSusyID(peer.susyID);
     request.setDstSerialNumber(peer.serialNumber);
@@ -323,7 +344,6 @@ SpeedwireCommandTokenIndex SpeedwireCommand::sendQueryRequest(const SpeedwireDev
     request.setCommandID(command);
     request.setFirstRegisterID(first_register);
     request.setLastRegisterID(last_register);
-    request.setTrailer(0);
     //printf("query: command %08lx first 0x%08lx last 0x%08lx\n", command, first_register, last_register);
 
     // send query request packet to peer
@@ -383,31 +403,38 @@ SpeedwireDevice SpeedwireCommand::queryDeviceType(const SpeedwireDevice& peer, c
 
         // parse reply packet
         SpeedwireHeader speedwire_packet(udp_packet, nbytes);
-        bool valid_speedwire_packet = speedwire_packet.checkHeader();
-        if (valid_speedwire_packet && speedwire_packet.isInverterProtocolID()) {
-            SpeedwireInverterProtocol inverter_packet(speedwire_packet);
-            //LocalHost::hexdump(udp_packet, nbytes);
-            //printf("%s\n", inverter_packet.toString().c_str());
+        if (speedwire_packet.isValidData2Packet()) {
+            if (!speedwire_packet.isValidData2Packet(true)) {
+                printf("is valid speedwire packet, but minor deviations from standard detected\n");
+            }
 
-            std::vector<SpeedwireRawData> raw_data_vector = inverter_packet.getRawDataElements();
+            SpeedwireData2Packet data2_packet(speedwire_packet);
+            if (data2_packet.isInverterProtocolID()) {
 
-            // augment the device information with data obtained the peer
-            for (auto& raw_data : raw_data_vector) {
-                if (raw_data.id == SpeedwireData::InverterDeviceClass.id && raw_data.type == SpeedwireDataType::Status32) {
-                    SpeedwireRawDataStatus32 status_data(raw_data);
-                    size_t index = status_data.getSelectionIndex();
-                    if (index != (size_t)-1) {
-                        SpeedwireDeviceClass device_class = (SpeedwireDeviceClass)status_data.getValue(index);;
-                        info.deviceClass = libspeedwire::toString(device_class);
+                SpeedwireInverterProtocol inverter_packet(data2_packet);
+                //LocalHost::hexdump(udp_packet, nbytes);
+                //printf("%s\n", inverter_packet.toString().c_str());
+
+                std::vector<SpeedwireRawData> raw_data_vector = inverter_packet.getRawDataElements();
+
+                // augment the device information with data obtained the peer
+                for (auto& raw_data : raw_data_vector) {
+                    if (raw_data.id == SpeedwireData::InverterDeviceClass.id && raw_data.type == SpeedwireDataType::Status32) {
+                        SpeedwireRawDataStatus32 status_data(raw_data);
+                        size_t index = status_data.getSelectionIndex();
+                        if (index != (size_t)-1) {
+                            SpeedwireDeviceClass device_class = (SpeedwireDeviceClass)status_data.getValue(index);;
+                            info.deviceClass = libspeedwire::toString(device_class);
+                        }
                     }
-                }
-                else if (raw_data.id == SpeedwireData::InverterDeviceType.id && raw_data.type == SpeedwireDataType::Status32) {
-                    SpeedwireRawDataStatus32 status_data(raw_data);
-                    size_t index = status_data.getSelectionIndex();
-                    if (index != (size_t)-1) {
-                        SpeedwireDeviceModel device_model = (SpeedwireDeviceModel)status_data.getValue(index);;
-                        SpeedwireDeviceType device = SpeedwireDeviceType::fromDeviceModel(device_model);
-                        info.deviceModel = device.name;
+                    else if (raw_data.id == SpeedwireData::InverterDeviceType.id && raw_data.type == SpeedwireDataType::Status32) {
+                        SpeedwireRawDataStatus32 status_data(raw_data);
+                        size_t index = status_data.getSelectionIndex();
+                        if (index != (size_t)-1) {
+                            SpeedwireDeviceModel device_model = (SpeedwireDeviceModel)status_data.getValue(index);;
+                            SpeedwireDeviceType device = SpeedwireDeviceType::fromDeviceModel(device_model);
+                            info.deviceModel = device.name;
+                        }
                     }
                 }
             }
@@ -457,17 +484,23 @@ int32_t SpeedwireCommand::receiveResponse(const SpeedwireCommandTokenIndex token
                 nbytes = socket.recvfrom(udp_buffer, udp_buffer_size, AddressConversion::toSockAddrIn6(src));
             }
 
-            // check if the reply packet is a valid sma speedwire packet
+            // check if the reply is a valid sma speedwire data2 packet
             SpeedwireHeader speedwire_packet(udp_buffer, nbytes);
-            bool valid_speedwire_packet = speedwire_packet.checkHeader();
-            if (valid_speedwire_packet == true && speedwire_packet.isInverterProtocolID()) {
-                //LocalHost::hexdump(udp_buffer, nbytes);
+            if (speedwire_packet.isValidData2Packet()) {
+                if (!speedwire_packet.isValidData2Packet(true)) {
+                    printf("is valid speedwire packet, but minor deviations from standard detected\n");
+                }
+                SpeedwireData2Packet data2_packet(speedwire_packet);
 
-                // check reply packet for validity
-                const SpeedwireCommandToken& token = token_repository.at(token_index);
-                if (checkReply(speedwire_packet, src, token) == true) {
-                    valid = true;
-                    token_repository.remove(token_index);
+                // check if the reply is an inverter packet
+                if (data2_packet.isInverterProtocolID()) {
+
+                    // check reply packet for validity
+                    const SpeedwireCommandToken& token = token_repository.at(token_index);
+                    if (checkReply(speedwire_packet, src, token) == true) {
+                        valid = true;
+                        token_repository.remove(token_index);
+                    }
                 }
             }
         }
@@ -480,13 +513,18 @@ int32_t SpeedwireCommand::receiveResponse(const SpeedwireCommandTokenIndex token
  *  find SpeedwireCommandToken for the reply packet; return index in token_repository or -1
  */
 int SpeedwireCommand::findCommandToken(const SpeedwireHeader& speedwire_reply_packet) const {
-    if (speedwire_reply_packet.isInverterProtocolID() == true) {
-        const SpeedwireInverterProtocol inverter_packet(speedwire_reply_packet);
-        uint16_t susyid   = inverter_packet.getSrcSusyID();
-        uint32_t serial   = inverter_packet.getSrcSerialNumber();
-        uint16_t packetid = inverter_packet.getPacketID();
+    if (speedwire_reply_packet.isValidData2Packet()) {
+        const SpeedwireData2Packet data2_packet(speedwire_reply_packet);
 
-        return token_repository.find(susyid, serial, packetid);
+        if (data2_packet.isInverterProtocolID()) {
+            const SpeedwireInverterProtocol inverter_packet(data2_packet);
+
+            uint16_t susyid = inverter_packet.getSrcSusyID();
+            uint32_t serial = inverter_packet.getSrcSerialNumber();
+            uint16_t packetid = inverter_packet.getPacketID();
+
+            return token_repository.find(susyid, serial, packetid);
+        }
     }
     return -1;
 }
@@ -524,29 +562,29 @@ bool SpeedwireCommand::checkReply(const SpeedwireHeader& speedwire_reply_packet,
         printf("buff_size too small for reply packet:  %u < (20 + 8 + 8 + 6) bytes\n", (unsigned)buff_size);
         return false;
     }
-
-    if (speedwire_reply_packet.checkHeader() == false) {
-        printf("checkHeader() failed for speedwire packet\n");
-        return false;
+    if (!speedwire_reply_packet.isValidData2Packet()) {
+        printf("isValidData2Packet() failed for speedwire packet\n");
     }
-    if (speedwire_reply_packet.isInverterProtocolID() == false) {
+
+    const SpeedwireData2Packet data2_reply_packet(speedwire_reply_packet);
+    if (data2_reply_packet.isInverterProtocolID() == false) {
         printf("protocol ID is not 0x6065\n");
         return false;
     }
-    if ((speedwire_reply_packet.getLength() + (size_t)20) > buff_size) {    // packet length - starting to count from the byte following protocolID, # of long words and control byte, i.e. with byte #20
-        printf("length field %u and buff_size %u mismatch\n", (unsigned)speedwire_reply_packet.getLength(), (unsigned)buff_size);
+    if ((data2_reply_packet.getTagLength() + (size_t)20) > buff_size) {    // packet length - starting to count from the byte following protocolID, # of long words and control byte, i.e. with byte #20
+        printf("length field %u and buff_size %u mismatch\n", (unsigned)data2_reply_packet.getTagLength(), (unsigned)buff_size);
         return false;
     }
-    if (speedwire_reply_packet.getLength() < (8 + 8 + 6)) {                 // up to and including packetID
-        printf("length field %u too small to hold inverter reply (8 + 8 + 6)\n", (unsigned)speedwire_reply_packet.getLength());
+    if (data2_reply_packet.getTagLength() < (8 + 8 + 6)) {                 // up to and including packetID
+        printf("length field %u too small to hold inverter reply (8 + 8 + 6)\n", (unsigned)data2_reply_packet.getTagLength());
         return false;
     }
-    if ((speedwire_reply_packet.getLongWords() != (speedwire_reply_packet.getLength() / sizeof(uint32_t)))) {
-        printf("length field %u and long words %u mismatch\n", (unsigned)speedwire_reply_packet.getLength(), (unsigned)speedwire_reply_packet.getLongWords());
+    if ((data2_reply_packet.getLongWords() != (data2_reply_packet.getTagLength() / sizeof(uint32_t)))) {
+        printf("length field %u and long words %u mismatch\n", (unsigned)data2_reply_packet.getTagLength(), (unsigned)data2_reply_packet.getLongWords());
         return false;
     }
 
-    const SpeedwireInverterProtocol inverter(speedwire_reply_packet);
+    const SpeedwireInverterProtocol inverter(data2_reply_packet);
     if (inverter.getDstSusyID() != 0xffff && inverter.getDstSusyID() != local_susy_id) {
         printf("destination susy id %u is not local susy id %u\n", (unsigned)inverter.getDstSusyID(), (unsigned)local_susy_id);
         return false;

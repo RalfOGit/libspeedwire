@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <SpeedwireHeader.hpp>
+#include <SpeedwireData2Packet.hpp>
 #include <SpeedwireData.hpp>
 
 namespace libspeedwire {
@@ -32,7 +33,6 @@ namespace libspeedwire {
         static constexpr unsigned long sma_first_register_id_offset = sma_command_id_offset + 4;        //!< Offset of the first register id field
         static constexpr unsigned long sma_last_register_id_offset = sma_first_register_id_offset + 4;  //!< Offset of the last register id fiele
         static constexpr unsigned long sma_data_offset = sma_last_register_id_offset + 4;               //!< Offset of the data bytes
-        static constexpr unsigned long sma_trailer_size = 4;                                            //!< Size of trailing zero bytes
 
         uint8_t* udp;
         unsigned long size;
@@ -40,6 +40,7 @@ namespace libspeedwire {
     public:
         //SpeedwireInverterProtocol(const void* const udp_packet, const unsigned long udp_packet_size);
         SpeedwireInverterProtocol(const SpeedwireHeader& prot);
+        SpeedwireInverterProtocol(const SpeedwireData2Packet& data2_packet);
         ~SpeedwireInverterProtocol(void);
 
         // accessor methods
@@ -60,7 +61,6 @@ namespace libspeedwire {
         void getDataUint8Array(const unsigned long byte_offset, uint8_t* buff, const size_t buff_size) const;
         uint32_t getRawDataLength(void) const;
         void* const getFirstRawDataElement(void) const;
-        void* const getNextRawDataElement(const void* const current) const;
         void* const getNextRawDataElement(const void* const current, uint32_t length) const;
         SpeedwireRawData getRawData(const void* const current, uint32_t length) const;
         std::vector<SpeedwireRawData> getRawDataElements(void) const;
@@ -82,7 +82,7 @@ namespace libspeedwire {
         void setDataUint32(const unsigned long byte_offset, const uint32_t value);   // offset 0 is the first byte after last register index
         void setDataUint64(const unsigned long byte_offset, const uint64_t value);
         void setDataUint8Array(const unsigned long byte_offset, const uint8_t* const value, const unsigned long value_length);
-        void setTrailer(const unsigned long offset);
+        DEPRECATED void setTrailer(const unsigned long offset);
     };
 
 }   // namespace libspeedwire

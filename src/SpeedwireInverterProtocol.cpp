@@ -16,10 +16,25 @@ using namespace libspeedwire;
  *  Constructor.
  *  @param header Reference to the SpeedwireHeader instance that encapsulate the SMA header and the pointers to the entire udp packet.
  */
-SpeedwireInverterProtocol::SpeedwireInverterProtocol(const SpeedwireHeader& header) {
-    udp = header.getPacketPointer() + header.getPayloadOffset();
-    size = header.getPacketSize() - header.getPayloadOffset();
+SpeedwireInverterProtocol::SpeedwireInverterProtocol(const SpeedwireHeader& header) :
+    SpeedwireInverterProtocol(SpeedwireData2Packet(header)) {
 }
+
+/**
+ *  Constructor.
+ *  @param header Reference to the SpeedwireData2Packet instance that encapsulate the data2 tag header.
+ */
+SpeedwireInverterProtocol::SpeedwireInverterProtocol(const SpeedwireData2Packet& data2_packet) {
+    //uint16_t tag_length  = data2_packet.getTagLength();     // 2 bytes
+    //uint16_t tag_id      = data2_packet.getTagId();         // 2 bytes
+    //uint16_t protocol_id = data2_packet.getProtocolID();    // 2 bytes
+    //uint8_t  long_words  = data2_packet.getLongWords();     // 1 byte
+    //uint8_t  control     = data2_packet.getControl();       // 1 byte
+    unsigned long payload_offset = data2_packet.getPayloadOffset(); // returns 2 + 2 + 2 + 1 + 1 = 8
+    udp  = data2_packet.getPacketPointer() + payload_offset;        // udp points to the byte after the control byte
+    size = data2_packet.getTotalLength() - payload_offset;
+}
+
 
 /** Destructor. */
 SpeedwireInverterProtocol::~SpeedwireInverterProtocol(void) {
@@ -117,10 +132,10 @@ uint32_t SpeedwireInverterProtocol::getRawDataLength(void) const {
     uint32_t last_register_id  = getLastRegisterID();   // arbitrary code of the last data element
     if (last_register_id >= first_register_id) {
         uint32_t num_register_ids = last_register_id - first_register_id + 1;   // number of data elements
-        uint32_t payload_size     = size - sma_data_offset - sma_trailer_size;  // payload size
+        uint32_t register_payload_size = size - sma_data_offset;                // payload size
         // check if the data elements exactly fit into the payload size
-        if ((payload_size % num_register_ids) == 0) {
-            uint32_t length = payload_size / num_register_ids;                  // length of each data element
+        if ((register_payload_size % num_register_ids) == 0) {
+            uint32_t length = register_payload_size / num_register_ids;         // length of each data element
             // check if at least a code word, a timestamp and one data word would fit into each data element
             if (length >= 12) {
                 return length;
@@ -189,6 +204,9 @@ std::vector<SpeedwireRawData> SpeedwireInverterProtocol::getRawDataElements(void
             //fprintf(stdout, "%s\n", data.toString().c_str());
             current_element = getNextRawDataElement(current_element, element_length);
         }
+    }
+    if (elements.size() != (getLastRegisterID() - getFirstRegisterID() + 1)) {
+        fprintf(stdout, "missing register\n");
     }
     return elements;
 }

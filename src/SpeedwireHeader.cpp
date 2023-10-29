@@ -1,8 +1,10 @@
 #include <memory.h>
 #include <LocalHost.hpp>
 #include <SpeedwireByteEncoding.hpp>
-#include <SpeedwireHeader.hpp>
 #include <SpeedwireTagHeader.hpp>
+#include <SpeedwireData2Packet.hpp>
+#include <SpeedwireHeader.hpp>
+
 using namespace libspeedwire;
 
 const uint8_t  SpeedwireHeader::sma_signature[4] = { 0x53, 0x4d, 0x41, 0x00 };     //!< SMA signature: 0x53, 0x4d, 0x41, 0x00 <=> "SMA\0"
@@ -43,15 +45,27 @@ SpeedwireHeader::~SpeedwireHeader(void) {
 }
 
 /**
- *  Check the validity of this speewire packet header.
- *  A header is considered valid if it starts with an SMA signature, followed by the SMA tag0 and an SMA net version 2 indicator.
- *  @return True if the packet header belongs to a valid speedwire packet, false otherwise
+ *  Check if this packet starts with an SMA signature "SMA\0".
+ *  @return True if the packet starts with an SMA signature "SMA\0", false otherwise
  */
-bool SpeedwireHeader::checkHeader(void)  const {
-
-#if USE_TAG_PARSER
+bool SpeedwireHeader::isSMAPacket(void) const {
     // test SMA signature
     if (size < 4 || memcmp(sma_signature, udp + sma_signature_offset, sizeof(sma_signature)) != 0) {
+        return false;
+    }
+    return true;
+}
+
+/**
+ *  Check if this packet is a valid SMA data2 packet.
+ *  A packet is considered valid if it starts with an SMA signature, followed by the SMA tag0 and an SMA data2 tag.
+ *  @param fullcheck if true, also check that there is an SMA end-of-data tag behind the SMA data2 tag and that this concludes the packet.
+ *  @return True if the packet header belongs to a valid SMA data2 packet, false otherwise
+ */
+bool SpeedwireHeader::isValidData2Packet(bool fullcheck) const {
+
+    // test SMA signature
+    if (isSMAPacket() == false) {
         return false;
     }
 
@@ -67,29 +81,49 @@ bool SpeedwireHeader::checkHeader(void)  const {
 
     // test if there is an SMA net version 2 tag, i.e. a data2 packet and there is at least space for the protocol id
     if (data2 == NULL) {
-        return false;
+        // be nice and try to find the tag
+        ((SpeedwireHeader*)this)->data2 = findTagPacket(SpeedwireTagHeader::sma_tag_data2);
+        if (data2 == NULL) {
+            return false;
+        }
     }
     uint16_t data2_size = SpeedwireTagHeader::getTagLength(data2);
     if (data2_size < 2) {
         return false;
     }
 
-    // test if there is an end of data tag behind the SMA net version 2 payload
-    //void* eod_tag_ptr = getNextTag(data2);
-    //if (eod_tag_ptr == NULL) {
-    //    return false;
-    //}
-    //uint16_t eod_length = SpeedwireTag::getTagLength(eod_tag_ptr);
-    //uint16_t eod_tagid = SpeedwireTag::getTagId(eod_tag_ptr);
-    //if (eod_length != 0 || eod_tagid != 0) {
-    //    return false;
-    //}
+    if (fullcheck) {
+        // test if there is an end of data tag behind the SMA net version 2 payload
+        void* eod_tag_ptr = getNextTagPacket(data2);
+        if (eod_tag_ptr == NULL) {
+            return false;
+        }
+        uint16_t eod_length = SpeedwireTagHeader::getTagLength(eod_tag_ptr);
+        uint16_t eod_tagid = SpeedwireTagHeader::getTagId(eod_tag_ptr);
+        if (eod_length != 0 || eod_tagid != 0) {
+            return false;
+        }
 
-    // test if this is the end of the udp packet
-    //void* no_more_tag_ptr = getNextTag(eod_tag_ptr);
-    //if (no_more_tag_ptr != NULL) {
-    //    return false;
-    //}
+        // test if this is the end of the udp packet
+        void* no_more_tag_ptr = getNextTagPacket(eod_tag_ptr);
+        if (no_more_tag_ptr != NULL) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+
+/**
+ *  Check the validity of this speewire packet header.
+ *  A header is considered valid if it starts with an SMA signature, followed by the SMA tag0 and an SMA net version 2 indicator.
+ *  @return True if the packet header belongs to a valid speedwire packet, false otherwise
+ */
+bool SpeedwireHeader::checkHeader(void)  const {
+
+#if USE_TAG_PARSER
+    return isValidData2Packet();
 #else
     // test if udp packet is large enough to hold the header structure
     if (size < (sma_protocol_offset + sma_protocol_size)) {
@@ -136,7 +170,7 @@ uint32_t SpeedwireHeader::getGroup(void) const {
 #if USE_TAG_PARSER
     void* tag0_ptr = findTagPacket(SpeedwireTagHeader::sma_tag_group_id);
     if (tag0_ptr != NULL && SpeedwireTagHeader::getTagLength(tag0_ptr) == 4) {
-        return SpeedwireByteEncoding::getUint32BigEndian((uint8_t*)tag0_ptr + SpeedwireTagHeader::TAG_DATA_OFFSET);
+        return SpeedwireByteEncoding::getUint32BigEndian((uint8_t*)tag0_ptr + SpeedwireTagHeader::TAG_HEADER_LENGTH);
     }
     return -1;
 #else
@@ -165,7 +199,7 @@ uint16_t SpeedwireHeader::getNetworkVersion(void) const {
 uint16_t SpeedwireHeader::getProtocolID(void) const {
 #if USE_TAG_PARSER
     if (data2 != NULL) {
-        return SpeedwireTagHeader::getProtocolID(data2);
+        return SpeedwireByteEncoding::getUint16BigEndian((const uint8_t* const)data2 + sma_protocol_offset);
     }
     return 0;
 #else
@@ -177,7 +211,7 @@ uint16_t SpeedwireHeader::getProtocolID(void) const {
 uint8_t SpeedwireHeader::getLongWords(void) const {
 #if USE_TAG_PARSER
     if (data2 != NULL) {
-        return SpeedwireTagHeader::getLongWords(data2);
+        return SpeedwireByteEncoding::getUint8((const uint8_t* const)data2 + sma_long_words_offset);
     }
     return 0;
 #else
@@ -189,7 +223,7 @@ uint8_t SpeedwireHeader::getLongWords(void) const {
 uint8_t SpeedwireHeader::getControl(void) const {
 #if USE_TAG_PARSER
     if (data2 != NULL) {
-        return SpeedwireTagHeader::getControl(data2);
+        return SpeedwireByteEncoding::getUint8((const uint8_t* const)data2 + sma_control_offset);
     }
     return 0;
 #else
@@ -199,17 +233,41 @@ uint8_t SpeedwireHeader::getControl(void) const {
 
 /** Check if protocolID is emeter protocol id. */
 bool SpeedwireHeader::isEmeterProtocolID(void) const {
+#if USE_TAG_PARSER
+    if (data2 != NULL) {
+        uint16_t protocol_id = SpeedwireByteEncoding::getUint16BigEndian((const uint8_t* const)data2 + sma_protocol_offset);
+        return SpeedwireData2Packet::isEmeterProtocolID(protocol_id);
+    }
+    return false;
+#else
     return isEmeterProtocolID(getProtocolID());
+#endif
 }
 
 /** Check if protocolID is extended emeter protocol id. */
 bool SpeedwireHeader::isExtendedEmeterProtocolID(void) const {
+#if USE_TAG_PARSER
+    if (data2 != NULL) {
+        uint16_t protocol_id = SpeedwireByteEncoding::getUint16BigEndian((const uint8_t* const)data2 + sma_protocol_offset);
+        return SpeedwireData2Packet::isExtendedEmeterProtocolID(protocol_id);
+    }
+    return false;
+#else
     return isExtendedEmeterProtocolID(getProtocolID());
+#endif
 }
 
 /** check if protocolID is inverter protocol id. */
 bool SpeedwireHeader::isInverterProtocolID(void) const {
+#if USE_TAG_PARSER
+    if (data2 != NULL) {
+        uint16_t protocol_id = SpeedwireByteEncoding::getUint16BigEndian((const uint8_t* const)data2 + sma_protocol_offset);
+        return SpeedwireData2Packet::isInverterProtocolID(protocol_id);
+    }
+    return false;
+#else
     return isInverterProtocolID(getProtocolID());
+#endif
 }
 
 /** Set header fields according to defaults. */
@@ -219,6 +277,41 @@ void SpeedwireHeader::setDefaultHeader(void) {
 
 /** Set header fields. */
 void SpeedwireHeader::setDefaultHeader(uint32_t group, uint16_t length, uint16_t protocolID) {
+#if USE_TAG_PARSER
+    // set SMA signature "SMA\0"
+    memcpy(udp + sma_signature_offset, sma_signature, sizeof(sma_signature));
+
+    // set tag0 header including the group id
+    uint8_t* tag0 = udp + sma_signature_offset + sizeof(sma_signature);
+    SpeedwireTagHeader::setTagLength(tag0, 4);
+    SpeedwireTagHeader::setTagId(tag0, SpeedwireTagHeader::sma_tag_group_id);
+    SpeedwireByteEncoding::setUint32BigEndian(tag0 + SpeedwireTagHeader::TAG_HEADER_LENGTH, group);
+
+    // set data2 tag header including protocol id
+    uint8_t *data2 = tag0 + SpeedwireTagHeader::getTotalLength(tag0);
+    SpeedwireTagHeader::setTagLength(data2, length);
+    SpeedwireTagHeader::setTagId(data2, SpeedwireTagHeader::sma_tag_data2);
+
+    SpeedwireData2Packet data2_packet(*this);
+    data2_packet.setProtocolID(protocolID);
+    if (SpeedwireData2Packet::isExtendedEmeterProtocolID(protocolID)) {
+        data2_packet.setLongWords(0);
+        data2_packet.setControl(3);
+    }
+    else if (SpeedwireData2Packet::isInverterProtocolID(protocolID)) {
+        data2_packet.setLongWords((uint8_t)(length / sizeof(uint32_t)));
+        data2_packet.setControl(0);
+    }
+
+    // set end-of-data tag header
+    uint8_t* eod = data2 + SpeedwireTagHeader::getTotalLength(data2);
+    SpeedwireTagHeader::setTagLength(eod, 0);
+    SpeedwireTagHeader::setTagId(eod, SpeedwireTagHeader::sma_tag_endofdata);
+
+    //LocalHost::hexdump(udp, size);
+
+    this->data2 = data2;
+#else
     memcpy(udp + sma_signature_offset, sma_signature, sizeof(sma_signature));
     memcpy(udp + sma_tag0_offset,      sma_tag0,      sizeof(sma_tag0));
     setGroup(group);
@@ -233,7 +326,18 @@ void SpeedwireHeader::setDefaultHeader(uint32_t group, uint16_t length, uint16_t
         setControl(0);
     }
     data2 = findTagPacket(SpeedwireTagHeader::sma_tag_data2);
+#endif
 }
+
+/** Calculate the total length in bytes of a default sma packet with the given payload length */
+unsigned long SpeedwireHeader::getDefaultHeaderTotalLength(uint32_t group, uint16_t length, uint16_t protocolID) const {
+    return 
+        sizeof(sma_signature) +                             // "SMA\0"
+        SpeedwireTagHeader::TAG_HEADER_LENGTH + 4 +         // tag0 packet
+        SpeedwireTagHeader::TAG_HEADER_LENGTH + length +    // data2 packet
+        SpeedwireTagHeader::TAG_HEADER_LENGTH;              // end-of-data packet
+}
+
 
 /** Set SMA signature bytes. */
 void SpeedwireHeader::setSignature(uint32_t value) {
@@ -281,7 +385,8 @@ void SpeedwireHeader::setControl(uint8_t value)  {
 unsigned long SpeedwireHeader::getPayloadOffset(void) const {
 #if USE_TAG_PARSER
     if (data2 != NULL) {
-        unsigned long offset = SpeedwireTagHeader::getPayloadOffset(data2);
+        SpeedwireData2Packet data2_packet(*this);
+        unsigned long offset = data2_packet.getPayloadOffset();
         unsigned long tag_offset = (unsigned long)((ptrdiff_t)((uint8_t*)data2 - udp));
         return tag_offset + offset;
     }
@@ -294,7 +399,7 @@ unsigned long SpeedwireHeader::getPayloadOffset(void) const {
 /** Get payload offset in udp packet; i.e. the offset of the first payload byte behind the header fields. */
 unsigned long SpeedwireHeader::getPayloadOffset(uint16_t protocol_id) {
     // Note: for backward compatibility reasons, the tag parser cannot be used here
-    if (protocol_id == sma_emeter_protocol_id) {    // emeter protocol data payload starts directly after the protocolID field
+    if (protocol_id == SpeedwireData2Packet::sma_emeter_protocol_id) {    // emeter protocol data payload starts directly after the protocolID field
         return sma_protocol_offset + sma_protocol_size;
     }
     // for sma_inverter_protocol_id and sma_extended_emeter_protocol_id
@@ -351,7 +456,7 @@ void* const SpeedwireHeader::findTagPacket(uint16_t tag_id) const {
 
 /** Check if the entire tag including its payload is contained inside the udp packet. */
 bool SpeedwireHeader::tagPacketFitsIntoUdp(const void* const tag) const {
-    ptrdiff_t payload_offset = (ptrdiff_t)((uint8_t*)tag + SpeedwireTagHeader::TAG_DATA_OFFSET - udp);
+    ptrdiff_t payload_offset = (ptrdiff_t)((uint8_t*)tag + SpeedwireTagHeader::TAG_HEADER_LENGTH - udp);
     if (tag != NULL && size >= payload_offset) {
         uint8_t* next_tag = (uint8_t*)tag + SpeedwireTagHeader::getTotalLength(tag);
         ptrdiff_t next_tag_offset = (ptrdiff_t)(next_tag - udp);

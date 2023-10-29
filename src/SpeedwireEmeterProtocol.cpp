@@ -16,9 +16,29 @@ using namespace libspeedwire;
  *  Constructor.
  *  @param header Reference to the SpeedwireHeader instance that encapsulate the SMA header and the pointers to the entire udp packet.
  */
-SpeedwireEmeterProtocol::SpeedwireEmeterProtocol(const SpeedwireHeader& header) {
-    udp = header.getPacketPointer() + header.getPayloadOffset();
-    size = header.getPacketSize() - header.getPayloadOffset();
+SpeedwireEmeterProtocol::SpeedwireEmeterProtocol(const SpeedwireHeader& header) :
+    SpeedwireEmeterProtocol(SpeedwireData2Packet(header)) {
+}
+
+/**
+ *  Constructor.
+ *  @param header Reference to the SpeedwireData2Packet instance that encapsulate the data2 tag header.
+ */
+SpeedwireEmeterProtocol::SpeedwireEmeterProtocol(const SpeedwireData2Packet& data2_packet) {
+    //uint16_t tag_length  = data2_packet.getTagLength();     // 2 bytes
+    //uint16_t tag_id      = data2_packet.getTagId();         // 2 bytes
+    //uint16_t protocol_id = data2_packet.getProtocolID();    // 2 bytes
+    //if (protocol_id == SpeedwireData2Packet::sma_extended_emeter_protocol_id) {
+    //    uint8_t  long_words  = data2_packet.getLongWords(); // 1 byte
+    //    uint8_t  control     = data2_packet.getControl();   // 1 byte
+    //    unsigned long payload_offset = data2_packet.getPayloadOffset(); // returns 2 + 2 + 2 + 1 + 1 = 8
+    //}
+    //else {
+    //    unsigned long payload_offset = data2_packet.getPayloadOffset(); // returns 2 + 2 + 2 = 6
+    //}
+    unsigned long payload_offset = data2_packet.getPayloadOffset();
+    udp = data2_packet.getPacketPointer() + payload_offset; // points to first byte after protocol_id or control byte
+    size = data2_packet.getTotalLength() - payload_offset;
 }
 
 /** Destructor. */
