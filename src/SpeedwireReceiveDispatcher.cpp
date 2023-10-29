@@ -141,12 +141,12 @@ int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& so
                     case 0x0000:
                         receiver->receive(speedwire_packet, src);
                         break;
-                    case SpeedwireHeader::sma_emeter_protocol_id:
+                    case SpeedwireData2Packet::sma_emeter_protocol_id:
                         if (valid_emeter_packet == true) {
                             receiver->receive(speedwire_packet, src);
                         }
                         break;
-                    case SpeedwireHeader::sma_inverter_protocol_id:
+                    case SpeedwireData2Packet::sma_inverter_protocol_id:
                         if (valid_inverter_packet == true) {
                             receiver->receive(speedwire_packet, src);
                         }
