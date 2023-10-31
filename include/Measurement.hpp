@@ -24,9 +24,9 @@ namespace libspeedwire {
          */
         Measurement(const MeasurementType& mType, const Wire& mWire) :
             measurementType(mType),
+            measurementValues(0),
             wire(mWire),
-            description(mType.getFullName(mWire)),
-            measurementValues(0) {
+            description(mType.getFullName(mWire)) {
         }
 
         /**

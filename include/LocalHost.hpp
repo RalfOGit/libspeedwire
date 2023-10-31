@@ -66,8 +66,8 @@ namespace libspeedwire {
         const std::vector<InterfaceInfo>& getLocalInterfaceInfos(void) const;
         const std::string getMacAddress(const std::string& local_ip_address) const;
         const std::string getInterfaceName(const std::string& local_ip_address) const;
-        const uint32_t getInterfaceIndex(const std::string& local_ip_address) const;
-        const uint32_t getInterfacePrefixLength(const std::string& local_ip_address) const;
+        uint32_t getInterfaceIndex(const std::string& local_ip_address) const;
+        uint32_t getInterfacePrefixLength(const std::string& local_ip_address) const;
 
         // platform neutral sleep
         static void sleep(uint32_t millis);

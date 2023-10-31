@@ -100,7 +100,7 @@ namespace libspeedwire {
             if (value == nan) { return "NaN"; }
             if (value == eod) { return "EoD"; }
             char byte[32];
-            snprintf(byte, sizeof(byte), "0x%08lx", value);
+            snprintf(byte, sizeof(byte), "0x%08lx", (unsigned long)value);
             return std::string(byte);
         }
     };
@@ -127,7 +127,7 @@ namespace libspeedwire {
         std::string convertValueToString(int32_t value) const {
             if (value == nan) { return "NaN"; }
             char byte[32];
-            snprintf(byte, sizeof(byte), "0x%08lx", value);
+            snprintf(byte, sizeof(byte), "0x%08lx", (unsigned long)value);
             return std::string(byte);
         }
     };
@@ -183,7 +183,7 @@ namespace libspeedwire {
                 return status.name;
             }
             char byte[32];
-            snprintf(byte, sizeof(byte), "0x%08lx", value);
+            snprintf(byte, sizeof(byte), "0x%08lx", (unsigned long)value);
             return std::string(byte);
         }
     };

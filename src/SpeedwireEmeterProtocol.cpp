@@ -78,7 +78,7 @@ void SpeedwireEmeterProtocol::setTime(uint32_t time) {
 }
 
 /** Get pointer to first obis element in udp packet. */
-void *const SpeedwireEmeterProtocol::getFirstObisElement(void) const {
+const void* SpeedwireEmeterProtocol::getFirstObisElement(void) const {
     uint8_t* first_element = udp + sma_first_obis_offset; // sma_time_offset + sma_time_size;
     if ((std::uintptr_t)(first_element - udp) > size) {
         return NULL;
@@ -87,7 +87,7 @@ void *const SpeedwireEmeterProtocol::getFirstObisElement(void) const {
 }
 
 /** Get pointer to next obis element starting from the given element. */
-void* const SpeedwireEmeterProtocol::getNextObisElement(const void* const current_element) const {
+const void* SpeedwireEmeterProtocol::getNextObisElement(const void* const current_element) const {
     uint8_t* const next_element = ((uint8_t* const)current_element) + getObisLength(current_element);
     // check if the next element including the 4-byte obis head is inside the udp packet
     if ((std::uintptr_t)(next_element + 4 - udp) > size) {
@@ -101,7 +101,7 @@ void* const SpeedwireEmeterProtocol::getNextObisElement(const void* const curren
 }
 
 /** Set given obis element right at location of the given current element. */
-void *const SpeedwireEmeterProtocol::setObisElement(void *const current_element, const void* const obis) {
+void* SpeedwireEmeterProtocol::setObisElement(void *const current_element, const void* const obis) {
     const unsigned long obis_length = getObisLength(obis);
     uint8_t *const next_element = ((uint8_t *const)current_element) + obis_length;
     // check if the obis element fits inside the udp packet

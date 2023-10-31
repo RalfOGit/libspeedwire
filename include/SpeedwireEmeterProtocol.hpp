@@ -45,9 +45,9 @@ namespace libspeedwire {
         void        setSusyID(const uint16_t susy);
         void        setSerialNumber(const uint32_t serial);
         void        setTime(const uint32_t time);
-        void* const getFirstObisElement(void) const;
-        void* const getNextObisElement(const void* const current_element) const;
-        void* const setObisElement(void* const current_element, const void* const obis);
+        const void* getFirstObisElement(void) const;
+        const void* getNextObisElement(const void* const current_element) const;
+        void* setObisElement(void* const current_element, const void* const obis);
 
         // methods to get obis information with current_element pointing to the first byte of the given obis field
         static uint8_t getObisChannel(const void* const current_element);

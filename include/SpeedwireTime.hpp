@@ -158,7 +158,7 @@ namespace libspeedwire {
          */
         static uint32_t calculateAbsTimeDifference(uint32_t time1, uint32_t time2) {
             int32_t signed_diff = calculateTimeDifference(time1, time2);
-            return (signed_diff >= 0 ? signed_diff : -signed_diff);
+            return (uint32_t)(signed_diff >= 0 ? signed_diff : -signed_diff);
         }
 
         /**
@@ -166,7 +166,7 @@ namespace libspeedwire {
          */
         static uint64_t calculateAbsTimeDifference(uint64_t time1, uint64_t time2) {
             int64_t signed_diff = calculateTimeDifference(time1, time2);
-            return (signed_diff >= 0 ? signed_diff : -signed_diff);
+            return (uint64_t)(signed_diff >= 0 ? signed_diff : -signed_diff);
         }
     };
 

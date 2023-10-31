@@ -60,8 +60,8 @@ namespace libspeedwire {
         uint64_t getDataUint64(unsigned long byte_offset) const;
         void getDataUint8Array(const unsigned long byte_offset, uint8_t* buff, const size_t buff_size) const;
         uint32_t getRawDataLength(void) const;
-        void* const getFirstRawDataElement(void) const;
-        void* const getNextRawDataElement(const void* const current, uint32_t length) const;
+        const void* getFirstRawDataElement(void) const;
+        const void* getNextRawDataElement(const void* const current, uint32_t length) const;
         SpeedwireRawData getRawData(const void* const current, uint32_t length) const;
         std::vector<SpeedwireRawData> getRawDataElements(void) const;
         std::string toString(void) const;

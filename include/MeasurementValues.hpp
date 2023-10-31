@@ -36,7 +36,7 @@ namespace libspeedwire {
          * Constructor.
          * @param capacity Maximum number of measurements
          */
-        MeasurementValues(const int capacity) : RingBuffer(capacity) {}
+        MeasurementValues(const size_t capacity) : RingBuffer(capacity) {}
 
         /**
          *  Add a new measurement to the ring buffer. If the buffer is full, the oldest measurement is replaced.
@@ -52,7 +52,7 @@ namespace libspeedwire {
          *  Get the index in the ring buffer time-wise closest to the given time.
          *  @return index in ring buffer
          */
-        const size_t findClosestIndex(const uint32_t time) const {
+        size_t findClosestIndex(const uint32_t time) const {
             if (getNumberOfElements() > 0) {
                 // binary search
                 size_t low = 0;
@@ -90,7 +90,7 @@ namespace libspeedwire {
          *  @param the time to compare with
          *  @return the interpolated measurement value
          */
-        const double interpolateClosestValues(const uint32_t time) const {
+        double interpolateClosestValues(const uint32_t time) const {
             const size_t index_center = findClosestIndex(time);
             if (index_center != (size_t)-1) {
                 const size_t num_measurements = getNumberOfElements();
@@ -157,6 +157,7 @@ namespace libspeedwire {
                 y_sq_sum += value * value;
             }
             mean = y_sum / n_values;
+            // sample var = sum(y - mean) / (n_values - 1) is equivalent to (sum(y) / n_values - mean * mean) * (n_values / (n_values - 1))
             var  = (n_values <= 1 ? FLT_MAX : (y_sq_sum - mean * y_sum) / (n_values - 1));
         }
 

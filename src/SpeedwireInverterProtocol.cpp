@@ -147,12 +147,12 @@ uint32_t SpeedwireInverterProtocol::getRawDataLength(void) const {
 }
 
 /** Get pointer to first raw data element in udp packet. */
-void* const SpeedwireInverterProtocol::getFirstRawDataElement(void) const {
+const void* SpeedwireInverterProtocol::getFirstRawDataElement(void) const {
     return udp + sma_data_offset;
 }
 
 /** Get pointer to next raw data element starting from the given element. */
-void* const SpeedwireInverterProtocol::getNextRawDataElement(const void* const current_element, uint32_t element_length) const {
+const void* SpeedwireInverterProtocol::getNextRawDataElement(const void* const current_element, uint32_t element_length) const {
     uint8_t* const next_element = ((uint8_t* const)current_element) + element_length;
     // check if the next element including the 4-byte head is inside the udp packet
     if ((std::uintptr_t)(next_element + 4 - udp) > size) {
@@ -197,7 +197,7 @@ std::vector<SpeedwireRawData> SpeedwireInverterProtocol::getRawDataElements(void
     std::vector<SpeedwireRawData> elements;
     uint32_t element_length = getRawDataLength();
     if (element_length > 0) {
-        void* current_element = getFirstRawDataElement();
+        const void* current_element = getFirstRawDataElement();
         while (current_element != NULL) {
             SpeedwireRawData data = getRawData(current_element, element_length);
             elements.push_back(data);

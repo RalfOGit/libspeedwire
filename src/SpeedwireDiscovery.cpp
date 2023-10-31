@@ -219,7 +219,7 @@ const std::vector<SpeedwireDevice>& SpeedwireDiscovery::getDevices(void) const {
 /**
  *  Get the number of all pre-registered devices, where just the ip address is known.
  */
-const unsigned long SpeedwireDiscovery::getNumberOfPreRegisteredIPDevices(void) const {
+unsigned long SpeedwireDiscovery::getNumberOfPreRegisteredIPDevices(void) const {
     unsigned long count = 0;
     for (const auto& device : speedwireDevices) {
         count += (device.hasIPAddressOnly() ? 1 : 0);
@@ -231,7 +231,7 @@ const unsigned long SpeedwireDiscovery::getNumberOfPreRegisteredIPDevices(void) 
 /**
  *  Get the number of all pre-registered required devices, but they are still not yet discovered.
  */
-const unsigned long SpeedwireDiscovery::getNumberOfMissingDevices(void) const {
+unsigned long SpeedwireDiscovery::getNumberOfMissingDevices(void) const {
     unsigned long count = 0;
     for (const auto& device : speedwireDevices) {
         count += (device.hasSerialNumberOnly() ? 1 : 0);
@@ -243,7 +243,7 @@ const unsigned long SpeedwireDiscovery::getNumberOfMissingDevices(void) const {
 /**
  *  Get the number of all fully registered devices.
  */
-const unsigned long SpeedwireDiscovery::getNumberOfFullyRegisteredDevices(void) const {
+unsigned long SpeedwireDiscovery::getNumberOfFullyRegisteredDevices(void) const {
     unsigned long count = 0;
     for (const auto& device : speedwireDevices) {
         count += (device.isComplete() ? 1 : 0);
@@ -255,7 +255,7 @@ const unsigned long SpeedwireDiscovery::getNumberOfFullyRegisteredDevices(void) 
 /**
  *  Get the number of all known devices.
  */
-const unsigned long SpeedwireDiscovery::getNumberOfDevices(void) const {
+unsigned long SpeedwireDiscovery::getNumberOfDevices(void) const {
     return (unsigned long)speedwireDevices.size();
 }
 

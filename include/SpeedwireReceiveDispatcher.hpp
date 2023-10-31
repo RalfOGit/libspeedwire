@@ -22,6 +22,7 @@ namespace libspeedwire {
          * @param host Reference to LocalHost instance.
          */
         SpeedwirePacketReceiverBase(LocalHost& host) : protocolID(0x0000) {}
+        virtual ~SpeedwirePacketReceiverBase(void) {}
 
         /**
          * Virtual receive method - must be overriden.

@@ -25,6 +25,7 @@ namespace libspeedwire {
     //! Convert DeviceClass to a string
     inline std::string toString(const SpeedwireDeviceClass deviceclass) {
         switch (deviceclass) {
+        case SpeedwireDeviceClass::UNKNOWN:           return "Unknown";
         case SpeedwireDeviceClass::PV_INVERTER:       return "PV-Inverter";
         case SpeedwireDeviceClass::WIND_INVERTER:     return "Wind-Inverter";
         case SpeedwireDeviceClass::BATTERY_INVERTER:  return "Battery-Inverter";
@@ -33,6 +34,7 @@ namespace libspeedwire {
         case SpeedwireDeviceClass::SENSOR:            return "Sensor";
         case SpeedwireDeviceClass::EMETER:            return "Emeter";
         case SpeedwireDeviceClass::COMMUNICATION:     return "Communication";
+        case SpeedwireDeviceClass::USER_DEFINED:      return "User-Defined";
         default:                                      return "Unknown";
         }
     }

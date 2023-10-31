@@ -187,7 +187,7 @@ const std::string LocalHost::getInterfaceName(const std::string& local_ip_addres
  *  Getter for obtaining the interface index for a given ip address that is associated with a local interface.
  *  This is needed for setting up ipv6 multicast sockets.
  */
-const uint32_t LocalHost::getInterfaceIndex(const std::string & local_ip_address) const {
+uint32_t LocalHost::getInterfaceIndex(const std::string & local_ip_address) const {
     for (auto& info : local_interface_infos) {
         for (auto &addr : info.ip_addresses) {
             if (addr == local_ip_address) {
@@ -201,7 +201,7 @@ const uint32_t LocalHost::getInterfaceIndex(const std::string & local_ip_address
 /**
  *  Getter for obtaining the interface address prefix length for a given ip address that is associated with a local interface.
  */
-const uint32_t LocalHost::getInterfacePrefixLength(const std::string& local_ip_address) const {
+uint32_t LocalHost::getInterfacePrefixLength(const std::string& local_ip_address) const {
     for (auto& info : local_interface_infos) {
         auto it = info.ip_address_prefix_lengths.find(local_ip_address);
         if (it != info.ip_address_prefix_lengths.end()) {

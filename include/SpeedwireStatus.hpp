@@ -161,7 +161,7 @@ namespace libspeedwire {
          *  @param value status value
          *  @return a const iterator pointing to the element, or to cend()
          */
-        static const SpeedwireStatusMap::const_iterator findPredefined(uint32_t value) {
+        static const /*SpeedwireStatusMap::*/const_iterator findPredefined(uint32_t value) {
             const SpeedwireStatusMap& map = getAllPredefined();
             return map.find(value & 0x00ffffff);
         }
