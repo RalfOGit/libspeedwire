@@ -20,11 +20,42 @@ Emeter and inverter speedwire packets follow a standard format consisting of a t
     +      2 Bytes   | Data2 Tag Length       | # of bytes following Data2 Tag ID     +
     +      2 Bytes   | Data2 Tag ID           | 0x0010                                +
     +      2 Bytes   | Protocol ID            | always encoded for Data2 tag packets  +
-    +        Bytes   | Data                   |                                       +
+    +        Bytes   | Data                   | Emeter or inverter data               +
     +---------------------------------------------------------------------------------+
     +  Tag Packet 2                                                                   +
     +      2 Bytes   | End-of-Data Tag Length | 0x0000                                +
     +      2 Bytes   | End-of-Data Tag ID     | 0x0000                                +
+    +---------------------------------------------------------------------------------+
+
+The data part for emeter packets is documented in the official SMA-Emeter(TM) protocol specification:
+
+   https://developer.sma.de/fileadmin/content/global/Partner/Documents/SMA_Labs/EMETER-Protokoll-TI-en-10.pdf
+
+The data part for inverter packets is not officially documented. The protocol is based on register IDs that can be read from or written to. libspeedwire provides an implementation for reading register information, writing register information is not implemented. SMA recommends to rely on the documented Modbus API.
+
+    +---------------------------------------------------------------------------------+
+    +  Destination Address                                                            +
+    +      2 Bytes   | Susy ID                | Destination devices susy id           +
+    +      4 Bytes   | Serial Number          | Destination devices serial number     +
+    +      2 Bytes   | Control                | unknown semantics                     +
+    +---------------------------------------------------------------------------------+
+    +  Source Address                                                                 +
+    +      2 Bytes   | Susy ID                | Source devices susy id                +
+    +      4 Bytes   | Serial Number          | Source devices serial number          +
+    +      2 Bytes   | Control                | unknown semantics                     +
+    +---------------------------------------------------------------------------------+
+    +  Inverter Protocol                                                              +
+    +      2 Bytes   | Error Code             | 0x0000 if no error                    +
+    +      2 Bytes   | Fragment Counter       | Count down counter for # of packets   +
+    +      2 Bytes   | Packet ID              | Unique packet identification          +
+    +      4 Bytes   | Command ID             | see enum Command                      +
+    +      4 Bytes   | First Register ID      | First Register ID                     +
+    +      4 Bytes   | Last Register ID       | Last Register ID                      +
+    +---------------------------------------------------------------------------------+
+    +  Register Data                                                                  +
+    +      n Bytes   | Register Data #0 First | see class SpeedwireRawData            +
+    +      n Bytes   | ...                    |                                       +
+    +      n Bytes   | Register Data #n Last  |                                       +
     +---------------------------------------------------------------------------------+
 
 Useful examples on how to use this library can be found in the accompanying repositories:

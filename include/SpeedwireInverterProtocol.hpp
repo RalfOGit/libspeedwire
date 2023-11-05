@@ -16,6 +16,35 @@ namespace libspeedwire {
      * The inverter specific part of the speedwire udp packet starts directly after the control field of the speedwire
      * packet header. The format is not publicly documented by the manufacturer. Therefore the names and meanings
      * of data fields can be plainly wrong.
+     *
+     * The protocol is based on register IDs that can be read from or written to. The mechanism of reading register
+     * information is implemented, whereas the mechanism for writing register information is mostly unexplored.
+     * For writing to registers it is recommended to rely on the well-documented Modbus API.
+     * 
+     *      +---------------------------------------------------------------------------------+
+     *      +  Destination Address                                                            +
+     *      +      2 Bytes   | Susy ID                | Destination devices susy id           +
+     *      +      4 Bytes   | Serial Number          | Destination devices serial number     +
+     *      +      2 Bytes   | Control                | unknown semantics                     +
+     *      +---------------------------------------------------------------------------------+
+     *      +  Source Address                                                                 +
+     *      +      2 Bytes   | Susy ID                | Source devices susy id                +
+     *      +      4 Bytes   | Serial Number          | Source devices serial number          +
+     *      +      2 Bytes   | Control                | unknown semantics                     +
+     *      +---------------------------------------------------------------------------------+
+     *      +  Inverter Protocol                                                              +
+     *      +      2 Bytes   | Error Code             | 0x0000 if no error                    +
+     *      +      2 Bytes   | Fragment Counter       | Count down counter for # of packets   +
+     *      +      2 Bytes   | Packet ID              | Unique packet identification          +
+     *      +      4 Bytes   | Command ID             | see enum Command                      +
+     *      +      4 Bytes   | First Register ID      | First Register ID                     +
+     *      +      4 Bytes   | Last Register ID       | Last Register ID                      +
+     *      +---------------------------------------------------------------------------------+
+     *      +  Register Data                                                                  +
+     *      +      n Bytes   | Register Data #0 First | see class SpeedwireRawData            +
+     *      +      n Bytes   | ...                    |                                       +
+     *      +      n Bytes   | Register Data #n Last  |                                       +
+     *      +---------------------------------------------------------------------------------+
      */
     class SpeedwireInverterProtocol {
 
