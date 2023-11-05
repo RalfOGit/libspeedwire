@@ -89,10 +89,6 @@ And if you are developing on a Linux host and your projects reside in /home/YOU/
     Now you can start VSCode
     And in VSCode open folder YOUR_PROJECT_FOLDER
 
-The official SMA-Emeter(TM) protocol specification is available here:
-
-   https://developer.sma.de/fileadmin/content/global/Partner/Documents/SMA_Labs/EMETER-Protokoll-TI-en-10.pdf
-
 Further information regarding the SMA-Inverter(TM) datagrams can be found in various places on the internet:
 
     https://github.com/SBFspot/SBFspot
