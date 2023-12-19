@@ -52,31 +52,28 @@ const unsigned char  SpeedwireDiscovery::multicast_response[] = {
     // tag 0x0000 - end of data
 };
 
-#if 0
 // response from SBS2.5
-534d4100                        // sma signature            => required
-0004 02a0 00000001              // tag0, group 0x00000001   => required
-0002 0000 0001                  // ??                       => required
-0004 0010 0001 0003             // data2 tag  protocolid=0x0001, long words=0, control=0x03
-0004 0020 0000 0001             // discovery tag, 0x00000001 ??
-0004 0030 c0a8b216              // ip tag, 192.168.178.22
-0002 0070 ef0c                  // 0x0070 tag, 0xef0c
-0001 0080 00                    // 0x0080 tag, 0x00
-0000 0000                       // end of data tag
-#endif
-#if 0
+// 534d4100                        // sma signature            => required
+// 0004 02a0 00000001              // tag0, group 0x00000001   => required
+// 0002 0000 0001                  // 0x0000 tag, 0x0001       => required
+// 0004 0010 0001 0003             // data2 tag  protocolid=0x0001, long words=0, control=0x03
+// 0004 0020 0000 0001             // discovery tag, 0x00000001 ??
+// 0004 0030 c0a8b216              // ip tag, 192.168.178.22
+// 0002 0070 ef0c                  // 0x0070 tag, 0xef0c
+// 0001 0080 00                    // 0x0080 tag, 0x00
+// 0000 0000                       // end of data tag
+
 // response from ST5.0
-534d4100                        // sma signature            => required
-0004 02a0 00000001              // tag0, group 0x00000001   => required
-0002 0000 0001                  // ??                       => required
-0004 0010 0001 0003             // data2 tag  protocolid=0x0001, long words=0, control=0x03
-0004 0020 0000 0001             // discovery tag, 0x00000001 ??
-0004 0030 c0a8b216              // ip tag, 192.168.178.22
-0004 0040 00000000              // 0x0040 tag, 0x00000000
-0002 0070 ef0c                  // 0x0070 tag, 0xef0c
-0001 0080 00                    // 0x0080 tag, 0x00
-0000 0000                       // end of data tag
-#endif
+// 534d4100                        // sma signature            => required
+// 0004 02a0 00000001              // tag0, group 0x00000001   => required
+// 0002 0000 0001                  // 0x0000 tag, 0x0001       => required
+// 0004 0010 0001 0003             // data2 tag  protocolid=0x0001, long words=0, control=0x03
+// 0004 0020 0000 0001             // discovery tag, 0x00000001 ??
+// 0004 0030 c0a8b216              // ip tag, 192.168.178.22
+// 0004 0040 00000000              // 0x0040 tag, 0x00000000
+// 0002 0070 ef0c                  // 0x0070 tag, 0xef0c
+// 0001 0080 00                    // 0x0080 tag, 0x00
+// 0000 0000                       // end of data tag
 
 
 //! Unicast device discovery request packet, according to SMA documentation
@@ -96,6 +93,7 @@ const unsigned char  SpeedwireDiscovery::unicast_request[] = {
 
 // Response from inverter: id 0x00000300 (Discovery) conn 0x00 type 0x00 (Unsigned32) time 0x0000ff00  data   0x00000000  0x017a0001  0xb3712a84  0x000a0000  0x0000000c  0x00000000  0x00000000  0x00000101
 // Response from battery:  id 0x00000300 (Discovery) conn 0x00 type 0x00 (Unsigned32) time 0x0000ff00  data   0x60024170  0x015a0001  0x714f5e45  0x000a0000  0x0000000c  0x00000000  0x00000003  0x00000101
+
 
 /**
  *  Constructor.
@@ -357,7 +355,15 @@ int SpeedwireDiscovery::discoverDevices(const bool full_scan) {
             if ((fds[j].revents & POLLIN) != 0) {
 
                 // read packet data, analyze it and create a device information record
+                unsigned long num_before = getNumberOfDevices();
                 recvDiscoveryPackets(sockets[j]);
+                unsigned long num_after = getNumberOfDevices();
+
+                // if new devices have been pre-registered by received multicast responses, restart the pre-reg discovery
+                if (num_before < num_after && getNumberOfPreRegisteredIPDevices() > 0) {
+                    //fprintf(stdout, "restart discovery of pre-registrated devices\n");
+                    prereg_counter = 0;
+                }
             }
         }
     }

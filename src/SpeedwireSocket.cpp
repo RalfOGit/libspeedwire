@@ -550,7 +550,7 @@ int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, co
 #ifdef _WIN32
         int error = WSAGetLastError();
         if (error == WSAENETUNREACH) {
-            perror("sendto failure - a socket operation was attempted to an unreachable network");
+            //perror("sendto failure - a socket operation was attempted to an unreachable network");
         }
         else {
             perror("sendto failure");
