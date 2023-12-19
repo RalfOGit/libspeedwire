@@ -113,6 +113,48 @@ bool SpeedwireHeader::isValidData2Packet(bool fullcheck) const {
 }
 
 
+/**
+ *  Check if this packet is a valid SMA discovery packet.
+ *  A packet is considered valid if it starts with an SMA signature, followed by the SMA tag0 and at least one SMA discovery tag.
+ *  @return True if the packet header belongs to a valid SMA discovery packet, false otherwise
+ */
+bool SpeedwireHeader::isValidDiscoveryPacket(void) const {
+
+    // test SMA signature
+    if (isSMAPacket() == false) {
+        return false;
+    }
+
+    // test if tag0 is the group id tag
+    const void* tag0_ptr = findTagPacket(SpeedwireTagHeader::sma_tag_group_id);
+    if (tag0_ptr != udp + sma_tag0_offset) {
+        return false;
+    }
+    uint16_t tag0_size = SpeedwireTagHeader::getTagLength(tag0_ptr);
+    if (tag0_size != 4) {
+        return false;
+    }
+
+    // test if there is a discovery tag packet
+    const void* discovery_ptr = findTagPacket(SpeedwireTagHeader::sma_tag_discovery);
+    if (discovery_ptr == NULL) {
+        return false;
+    }
+
+    // test if there is an ip address tag packet, this is present in discovery response packets
+    const void* ipaddr_ptr = findTagPacket(SpeedwireTagHeader::sma_tag_ip_address);
+    if (ipaddr_ptr != NULL) {
+
+        // check length of ip address packet, must be >= 4 to hold at least an ipv4 address
+        uint16_t ipaddr_size = SpeedwireTagHeader::getTagLength(ipaddr_ptr);
+        if (ipaddr_size < 4) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
 /** Get SMA signature bytes. */
 uint32_t SpeedwireHeader::getSignature(void) const {
     return SpeedwireByteEncoding::getUint32BigEndian(udp + sma_signature_offset);
@@ -214,7 +256,7 @@ const void* SpeedwireHeader::findTagPacket(uint16_t tag_id) const {
         if (id == tag_id) {
             return tag;
         }
-        if (id == 0) {  // end-of-data marker
+        if (id == 0 && SpeedwireTagHeader::getTagLength(tag) == 0) {  // end-of-data marker
             break;
         }
         tag = getNextTagPacket(tag);

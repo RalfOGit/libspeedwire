@@ -32,12 +32,52 @@ using namespace libspeedwire;
 
 
 //! Multicast device discovery request packet, according to SMA documentation.
-//! However, this does not seem to be supported anymore with version 3.x devices
 const unsigned char  SpeedwireDiscovery::multicast_request[] = {
     0x53, 0x4d, 0x41, 0x00, 0x00, 0x04, 0x02, 0xa0,     // sma signature, 0x0004 length, 0x02a0 tag0
     0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x20,     // 0xffffffff group, 0x0000 length, 0x0020 discovery tag
     0x00, 0x00, 0x00, 0x00                              // 0x0000 length, 0x0000 end-of-data tag
 };
+
+const unsigned char  SpeedwireDiscovery::multicast_response[] = {
+    0x53, 0x4d, 0x41, 0x00, 0x00, 0x04, 0x02, 0xa0,     // sma signature, 0x0004 length, 0x02a0 tag0
+    0x00, 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00,     // 0x00000001 group, 0x0002 length, 0x0000 tag
+    0x00, 0x01                                          // 0x00000001 payload
+    // after this mandatory fixed part, more tags are typically following:
+    // tag 0x0010 - data2
+    // tag 0x0020 - discovery
+    // tag 0x0030 - ip address
+    // tag 0x0040 - ?
+    // tag 0x0070 - ?
+    // tag 0x0080 - ?
+    // tag 0x0000 - end of data
+};
+
+#if 0
+// response from SBS2.5
+534d4100                        // sma signature            => required
+0004 02a0 00000001              // tag0, group 0x00000001   => required
+0002 0000 0001                  // ??                       => required
+0004 0010 0001 0003             // data2 tag  protocolid=0x0001, long words=0, control=0x03
+0004 0020 0000 0001             // discovery tag, 0x00000001 ??
+0004 0030 c0a8b216              // ip tag, 192.168.178.22
+0002 0070 ef0c                  // 0x0070 tag, 0xef0c
+0001 0080 00                    // 0x0080 tag, 0x00
+0000 0000                       // end of data tag
+#endif
+#if 0
+// response from ST5.0
+534d4100                        // sma signature            => required
+0004 02a0 00000001              // tag0, group 0x00000001   => required
+0002 0000 0001                  // ??                       => required
+0004 0010 0001 0003             // data2 tag  protocolid=0x0001, long words=0, control=0x03
+0004 0020 0000 0001             // discovery tag, 0x00000001 ??
+0004 0030 c0a8b216              // ip tag, 192.168.178.22
+0004 0040 00000000              // 0x0040 tag, 0x00000000
+0002 0070 ef0c                  // 0x0070 tag, 0xef0c
+0001 0080 00                    // 0x0080 tag, 0x00
+0000 0000                       // end of data tag
+#endif
+
 
 //! Unicast device discovery request packet, according to SMA documentation
 const unsigned char  SpeedwireDiscovery::unicast_request[] = {
@@ -356,8 +396,8 @@ bool SpeedwireDiscovery::sendNextDiscoveryPacket(size_t& broadcast_counter, size
     const std::vector<std::string>& localIPs = localhost.getLocalIPv4Addresses();
     if (broadcast_counter < localIPs.size()) {
         const std::string& addr = localIPs[broadcast_counter];
-        SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::SocketType::MULTICAST, addr);
-        //fprintf(stdout, "send broadcast discovery request to %s (via interface %s)\n", localhost.toString(socket.getSpeedwireMulticastIn4Address()).c_str(), socket.getLocalInterfaceAddress().c_str());
+        SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::SocketType::UNICAST, addr);  // must be UNICAST socket to find the correct interface(!)
+        //fprintf(stdout, "send broadcast discovery request to %s (via interface %s)\n", AddressConversion::toString(socket.getSpeedwireMulticastIn4Address()).c_str(), socket.getLocalInterfaceAddress().c_str());
         int nbytes = socket.send(multicast_request, sizeof(multicast_request));
         broadcast_counter++;
         return true;
@@ -466,19 +506,35 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
     }
     if (nbytes > 0) {
         SpeedwireHeader protocol(udp_packet, nbytes);
-        bool valid_data2_packet = protocol.isValidData2Packet();
-        if (valid_data2_packet) {
+
+        // check for speedwire device discovery responses
+        if (protocol.isValidDiscoveryPacket()) {
+
+            // find ip address tag packet
+            const void* ipaddr_ptr = protocol.findTagPacket(SpeedwireTagHeader::sma_tag_ip_address);
+            if (ipaddr_ptr != NULL) {
+
+                // check size of ip address packet, it must be >= 4 to hold at least an ipv4 address
+                uint16_t ipaddr_size = SpeedwireTagHeader::getTagLength(ipaddr_ptr);
+                if (ipaddr_size >= 4) {
+
+                    // extract ip address and pre-register it as a new device
+                    struct in_addr in;
+                    in.S_un.S_addr = SpeedwireByteEncoding::getUint32LittleEndian((uint8_t*)ipaddr_ptr + SpeedwireTagHeader::TAG_HEADER_LENGTH);
+                    std:: string ip = AddressConversion::toString(in);
+                    printf("received speedwire discovery response packet from %s - ipaddr tag %s\n", peer_ip_address.c_str(), ip.c_str());
+                    preRegisterDevice(ip);
+                }
+            }
+        }
+        else if (protocol.isValidData2Packet()) {
 
             SpeedwireData2Packet data2_packet(protocol);
             uint16_t length = data2_packet.getTagLength();
             uint16_t protocolID = data2_packet.getProtocolID();
 
-            // check for speedwire multicast device discovery responses
-            if (protocolID == 0x0001) {
-                printf("received speedwire discovery response packet\n");
-            }
             // check for emeter protocol
-            else if (SpeedwireData2Packet::isEmeterProtocolID(protocolID) || SpeedwireData2Packet::isExtendedEmeterProtocolID(protocolID)) {
+            if (SpeedwireData2Packet::isEmeterProtocolID(protocolID) || SpeedwireData2Packet::isExtendedEmeterProtocolID(protocolID)) {
                 //LocalHost::hexdump(udp_packet, nbytes);
                 SpeedwireEmeterProtocol emeter(protocol);
                 SpeedwireDevice device;

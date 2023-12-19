@@ -97,9 +97,9 @@ namespace libspeedwire {
                 if (num_measurements > 1) {
                     const size_t index_before = (index_center > 0 ? (index_center - 1) : index_center);
                     const size_t index_after  = (index_center < (num_measurements - 1) ? (index_center + 1) : index_center);
-                    const uint64_t diff_before = SpeedwireTime::calculateAbsTimeDifference(time, at(index_before).time);
-                    const uint64_t diff_center = SpeedwireTime::calculateAbsTimeDifference(time, at(index_center).time);
-                    const uint64_t diff_after  = SpeedwireTime::calculateAbsTimeDifference(time, at(index_after).time);
+                    const uint32_t diff_before = SpeedwireTime::calculateAbsTimeDifference(time, at(index_before).time);
+                    const uint32_t diff_center = SpeedwireTime::calculateAbsTimeDifference(time, at(index_center).time);
+                    const uint32_t diff_after  = SpeedwireTime::calculateAbsTimeDifference(time, at(index_after).time);
                     if (index_after == index_center || (index_before != index_center && diff_before <= diff_after)) {
                         // the element prior to the closest element is time-wise closer than the element after the closest element,
                         // or, the closest index is the newest element; in both cases interpolate with the element prior to newest

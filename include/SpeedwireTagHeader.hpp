@@ -25,10 +25,11 @@ namespace libspeedwire {
 
     public:
 
-        static constexpr uint16_t sma_tag_group_id  = 0x02a0;  //!< Tag id used for group id payload data (0x2a <> 42)
-        static constexpr uint16_t sma_tag_data2     = 0x0010;  //!< Tag id used for SMA Data2 payload data
-        static constexpr uint16_t sma_tag_discovery = 0x0020;  //!< Tag id used for multicast discovery payload data
-        static constexpr uint16_t sma_tag_endofdata = 0x0000;  //!< Tag id used for end-of-data mark
+        static constexpr uint16_t sma_tag_group_id   = 0x02a0;  //!< Tag id used for group id payload data (0x2a <> 42)
+        static constexpr uint16_t sma_tag_data2      = 0x0010;  //!< Tag id used for SMA Data2 payload data
+        static constexpr uint16_t sma_tag_discovery  = 0x0020;  //!< Tag id used for multicast discovery payload data
+        static constexpr uint16_t sma_tag_ip_address = 0x0030;  //!< Tag id used for ip address payload data in discovery responses
+        static constexpr uint16_t sma_tag_endofdata  = 0x0000;  //!< Tag id used for end-of-data mark
 
         static constexpr unsigned long TAG_HEADER_LENGTH = sma_payload_offset;
 

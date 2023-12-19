@@ -70,6 +70,7 @@ namespace libspeedwire {
 
         bool isSMAPacket(void) const;
         bool isValidData2Packet(bool fullcheck = false) const;
+        bool isValidDiscoveryPacket(void) const;
 
         // getter methods to retrieve header fields
         uint32_t getSignature(void) const;
