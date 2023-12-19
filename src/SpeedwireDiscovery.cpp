@@ -526,7 +526,7 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
 
                     // extract ip address and pre-register it as a new device
                     struct in_addr in;
-                    in.S_un.S_addr = SpeedwireByteEncoding::getUint32LittleEndian((uint8_t*)ipaddr_ptr + SpeedwireTagHeader::TAG_HEADER_LENGTH);
+                    in.s_addr = SpeedwireByteEncoding::getUint32LittleEndian((uint8_t*)ipaddr_ptr + SpeedwireTagHeader::TAG_HEADER_LENGTH);
                     std:: string ip = AddressConversion::toString(in);
                     printf("received speedwire discovery response packet from %s - ipaddr tag %s\n", peer_ip_address.c_str(), ip.c_str());
                     preRegisterDevice(ip);
