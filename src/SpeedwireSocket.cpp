@@ -293,7 +293,7 @@ int SpeedwireSocket::openSocketV4(const std::string &local_interface_address, co
                 return -1;
             }
         }
-#ifdef _WIN32
+#ifdef IP_UNICAST_IF
         if (setsockopt(fd, IPPROTO_IP, IP_UNICAST_IF, (const char*)&socket_interface_v4, sizeof(socket_interface_v4)) < 0) {
             perror("setsockopt IP_UNICAST_IF failure");
             return -1;
@@ -398,7 +398,7 @@ int SpeedwireSocket::openSocketV6(const std::string &local_interface_address, co
                 return -1;
             }
         }
-#ifdef _WIN32
+#ifdef IPV6_UNICAST_IF
         if (setsockopt(fd, IPPROTO_IP, IPV6_UNICAST_IF, (const char*)&ifindex, sizeof(ifindex)) < 0) {
             perror("setsockopt IP_UNICAST_IF failure");
             return -1;
@@ -521,17 +521,35 @@ int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, co
 
 
 /**
- *  Send udp multicast packet to the given ipv4 or ipv6 address - this is the most low-level implementation
+ *  Send udp multicast packet to the given ipv4 or ipv6 address
  */
 int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, const struct sockaddr& dest) const {
+    return sendto(buff, size, dest, socket_interface_v4);
+}
+
+
+/**
+ *  Send udp multicast packet to the given ipv4 or ipv6 address - this is the most low-level implementation
+ */
+int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, const struct sockaddr& dest, const struct in_addr& local_interface_address) const {
     if (dest.sa_family == AF_INET) {
+        if (local_interface_address.s_addr == 0) {
+            perror("setsockopt IP_MULTICAST_IF failure - interface address is INADDR_ANY");
+            return -1;
+        }
         const struct sockaddr_in& destv4 = AddressConversion::toSockAddrIn(dest);
         if ((ntohl(destv4.sin_addr.s_addr) >> 24) == 239) {
-            if (setsockopt(socket_fd, IPPROTO_IP, IP_MULTICAST_IF, (const char*)&socket_interface_v4, sizeof(socket_interface_v4)) < 0) {
+            if (setsockopt(socket_fd, IPPROTO_IP, IP_MULTICAST_IF, (const char*)&local_interface_address, sizeof(local_interface_address)) < 0) {
                 perror("setsockopt IP_MULTICAST_IF failure");
                 return -1;
             }
         }
+#ifdef IP_UNICAST_IF
+        if (setsockopt(socket_fd, IPPROTO_IP, IP_UNICAST_IF, (const char*)&local_interface_address, sizeof(local_interface_address)) < 0) {
+            perror("setsockopt IP_UNICAST_IF failure");
+            return -1;
+        }
+#endif
     }
     // FIXME: not implemented yet
     //else if (dest.sa_family == AF_INET6) {
@@ -561,3 +579,4 @@ int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, co
     }
     return nbytes;
 }
+

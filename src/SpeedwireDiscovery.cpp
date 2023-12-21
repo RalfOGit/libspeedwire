@@ -402,9 +402,9 @@ bool SpeedwireDiscovery::sendNextDiscoveryPacket(size_t& broadcast_counter, size
     const std::vector<std::string>& localIPs = localhost.getLocalIPv4Addresses();
     if (broadcast_counter < localIPs.size()) {
         const std::string& addr = localIPs[broadcast_counter];
-        SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::SocketType::UNICAST, addr);  // must be UNICAST socket to find the correct interface(!)
+        SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::SocketType::MULTICAST, addr);
         //fprintf(stdout, "send broadcast discovery request to %s (via interface %s)\n", AddressConversion::toString(socket.getSpeedwireMulticastIn4Address()).c_str(), socket.getLocalInterfaceAddress().c_str());
-        int nbytes = socket.send(multicast_request, sizeof(multicast_request));
+        int nbytes = socket.sendto(multicast_request, sizeof(multicast_request), AddressConversion::toSockAddr(socket.getSpeedwireMulticastIn4Address()), AddressConversion::toInAddress(addr));
         broadcast_counter++;
         return true;
     }
@@ -473,7 +473,7 @@ bool SpeedwireDiscovery::sendNextDiscoveryPacket(size_t& broadcast_counter, size
             sockaddr.sin_port = htons(9522);
             // send to socket
             SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::SocketType::UNICAST, addr);
-            //fprintf(stdout, "send unicast discovery request to %s (via interface %s)\n", localhost.toString(sockaddr).c_str(), socket.getLocalInterfaceAddress().c_str());
+            //fprintf(stdout, "send unicast discovery request to %s (via interface %s)\n", AddressConversion::toString(sockaddr).c_str(), socket.getLocalInterfaceAddress().c_str());
             int nbytes = socket.sendto(unicast_request, sizeof(unicast_request), sockaddr);
             ++subnet_counter;
             return true;
