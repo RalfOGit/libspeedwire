@@ -293,7 +293,7 @@ int SpeedwireSocket::openSocketV4(const std::string &local_interface_address, co
                 return -1;
             }
         }
-#ifdef IP_UNICAST_IF
+#ifdef _WIN32
         if (setsockopt(fd, IPPROTO_IP, IP_UNICAST_IF, (const char*)&socket_interface_v4, sizeof(socket_interface_v4)) < 0) {
             perror("setsockopt IP_UNICAST_IF failure");
             return -1;
@@ -398,7 +398,7 @@ int SpeedwireSocket::openSocketV6(const std::string &local_interface_address, co
                 return -1;
             }
         }
-#ifdef IPV6_UNICAST_IF
+#ifdef _WIN32
         if (setsockopt(fd, IPPROTO_IP, IPV6_UNICAST_IF, (const char*)&ifindex, sizeof(ifindex)) < 0) {
             perror("setsockopt IP_UNICAST_IF failure");
             return -1;
@@ -544,7 +544,7 @@ int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, co
                 return -1;
             }
         }
-#ifdef IP_UNICAST_IF
+#ifdef _WIN32
         if (setsockopt(socket_fd, IPPROTO_IP, IP_UNICAST_IF, (const char*)&local_interface_address, sizeof(local_interface_address)) < 0) {
             perror("setsockopt IP_UNICAST_IF failure");
             return -1;
