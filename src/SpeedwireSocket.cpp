@@ -581,7 +581,7 @@ int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, co
  */
 int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, const struct sockaddr_in6& dest, const struct in6_addr& local_interface_address) const {
     if (dest.sin6_family == AF_INET6) {
-        if (dest.sin6_addr.u.Byte[0] == 255) {
+        if (dest.sin6_addr.s6_addr[0] == 255) {
             uint32_t ifindex = localhost.getInterfaceIndex(socket_interface);
             if (ifindex == -1) { ifindex = 0; }
             if (setsockopt(socket_fd, IPPROTO_IP, IPV6_MULTICAST_IF, (const char*)&ifindex, sizeof(ifindex)) < 0) {
