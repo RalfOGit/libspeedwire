@@ -63,7 +63,7 @@ namespace libspeedwire {
         /** Convert speedwire information to a single line string. */
         std::string toString(void) const {
             char buffer[256] = { 0 };
-            snprintf(buffer, sizeof(buffer), "SusyID %u  Serial %u  Class %-16s  Model %-14s  IP %s  IF %s",
+            snprintf(buffer, sizeof(buffer), "SusyID %3u  Serial %10u  Class %-16s  Model %-14s  IP %s  IF %s",
                 susyID, serialNumber, deviceClass.c_str(), deviceModel.c_str(), peer_ip_address.c_str(), interface_ip_address.c_str());
             return std::string(buffer);
         }
