@@ -370,7 +370,7 @@ int SpeedwireDiscovery::discoverDevices(const bool full_scan) {
 
     for (const auto& device : speedwireDevices) {
 #if 1
-        if (!device.hasSerialNumberOnly()) {
+        if (!device.hasSerialNumberOnly() && device.peer_ip_address != "" && device.interface_ip_address != "") {
             // try to get further information about the device by querying device type information from the peer
             SpeedwireCommand command(localhost, speedwireDevices);
             SpeedwireDevice updatedDevice = command.queryDeviceType(device);
@@ -496,6 +496,7 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
     bool result = false;
 
     std::string peer_ip_address;
+    std::string local_interface_address;
     char udp_packet[1600];
     int nbytes = 0;
     if (socket.isIpv4()) {
