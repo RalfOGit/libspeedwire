@@ -404,7 +404,7 @@ bool SpeedwireDiscovery::sendNextDiscoveryPacket(size_t& broadcast_counter, size
         const std::string& addr = localIPs[broadcast_counter];
         SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::SocketType::MULTICAST, addr);
         //fprintf(stdout, "send broadcast discovery request to %s (via interface %s)\n", AddressConversion::toString(socket.getSpeedwireMulticastIn4Address()).c_str(), socket.getLocalInterfaceAddress().c_str());
-        int nbytes = socket.sendto(multicast_request, sizeof(multicast_request), AddressConversion::toSockAddr(socket.getSpeedwireMulticastIn4Address()), AddressConversion::toInAddress(addr));
+        int nbytes = socket.sendto(multicast_request, sizeof(multicast_request), socket.getSpeedwireMulticastIn4Address(), AddressConversion::toInAddress(addr));
         broadcast_counter++;
         return true;
     }

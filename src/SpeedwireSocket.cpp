@@ -503,10 +503,26 @@ int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, co
 
 
 /**
+ *  Send udp multicast packet to the given ipv4 or ipv6 address
+ */
+int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, const struct sockaddr& dest) const {
+    int nbytes = -1;
+    if (dest.sa_family == AF_INET) {
+        nbytes = sendto(buff, size, AddressConversion::toSockAddrIn(dest), socket_interface_v4);
+    }
+    else if (dest.sa_family == AF_INET6) {
+        nbytes = sendto(buff, size, AddressConversion::toSockAddrIn6(dest), socket_interface_v6);
+    }
+    return nbytes;
+}
+
+
+
+/**
  *  Send udp multicast packet to the given ipv4 address
  */
 int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, const struct sockaddr_in &dest) const {
-    int nbytes = sendto(buff, size, *(struct sockaddr*)&dest);
+    int nbytes = sendto(buff, size, dest, socket_interface_v4);
     return nbytes;
 }
 
@@ -515,30 +531,21 @@ int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, co
  *  Send udp multicast packet to the given ipv6 address
  */
 int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, const struct sockaddr_in6 &dest) const {
-    int nbytes = sendto(buff, size, *(struct sockaddr*)&dest);
+    int nbytes = sendto(buff, size, dest, socket_interface_v6);
     return nbytes;
-}
-
-
-/**
- *  Send udp multicast packet to the given ipv4 or ipv6 address
- */
-int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, const struct sockaddr& dest) const {
-    return sendto(buff, size, dest, socket_interface_v4);
 }
 
 
 /**
  *  Send udp multicast packet to the given ipv4 or ipv6 address - this is the most low-level implementation
  */
-int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, const struct sockaddr& dest, const struct in_addr& local_interface_address) const {
-    if (dest.sa_family == AF_INET) {
+int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, const struct sockaddr_in& dest, const struct in_addr& local_interface_address) const {
+    if (dest.sin_family == AF_INET) {
         if (local_interface_address.s_addr == 0) {
             perror("setsockopt IP_MULTICAST_IF failure - interface address is INADDR_ANY");
             return -1;
         }
-        const struct sockaddr_in& destv4 = AddressConversion::toSockAddrIn(dest);
-        if ((ntohl(destv4.sin_addr.s_addr) >> 24) == 239) {
+        if ((ntohl(dest.sin_addr.s_addr) >> 24) == 239) {
             if (setsockopt(socket_fd, IPPROTO_IP, IP_MULTICAST_IF, (const char*)&local_interface_address, sizeof(local_interface_address)) < 0) {
                 perror("setsockopt IP_MULTICAST_IF failure");
                 return -1;
@@ -551,19 +558,39 @@ int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, co
         }
 #endif
     }
-    // FIXME: not implemented yet
-    //else if (dest.sa_family == AF_INET6) {
-    //    const struct sockaddr_in6& destv6 = InternetAddressConversions::toSockAddrIn6(dest);
-    //    if (destv6.sin6_addr.u.Byte[0] == 255) {
-    //        uint32_t ifindex = localhost.getInterfaceIndex(socket_interface);
-    //        if (ifindex == -1) { ifindex = 0; }
-    //        if (setsockopt(socket_fd, IPPROTO_IP, IPV6_MULTICAST_IF, (const char*)&ifindex, sizeof(ifindex)) < 0) {
-    //            perror("setsockopt IPV6_MULTICAST_IF failure");
-    //            return -1;
-    //        }
-    //    }
-    //}
-    int nbytes = ::sendto(socket_fd, (char*)buff, size, 0, &dest, sizeof(dest));
+    int nbytes = ::sendto(socket_fd, (char*)buff, size, 0, (struct sockaddr*)&dest, sizeof(dest));
+    if (nbytes < 0) {
+#ifdef _WIN32
+        int error = WSAGetLastError();
+        if (error == WSAENETUNREACH) {
+            //perror("sendto failure - a socket operation was attempted to an unreachable network");
+        }
+        else {
+            perror("sendto failure");
+        }
+#else
+        perror("sendto failure");
+#endif
+    }
+    return nbytes;
+}
+
+
+/**
+ *  Send udp multicast packet to the given ipv4 or ipv6 address - this is the most low-level implementation
+ */
+int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, const struct sockaddr_in6& dest, const struct in6_addr& local_interface_address) const {
+    if (dest.sin6_family == AF_INET6) {
+        if (dest.sin6_addr.u.Byte[0] == 255) {
+            uint32_t ifindex = localhost.getInterfaceIndex(socket_interface);
+            if (ifindex == -1) { ifindex = 0; }
+            if (setsockopt(socket_fd, IPPROTO_IP, IPV6_MULTICAST_IF, (const char*)&ifindex, sizeof(ifindex)) < 0) {
+                perror("setsockopt IPV6_MULTICAST_IF failure");
+                return -1;
+            }
+        }
+    }
+    int nbytes = ::sendto(socket_fd, (char*)buff, size, 0, (struct sockaddr*)&dest, sizeof(dest));
     if (nbytes < 0) {
 #ifdef _WIN32
         int error = WSAGetLastError();

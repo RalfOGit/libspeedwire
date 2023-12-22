@@ -71,7 +71,8 @@ namespace libspeedwire {
         int sendto(const void* const buff, const unsigned long size, const struct sockaddr_in& dest) const;
         int sendto(const void* const buff, const unsigned long size, const struct sockaddr_in6& dest) const;
         int sendto(const void* const buff, const unsigned long size, const std::string& dest) const;
-        int sendto(const void* const buff, const unsigned long size, const struct sockaddr& dest, const struct in_addr& local_interface_address) const;
+        int sendto(const void* const buff, const unsigned long size, const struct sockaddr_in& dest, const struct in_addr& local_interface_address) const;
+        int sendto(const void* const buff, const unsigned long size, const struct sockaddr_in6& dest, const struct in6_addr& local_interface_address) const;
     };
 
 }   // namespace libspeedwire
