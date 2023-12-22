@@ -368,10 +368,12 @@ int SpeedwireDiscovery::discoverDevices(const bool full_scan) {
         }
     }
 
-    for (const auto& device : speedwireDevices) {
-#if 1
+    // try to get further information about the device by querying device type information from the peer
+    for (auto& device : speedwireDevices) {
+        if (device.interface_ip_address.length() == 0 || device.interface_ip_address == "0.0.0.0") {
+            device.interface_ip_address = localhost.getMatchingLocalIPAddress(device.peer_ip_address);
+        }
         if (!device.hasSerialNumberOnly() && device.peer_ip_address != "" && device.interface_ip_address != "") {
-            // try to get further information about the device by querying device type information from the peer
             SpeedwireCommand command(localhost, speedwireDevices);
             SpeedwireDevice updatedDevice = command.queryDeviceType(device);
             if (updatedDevice.isComplete()) {
@@ -379,9 +381,9 @@ int SpeedwireDiscovery::discoverDevices(const bool full_scan) {
                 printf("%s\n", updatedDevice.toString().c_str());
             }
         }
-#else
-        printf("%s\n", device.toString().c_str());
-#endif
+        if (!device.isComplete()) {
+            printf("%s\n", device.toString().c_str());
+        }
     }
 
     // return the number of discovered and fully registered devices

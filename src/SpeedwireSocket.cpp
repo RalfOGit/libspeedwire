@@ -299,6 +299,13 @@ int SpeedwireSocket::openSocketV4(const std::string &local_interface_address, co
             return -1;
         }
 #endif
+#ifdef IP_MULTICAST_ALL
+        uint32_t multicast_all = 1;
+        if (setsockopt(fd, IPPROTO_IP, IP_MULTICAST_ALL, (const char*)&multicast_all, sizeof(multicast_all)) < 0) {
+            perror("setsockopt IP_MULTICAST_ALL failure");
+            return -1;
+        }
+#endif
     }
 
     // wait until multicast membership messages have been sent
