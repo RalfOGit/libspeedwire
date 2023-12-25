@@ -30,8 +30,13 @@ namespace libspeedwire {
 
         std::vector<SpeedwireDevice> speedwireDevices;
 
-        bool sendNextDiscoveryPacket(size_t& broadcast_counter, size_t& wakeup_counter, size_t& prereg_counter, size_t& subnet_counter, size_t& socket_counter);
+        bool sendNextDiscoveryPacket(size_t& broadcast_counter, size_t& prereg_counter, size_t& subnet_counter, size_t& socket_counter);
         bool recvDiscoveryPackets(const SpeedwireSocket& socket);
+        bool sendMulticastDiscoveryRequestToSockets(void);
+        bool sendMulticastDiscoveryRequestToDevices(void);
+        bool sendUnicastDiscoveryRequestToDevices(void);
+        bool sendUnicastDiscoveryRequestToSockets(size_t& subnet_counter, size_t& socket_counter);
+        int pollSockets(const std::vector<SpeedwireSocket>& sockets, int timeout);
 
     public:
 

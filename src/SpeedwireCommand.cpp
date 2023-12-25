@@ -33,7 +33,7 @@ SpeedwireCommand::SpeedwireCommand(const LocalHost &_localhost, const std::vecto
     // loop across all speedwire devices
     for (auto& device : devices) {
         // check if there is already a map entry for the interface ip address
-        if (socket_map.find(device.interface_ip_address) == socket_map.end()) {
+        if (socket_map.find(device.interface_ip_address) == socket_map.end() && device.interface_ip_address.length() > 0 && device.interface_ip_address != "0.0.0.0") {
             // create and open a socket for the interface
             SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getRecvSocket(SpeedwireSocketFactory::SocketType::UNICAST, device.interface_ip_address);
             if (socket.getSocketFd() >= 0) {
