@@ -2,7 +2,7 @@
 #define __LIBSPEEDWIRE_SPEEDWIREDISCOVERY_HPP__
 
 #include <cstdint>
-#include <string>
+#include <cstring>
 #include <vector>
 #include <LocalHost.hpp>
 #include <SpeedwireSocket.hpp>
