@@ -264,6 +264,19 @@ const void* SpeedwireHeader::findTagPacket(uint16_t tag_id) const {
     return NULL;
 }
 
+/** Find the the end-of-data tag header in the sequence of tag headers and return a pointer to the tag */
+const void* SpeedwireHeader::findEodTagPacket(void) const {
+    const void* tag = getFirstTagPacket();
+    while (tag != NULL) {
+        uint16_t id = SpeedwireTagHeader::getTagId(tag);
+        if (id == 0 && SpeedwireTagHeader::getTagLength(tag) == 0) {  // end-of-data marker
+            return tag;
+        }
+        tag = getNextTagPacket(tag);
+    }
+    return NULL;
+}
+
 /** Check if the entire tag including its payload is contained inside the udp packet. */
 bool SpeedwireHeader::tagPacketFitsIntoUdp(const void* const tag) const {
     ptrdiff_t payload_offset = (ptrdiff_t)((uint8_t*)tag + SpeedwireTagHeader::TAG_HEADER_LENGTH - udp);

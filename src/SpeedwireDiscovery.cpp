@@ -21,6 +21,7 @@
 #include <AddressConversion.hpp>
 #include <SpeedwireByteEncoding.hpp>
 #include <SpeedwireHeader.hpp>
+#include <SpeedwireDiscoveryProtocol.hpp>
 #include <SpeedwireEmeterProtocol.hpp>
 #include <SpeedwireInverterProtocol.hpp>
 #include <SpeedwireCommand.hpp>
@@ -31,109 +32,11 @@
 using namespace libspeedwire;
 
 
-//! Multicast device discovery request packet, according to SMA documentation.
-const unsigned char  SpeedwireDiscovery::multicast_request[] = {
-    0x53, 0x4d, 0x41, 0x00, 0x00, 0x04, 0x02, 0xa0,     // sma signature, 0x0004 length, 0x02a0 tag0
-    0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x20,     // 0xffffffff group, 0x0000 length, 0x0020 discovery tag
-    0x00, 0x00, 0x00, 0x00                              // 0x0000 length, 0x0000 end-of-data tag
-};
-
-const unsigned char  SpeedwireDiscovery::multicast_response[] = {
-    0x53, 0x4d, 0x41, 0x00, 0x00, 0x04, 0x02, 0xa0,     // sma signature, 0x0004 length, 0x02a0 tag0
-    0x00, 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00,     // 0x00000001 group, 0x0002 length, 0x0000 tag
-    0x00, 0x01                                          // 0x00000001 payload
-    // after this mandatory fixed part, more tags are typically following:
-    // tag 0x0010 - data2
-    // tag 0x0020 - discovery
-    // tag 0x0030 - ip address
-    // tag 0x0040 - ?
-    // tag 0x0070 - ?
-    // tag 0x0080 - ?
-    // tag 0x0000 - end of data
-};
-
-// response from SBS2.5
-// 534d4100                        // sma signature            => required
-// 0004 02a0 00000001              // tag0, group 0x00000001   => required
-// 0002 0000 0001                  // 0x0000 tag, 0x0001       => required
-// 0004 0010 0001 0003             // data2 tag  protocolid=0x0001, long words=0, control=0x03
-// 0004 0020 0000 0001             // discovery tag, 0x00000001 ??
-// 0004 0030 c0a8b216              // ip tag, 192.168.178.22
-// 0002 0070 ef0c                  // 0x0070 tag, 0xef0c
-// 0001 0080 00                    // 0x0080 tag, 0x00
-// 0000 0000                       // end of data tag
-
-// response from ST5.0
-// 534d4100                        // sma signature            => required
-// 0004 02a0 00000001              // tag0, group 0x00000001   => required
-// 0002 0000 0001                  // 0x0000 tag, 0x0001       => required
-// 0004 0010 0001 0003             // data2 tag  protocolid=0x0001, long words=0, control=0x03
-// 0004 0020 0000 0001             // discovery tag, 0x00000001 ??
-// 0004 0030 c0a8b216              // ip tag, 192.168.178.22
-// 0004 0040 00000000              // 0x0040 tag, 0x00000000
-// 0002 0070 ef0c                  // 0x0070 tag, 0xef0c
-// 0001 0080 00                    // 0x0080 tag, 0x00
-// 0000 0000                       // end of data tag
-
-
-//! Unicast device discovery request packet, according to SMA documentation
-const unsigned char  SpeedwireDiscovery::unicast_request[] = {
-    0x53, 0x4d, 0x41, 0x00, 0x00, 0x04, 0x02, 0xa0,     // sma signature, 0x0004 length, 0x02a0 tag0
-    0x00, 0x00, 0x00, 0x01, 0x00, 0x26, 0x00, 0x10,     // 0x00000001 group, 0x0026 length, 0x0010 "SMA Net 2", Version 0
-    0x60, 0x65, 0x09, 0xa0, 0xff, 0xff, 0xff, 0xff,     // 0x6065 protocol, 0x09 #long words, 0xa0 ctrl, 0xffff dst susyID any, 0xffffffff dst serial any
-    0xff, 0xff, 0x00, 0x00, 0x7d, 0x00, 0x52, 0xbe,     // 0x0000 dst cntrl, 0x007d src susy id, 0x3a28be52 src serial
-    0x28, 0x3a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // 0x0000 src cntrl, 0x0000 error code, 0x0000 fragment ID
-    0x01, 0x80, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,     // 0x8001 packet ID, 0x0200 command ID, 0x00000000 first register id
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // 0x00000000 last register id, 0x00000000 trailer
-    0x00, 0x00
-};
-
-// Request: 534d4100000402a00000000100260010 606509a0 ffffffffffff0000 7d0052be283a0000 000000000180 00020000 00000000 00000000 00000000  => command = 0x00000200, first = 0x00000000; last = 0x00000000; trailer = 0x00000000
-// Response 534d4100000402a000000001004e0010 606513a0 7d0052be283a00c0 7a01842a71b30000 000000000180 01020000 00000000 00000000 00030000 00ff0000 00000000 01007a01 842a71b3 00000a00 0c000000 00000000 00000000 01010000 00000000
-
-// Response from inverter: id 0x00000300 (Discovery) conn 0x00 type 0x00 (Unsigned32) time 0x0000ff00  data   0x00000000  0x017a0001  0xb3712a84  0x000a0000  0x0000000c  0x00000000  0x00000000  0x00000101
-// Response from battery:  id 0x00000300 (Discovery) conn 0x00 type 0x00 (Unsigned32) time 0x0000ff00  data   0x60024170  0x015a0001  0x714f5e45  0x000a0000  0x0000000c  0x00000000  0x00000003  0x00000101
-
-
 /**
  *  Constructor.
  *  @param host A reference to the LocalHost instance of this machine.
  */
-SpeedwireDiscovery::SpeedwireDiscovery(LocalHost& host) :
-    localhost(host)
-{
-    // assemble multicast device discovery packet
-    //unsigned char mreq[20];
-    //SpeedwireProtocol mcast(mreq, sizeof(mreq));
-    //mcast.setDefaultHeader(0xffffffff, 0, 0x0000);
-    //mcast.setNetworkVersion(0x0020);
-    //if (memcmp(mreq, multicast_request, sizeof(mreq) != 0)) {
-    //    perror("diff");
-    //}
-
-    // assemble unicast device discovery packet
-    //unsigned char ureq[58];
-    //SpeedwireProtocol ucast(ureq, sizeof(ureq));
-    //ucast.setDefaultHeader(1, 0x26, SpeedwireProtocol::sma_inverter_protocol_id);
-    //ucast.setControl(0xa0);
-    //SpeedwireInverter uinv(ucast);
-    //uinv.setDstSusyID(0xffff);
-    //uinv.setDstSerialNumber(0xffffffff);
-    //uinv.setDstControl(0);
-    //uinv.setSrcSusyID(0x007d);
-    //uinv.setSrcSerialNumber(0x3a28be42);
-    //uinv.setSrcControl(0);
-    //uinv.setErrorCode(0);
-    //uinv.setFragmentID(0);
-    //uinv.setPacketID(0x8001);
-    //uinv.setCommandID(0x00000200);
-    //uinv.setFirstRegisterID(0x00000000);
-    //uinv.setLastRegisterID(0x00000000);
-    //uinv.setDataUint32(0, 0x00000000);  // set trailer
-    //if (memcmp(ureq, unicast_request, sizeof(ureq) != 0)) {
-    //    perror("diff");
-    //}
-}
+SpeedwireDiscovery::SpeedwireDiscovery(LocalHost& host) : localhost(host) {}
 
 
 /**
@@ -446,11 +349,12 @@ bool SpeedwireDiscovery::sendNextDiscoveryPacket(size_t& broadcast_counter, size
  *  Send multicast discovery packets to each local interface.
  */
 bool SpeedwireDiscovery::sendMulticastDiscoveryRequestToSockets(void) {
+    const std::array<uint8_t, 20>& multicast_request = SpeedwireDiscoveryProtocol::getMulticastRequest();
     const std::vector<std::string>& localIPs = localhost.getLocalIPv4Addresses();
     for (const auto& if_addr : localIPs) {
         SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::SocketType::MULTICAST, if_addr);
         //fprintf(stdout, "send broadcast discovery request to %s (via interface %s)\n", AddressConversion::toString(socket.getSpeedwireMulticastIn4Address()).c_str(), socket.getLocalInterfaceAddress().c_str());
-        int nbytes = socket.sendto(multicast_request, sizeof(multicast_request), socket.getSpeedwireMulticastIn4Address(), AddressConversion::toInAddress(if_addr));
+        int nbytes = socket.sendto(multicast_request.data(), (unsigned long)multicast_request.size(), socket.getSpeedwireMulticastIn4Address(), AddressConversion::toInAddress(if_addr));
     }
     return true;
 }
@@ -460,6 +364,7 @@ bool SpeedwireDiscovery::sendMulticastDiscoveryRequestToSockets(void) {
  *  Send multicast discovery packets to each pre-registered device.
  */
 bool SpeedwireDiscovery::sendMulticastDiscoveryRequestToDevices(void) {
+    const std::array<uint8_t, 20>& multicast_request = SpeedwireDiscoveryProtocol::getMulticastRequest();
     const std::vector<std::string>& localIPs = localhost.getLocalIPv4Addresses();
     for (auto& device : speedwireDevices) {
         if (device.hasIPAddressOnly()) {
@@ -473,7 +378,7 @@ bool SpeedwireDiscovery::sendMulticastDiscoveryRequestToDevices(void) {
                     sockaddr.sin_addr = dev_addr;
                     sockaddr.sin_port = htons(9522);
                     //fprintf(stdout, "send multicast discovery request to %s (via interface %s)\n", device.peer_ip_address.c_str(), socket.getLocalInterfaceAddress().c_str());
-                    int nbytes = socket.sendto(multicast_request, sizeof(multicast_request), sockaddr);
+                    int nbytes = socket.sendto(multicast_request.data(), (unsigned long)multicast_request.size(), sockaddr);
                 }
             }
         }
@@ -486,6 +391,7 @@ bool SpeedwireDiscovery::sendMulticastDiscoveryRequestToDevices(void) {
  *  Send unicast discovery packets to each pre-registered device.
  */
 bool SpeedwireDiscovery::sendUnicastDiscoveryRequestToDevices(void) {
+    const std::array<uint8_t, 58>& unicast_request = SpeedwireDiscoveryProtocol::getUnicastRequest();
     const std::vector<std::string>& localIPs = localhost.getLocalIPv4Addresses();
     for (auto& device : speedwireDevices) {
         if (device.hasIPAddressOnly()) {
@@ -497,7 +403,7 @@ bool SpeedwireDiscovery::sendUnicastDiscoveryRequestToDevices(void) {
                 sockaddr.sin_addr = dev_addr;
                 sockaddr.sin_port = htons(9522);
                 //fprintf(stdout, "send unicast discovery request to %s (via interface %s)\n", device.peer_ip_address.c_str(), socket.getLocalInterfaceAddress().c_str());
-                int nbytes = socket.sendto(unicast_request, sizeof(unicast_request), sockaddr);
+                int nbytes = socket.sendto(unicast_request.data(), (unsigned long)unicast_request.size(), sockaddr);
             }
         }
     }
@@ -535,7 +441,8 @@ bool SpeedwireDiscovery::sendUnicastDiscoveryRequestToSockets(size_t& subnet_cou
         // send to socket
         SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::SocketType::UNICAST, addr);
         //fprintf(stdout, "send unicast discovery request to %s (via interface %s)\n", AddressConversion::toString(sockaddr).c_str(), socket.getLocalInterfaceAddress().c_str());
-        int nbytes = socket.sendto(unicast_request, sizeof(unicast_request), sockaddr);
+        const std::array<uint8_t, 58>& unicast_request = SpeedwireDiscoveryProtocol::getUnicastRequest();
+        int nbytes = socket.sendto(unicast_request.data(), (unsigned long)unicast_request.size(), sockaddr);
         ++subnet_counter;
         return true;
     }
@@ -578,20 +485,13 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
         if (protocol.isValidDiscoveryPacket()) {
 
             // find ip address tag packet
-            const void* ipaddr_ptr = protocol.findTagPacket(SpeedwireTagHeader::sma_tag_ip_address);
-            if (ipaddr_ptr != NULL) {
-
-                // check size of ip address packet, it must be >= 4 to hold at least an ipv4 address
-                uint16_t ipaddr_size = SpeedwireTagHeader::getTagLength(ipaddr_ptr);
-                if (ipaddr_size >= 4) {
-
-                    // extract ip address and pre-register it as a new device
-                    struct in_addr in;
-                    in.s_addr = SpeedwireByteEncoding::getUint32LittleEndian((uint8_t*)ipaddr_ptr + SpeedwireTagHeader::TAG_HEADER_LENGTH);
-                    std:: string ip = AddressConversion::toString(in);
-                    printf("received speedwire discovery response packet from %s - ipaddr tag %s\n", peer_ip_address.c_str(), ip.c_str());
-                    preRegisterDevice(ip);
-                }
+            SpeedwireDiscoveryProtocol discovery_packet(protocol);
+            struct in_addr in;
+            in.s_addr = discovery_packet.getIPv4Address();
+            if (in.s_addr != 0) {
+                std::string ip = AddressConversion::toString(in);
+                printf("received speedwire discovery response packet from %s - ipaddr tag %s\n", peer_ip_address.c_str(), ip.c_str());
+                preRegisterDevice(ip);
             }
         }
         else if (protocol.isValidData2Packet()) {
@@ -628,7 +528,7 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
             }
             // check for inverter protocol and ignore loopback packets
             else if (SpeedwireData2Packet::isInverterProtocolID(protocolID) &&
-                (nbytes != sizeof(unicast_request) || memcmp(udp_packet, unicast_request, sizeof(unicast_request)) != 0)) {
+                SpeedwireDiscoveryProtocol(protocol).isUnicastRequestPacket() == false) {
                 SpeedwireInverterProtocol inverter_packet(protocol);
                 //LocalHost::hexdump(udp_packet, nbytes);
                 //printf("%s\n", inverter_packet.toString().c_str());

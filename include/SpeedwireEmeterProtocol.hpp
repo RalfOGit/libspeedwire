@@ -2,11 +2,9 @@
 #define __LIBSPEEDWIRE_SPEEDWIREEMETER_HPP__
 
 #include <cstdint>
-#include <stdio.h>
 #include <string>
 #include <SpeedwireHeader.hpp>
 #include <SpeedwireData2Packet.hpp>
-#include <SpeedwireTagHeader.hpp>
 
 namespace libspeedwire {
 

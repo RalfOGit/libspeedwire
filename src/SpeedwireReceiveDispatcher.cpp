@@ -86,10 +86,18 @@ int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& so
                 nbytes = socket.recvfrom(udp_packet, sizeof(udp_packet), AddressConversion::toSockAddrIn6(src));
             }
 
-            // check if it is an sma data2 speedwire packet
+            // check if it is a speedwire discovery packet
             SpeedwireHeader speedwire_packet(udp_packet, nbytes);
-            bool valid_data2_packet = speedwire_packet.isValidData2Packet();
-            if (valid_data2_packet) {
+            if (speedwire_packet.isValidDiscoveryPacket()) {
+                logger.print(LogLevel::LOG_INFO_2, "received discovery packet  time %lu\n", (uint32_t)LocalHost::getUnixEpochTimeInMs());
+                for (auto& receiver : receivers) {
+                    if (receiver->protocolID == 0x0000) {
+                        receiver->receive(speedwire_packet, src);
+                    }
+                }
+            }
+            // check if it is an sma data2 speedwire packet
+            else if (speedwire_packet.isValidData2Packet()) {
 
                 SpeedwireData2Packet data2_packet(speedwire_packet);
                 uint16_t length     = data2_packet.getTagLength();
@@ -184,5 +192,14 @@ void SpeedwireReceiveDispatcher::registerReceiver(EmeterPacketReceiverBase& rece
  */
 void SpeedwireReceiveDispatcher::registerReceiver(InverterPacketReceiverBase& receiver) {
     receiver.protocolID = SpeedwireData2Packet::sma_inverter_protocol_id;
+    receivers.push_back(&receiver);
+}
+
+/**
+ * Register a receiver for discovery packets.
+ * @param receiver Reference to the packet receiver instance.
+ */
+void SpeedwireReceiveDispatcher::registerReceiver(DiscoveryPacketReceiverBase& receiver) {
+    receiver.protocolID = 0x0000;
     receivers.push_back(&receiver);
 }

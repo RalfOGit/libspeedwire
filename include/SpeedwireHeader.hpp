@@ -91,6 +91,7 @@ namespace libspeedwire {
         const void* getFirstTagPacket(void) const;
         const void* getNextTagPacket(const void* const current_tag) const;
         const void* findTagPacket(uint16_t tag_id) const;
+        const void* findEodTagPacket(void) const;
         bool tagPacketFitsIntoUdp(const void* const tag) const;
     };
 

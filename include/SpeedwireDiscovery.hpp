@@ -22,10 +22,6 @@ namespace libspeedwire {
     class SpeedwireDiscovery {
 
     protected:
-        static const unsigned char multicast_request[20];
-        static const unsigned char multicast_response[18];
-        static const unsigned char unicast_request[58];
-
         const LocalHost& localhost;
 
         std::vector<SpeedwireDevice> speedwireDevices;
