@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <string>
+#include <stdio.h>
 #include <SpeedwireByteEncoding.hpp>
 
 namespace libspeedwire {

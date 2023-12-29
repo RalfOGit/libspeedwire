@@ -1,6 +1,7 @@
 #ifndef __LIBSPEEDWIRE_SPEEDWIRETIME_H__
 #define __LIBSPEEDWIRE_SPEEDWIRETIME_H__
 
+#include <cstdint>
 #include <LocalHost.hpp>
 
 namespace libspeedwire {

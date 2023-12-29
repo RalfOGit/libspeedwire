@@ -2,8 +2,6 @@
 #define __LIBSPEEDWIRE_SPEEDWIREDISCOVERYPROTOCOL_HPP__
 
 #include <cstdint>
-#include <stdio.h>
-#include <string>
 #include <array>
 #include <SpeedwireHeader.hpp>
 

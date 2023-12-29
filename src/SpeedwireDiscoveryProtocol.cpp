@@ -1,4 +1,5 @@
 #include <cstring>
+#include <stdio.h>
 #include <SpeedwireByteEncoding.hpp>
 #include <SpeedwireTagHeader.hpp>
 #include <SpeedwireDiscoveryProtocol.hpp>
