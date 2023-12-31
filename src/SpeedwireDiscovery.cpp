@@ -247,23 +247,8 @@ int SpeedwireDiscovery::discoverDevices(const bool full_scan) {
         pollSockets(sockets, (num_sends > 1 ? 10 : 200));
     }
 
-    // try to get further information about the device by querying device type information from the peer
-    for (auto& device : speedwireDevices) {
-        if (device.interface_ip_address.length() == 0 || device.interface_ip_address == "0.0.0.0") {
-            device.interface_ip_address = localhost.getMatchingLocalIPAddress(device.peer_ip_address);
-        }
-        if (!device.hasSerialNumberOnly() && device.peer_ip_address != "" && device.interface_ip_address != "") {
-            SpeedwireCommand command(localhost, speedwireDevices);
-            SpeedwireDevice updatedDevice = command.queryDeviceType(device);
-            if (updatedDevice.isComplete()) {
-                registerDevice(updatedDevice);
-                printf("%s\n", updatedDevice.toString().c_str());
-            }
-        }
-        if (!device.isComplete()) {
-            printf("%s\n", device.toString().c_str());
-        }
-    }
+    // try to get further information about the devices by querying device type information from the peers
+    completeDeviceInformation();
 
     // return the number of discovered and fully registered devices
     return getNumberOfFullyRegisteredDevices();
@@ -539,7 +524,7 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 device.deviceModel = "Inverter";
                 device.peer_ip_address = peer_ip_address;
                 device.interface_ip_address = localhost.getMatchingLocalIPAddress(peer_ip_address);
-                if (device.interface_ip_address == "" && socket.isIpAny() == false) {
+                if (device.interface_ip_address.length() == 0 && socket.isIpAny() == false) {
                     device.interface_ip_address = socket.getLocalInterfaceAddress();
                 }
                 // try to get further information about the device by examining the susy id; this is not accurate
@@ -569,3 +554,36 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
     }
     return result;
 }
+
+
+/**
+ *  Receive a discovery packet, analyze it and create a device information record.
+ */
+bool SpeedwireDiscovery::completeDeviceInformation(void) {
+    const uint32_t max_retries = 1;
+    uint32_t num_retries = 0;
+
+    while (num_retries < max_retries) {
+        // try to get further information about the device by querying device type information from the peer
+        for (auto& device : speedwireDevices) {
+            if (device.interface_ip_address.length() == 0 || device.interface_ip_address == "0.0.0.0") {
+                device.interface_ip_address = localhost.getMatchingLocalIPAddress(device.peer_ip_address);
+            }
+            // if the ip address and interface address is known, just query the device
+            if (device.isComplete() == false && device.peer_ip_address.length() != 0 && device.interface_ip_address.length() != 0) {
+                SpeedwireCommand command(localhost, speedwireDevices);
+                SpeedwireDevice updatedDevice = command.queryDeviceType(device);
+                if (updatedDevice.isComplete() == true) {
+                    registerDevice(updatedDevice);
+                    printf("%s\n", updatedDevice.toString().c_str());
+                }
+            }
+        }
+        ++num_retries;
+    }
+    for (auto& device : speedwireDevices) {
+        printf("%s\n", device.toString().c_str());
+    }
+    return true;
+}
+

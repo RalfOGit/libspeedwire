@@ -450,6 +450,7 @@ uint64_t LocalHost::calculateAbsTimeDifference(uint64_t time1, uint64_t time2) {
  */
 const std::string LocalHost::getMatchingLocalIPAddress(std::string ip_address) const {
     if (AddressConversion::isIpv4(ip_address) == true) {
+        // try to find an interface, where the subnet covers the given ip address
         struct in_addr in_ip_address = AddressConversion::toInAddress(ip_address);
         for (auto& if_addr : local_ipv4_addresses) {
             struct in_addr in_if_addr = AddressConversion::toInAddress(if_addr);
@@ -457,6 +458,26 @@ const std::string LocalHost::getMatchingLocalIPAddress(std::string ip_address) c
             if (AddressConversion::resideOnSameSubnet(in_if_addr, in_ip_address, if_prefix_length) == true) {
                 return if_addr;
             }
+        }
+#if defined(_WIN32)
+        DWORD dBestIfIndex;
+        DWORD result = GetBestInterface(in_ip_address.s_addr, &dBestIfIndex);
+        if (result == 0) {
+            const std::vector<InterfaceInfo>& local_interfaces = getLocalInterfaceInfos();
+            for (const auto& local_interf : local_interfaces) {
+                if (local_interf.if_index == dBestIfIndex) {
+                    for (const auto& if_addr : local_interf.ip_addresses) {
+                        if (AddressConversion::isIpv4(if_addr)) {
+                            return if_addr;
+                        }
+                    }
+                }
+            }
+        }
+#endif
+        // if there is only one interface, just use it
+        if (local_ipv4_addresses.size() == 1) {
+            return local_ipv4_addresses[0];
         }
     }
     else if (AddressConversion::isIpv6(ip_address) == true) {
@@ -467,6 +488,9 @@ const std::string LocalHost::getMatchingLocalIPAddress(std::string ip_address) c
             if (AddressConversion::resideOnSameSubnet(in_if_addr, in_ip_address, if_prefix_length) == true) {
                 return if_addr;
             }
+        }
+        if (local_ipv6_addresses.size() == 1) {
+            return local_ipv6_addresses[0];
         }
     }
     return "";

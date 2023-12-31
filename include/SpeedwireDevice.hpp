@@ -81,6 +81,17 @@ namespace libspeedwire {
         bool isComplete(void) const {
             return (susyID != 0 && serialNumber != 0 && deviceClass.length() > 0 && deviceModel.length() > 0 && peer_ip_address.length() > 0 && interface_ip_address.length() > 0);
         }
+
+        static const SpeedwireDevice &getLocalDevice(void) {
+            static SpeedwireDevice local;
+            local.susyID = 0x007d;
+            local.serialNumber = 0x3a28be52;
+            local.deviceClass = "Communication";
+            local.deviceModel = "Local";
+            local.peer_ip_address = "127.0.0.1";
+            local.interface_ip_address = local.peer_ip_address;
+            return local;
+        }
     };
 
 

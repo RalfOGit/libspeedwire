@@ -32,6 +32,7 @@ namespace libspeedwire {
         bool sendUnicastDiscoveryRequestToDevices(void);
         bool sendUnicastDiscoveryRequestToSockets(size_t& subnet_counter, size_t& socket_counter);
         int pollSockets(const std::vector<SpeedwireSocket>& sockets, int timeout);
+        bool completeDeviceInformation(void);
 
     public:
 
