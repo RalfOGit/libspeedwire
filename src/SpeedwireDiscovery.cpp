@@ -376,7 +376,7 @@ bool SpeedwireDiscovery::sendMulticastDiscoveryRequestToDevices(void) {
  *  Send unicast discovery packets to each pre-registered device.
  */
 bool SpeedwireDiscovery::sendUnicastDiscoveryRequestToDevices(void) {
-    const std::array<uint8_t, 58>& unicast_request = SpeedwireDiscoveryProtocol::getUnicastRequest();
+    const std::array<uint8_t, 58> unicast_request = SpeedwireDiscoveryProtocol::getUnicastRequest();
     const std::vector<std::string>& localIPs = localhost.getLocalIPv4Addresses();
     for (auto& device : speedwireDevices) {
         if (device.hasIPAddressOnly()) {
@@ -426,7 +426,7 @@ bool SpeedwireDiscovery::sendUnicastDiscoveryRequestToSockets(size_t& subnet_cou
         // send to socket
         SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::SocketType::UNICAST, addr);
         //fprintf(stdout, "send unicast discovery request to %s (via interface %s)\n", AddressConversion::toString(sockaddr).c_str(), socket.getLocalInterfaceAddress().c_str());
-        const std::array<uint8_t, 58>& unicast_request = SpeedwireDiscoveryProtocol::getUnicastRequest();
+        const std::array<uint8_t, 58> unicast_request = SpeedwireDiscoveryProtocol::getUnicastRequest();
         int nbytes = socket.sendto(unicast_request.data(), (unsigned long)unicast_request.size(), sockaddr);
         ++subnet_counter;
         return true;

@@ -1,6 +1,10 @@
 #ifndef __LIBSPEEDWIRE_SPEEDWIRESTATUS_HPP__
 #define __LIBSPEEDWIRE_SPEEDWIRESTATUS_HPP__
 
+#include <cstdint>
+#include <string>
+#include <vector>
+#include <map>
 
 namespace libspeedwire {
 
@@ -33,6 +37,7 @@ namespace libspeedwire {
         // pre-defined status instances
         static const SpeedwireStatus& Error(void) { static const SpeedwireStatus status(35, "Error", "Error"); return status; }
         static const SpeedwireStatus& Closed(void) { static const SpeedwireStatus status(51, "Closed", "Closed"); return status; }
+        static const SpeedwireStatus& DeviceFault(void) { static const SpeedwireStatus status(71, "DevFlt", "Device Fault"); return status; }
         static const SpeedwireStatus& None(void) { static const SpeedwireStatus status(302, "None", "None"); return status; }
         static const SpeedwireStatus& Off(void) { static const SpeedwireStatus status(303, "Off", "Off"); return status; }
         static const SpeedwireStatus& Ok(void) { static const SpeedwireStatus status(307, "OK", "OK"); return status; }
@@ -43,6 +48,7 @@ namespace libspeedwire {
         static const SpeedwireStatus& ContactInstaller(void) { static const SpeedwireStatus status(337, "ContactInst", "Contact Installer"); return status; }
         static const SpeedwireStatus& Invalid(void) { static const SpeedwireStatus status(338, "Invalid", "Invalid"); return status; }
         static const SpeedwireStatus& Stop(void) { static const SpeedwireStatus status(381, "Stop", "Stop"); return status; }
+        static const SpeedwireStatus& Operation2(void) { static const SpeedwireStatus status(388, "SttOp", "Status Operation"); return status; }
         static const SpeedwireStatus& Warning(void) { static const SpeedwireStatus status(455, "Warning", "Warning"); return status; }
         static const SpeedwireStatus& Activated(void) { static const SpeedwireStatus status(569, "Activated", "Activated"); return status; }
         static const SpeedwireStatus& Active(void) { static const SpeedwireStatus status(802, "Active", "Active"); return status; }
@@ -50,10 +56,13 @@ namespace libspeedwire {
         static const SpeedwireStatus& NoDescription(void) { static const SpeedwireStatus status(885, "NoDescr", "No description available"); return status; }
         static const SpeedwireStatus& NoMessage(void) { static const SpeedwireStatus status(886, "NoMessage", "No message available"); return status; }
         static const SpeedwireStatus& NoAction(void) { static const SpeedwireStatus status(887, "NoAction", "No suggested action"); return status; }
+        static const SpeedwireStatus& Heating(void) { static const SpeedwireStatus status(898, "Heating", "Heating"); return status; }
+        static const SpeedwireStatus& Cooling(void) { static const SpeedwireStatus status(899, "Cooling", "Colling"); return status; }
         static const SpeedwireStatus& Yes(void) { static const SpeedwireStatus status(1129, "Yes", "Yes"); return status; }
         static const SpeedwireStatus& No(void) { static const SpeedwireStatus status(1130, "No", "No"); return status; }
         static const SpeedwireStatus& GridSwOpen(void) { static const SpeedwireStatus status(1131, "GrSwOpen", "Grid switch open"); return status; }
         static const SpeedwireStatus& Standby(void) { static const SpeedwireStatus status(1295, "Standby", "Standby"); return status; }
+        static const SpeedwireStatus& Automatic(void) { static const SpeedwireStatus status(1438, "Automatic", "Automatic"); return status; }
         static const SpeedwireStatus& Locked(void) { static const SpeedwireStatus status(1795, "Locked", "Locked"); return status; }
         static const SpeedwireStatus& UpdateRecv(void) { static const SpeedwireStatus status(3179, "UpdateRecv", "Update receiving"); return status; }
         static const SpeedwireStatus& UpdateExec(void) { static const SpeedwireStatus status(3180, "UpdateExec", "Update executing"); return status; }
@@ -67,6 +76,7 @@ namespace libspeedwire {
             std::vector<SpeedwireStatus> predefined;
             predefined.push_back(Error());
             predefined.push_back(Closed());
+            predefined.push_back(DeviceFault());
             predefined.push_back(None());
             predefined.push_back(Off());
             predefined.push_back(Ok());
@@ -77,6 +87,7 @@ namespace libspeedwire {
             predefined.push_back(ContactInstaller());
             predefined.push_back(Invalid());
             predefined.push_back(Stop());
+            predefined.push_back(Operation2());
             predefined.push_back(Warning());
             predefined.push_back(Activated());
             predefined.push_back(Active());
@@ -84,10 +95,13 @@ namespace libspeedwire {
             predefined.push_back(NoDescription());
             predefined.push_back(NoMessage());
             predefined.push_back(NoAction());
+            predefined.push_back(Heating());
+            predefined.push_back(Cooling());
             predefined.push_back(Yes());
             predefined.push_back(No());
             predefined.push_back(GridSwOpen());
             predefined.push_back(Standby());
+            predefined.push_back(Automatic());
             predefined.push_back(Locked());
             predefined.push_back(UpdateRecv());
             predefined.push_back(UpdateExec());

@@ -45,7 +45,7 @@ namespace libspeedwire {
         void setDefaultResponsePacket(uint32_t group, uint32_t ipaddr);
         unsigned long getDefaultResponsePacketLength(void) const;
 
-        static const std::array<uint8_t, 58>& getUnicastRequest(void) { return unicast_request; }
+        static std::array<uint8_t, 58> getUnicastRequest(void);
         void setUnicastRequestPacket(void);
     };
 

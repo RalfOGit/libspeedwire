@@ -1,6 +1,7 @@
 #include <cstring>
 #include <stdio.h>
 #include <SpeedwireByteEncoding.hpp>
+#include <SpeedwireDevice.hpp>
 #include <SpeedwireTagHeader.hpp>
 #include <SpeedwireData2Packet.hpp>
 #include <SpeedwireInverterProtocol.hpp>
@@ -302,11 +303,35 @@ unsigned long SpeedwireDiscoveryProtocol::getDefaultResponsePacketLength(void) c
 
 
 /**
+ *  Return a byte array representing a unicast discovery request packet.
+ */
+std::array<uint8_t, 58> SpeedwireDiscoveryProtocol::getUnicastRequest(void) {
+    // create an inverter packet from the unicast data
+    std::array<uint8_t, 58> unicast_req = unicast_request;
+    SpeedwireHeader speedwire_packet(unicast_req.data(), (unsigned long)unicast_req.size());
+    SpeedwireInverterProtocol inverter_packet(speedwire_packet);
+
+    // insert local devices susy id and serial number
+    static const SpeedwireDevice& local_device = SpeedwireDevice::getLocalDevice();
+    inverter_packet.setSrcSusyID(local_device.susyID);
+    inverter_packet.setSrcSerialNumber(local_device.serialNumber);
+
+    // update packet id
+    static uint16_t packet_id = 0x8001;
+    inverter_packet.setPacketID(packet_id);
+    packet_id = (packet_id + 1) | 0x8000;
+
+    return unicast_req;
+}
+
+
+/**
  *  Populate this speedwire packet with the content of a unicast request.
  */
 void SpeedwireDiscoveryProtocol::setUnicastRequestPacket(void) {
 #if 1
-    memcpy(udp, unicast_request.data(), unicast_request.size());
+    std::array<uint8_t, 58> unicast_req = getUnicastRequest();
+    memcpy(udp, unicast_req.data(), unicast_req.size());
 #else
     // assemble unicast device discovery packet
     unsigned char ureq[58];
