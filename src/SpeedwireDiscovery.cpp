@@ -513,7 +513,7 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
             }
             // check for inverter protocol and ignore loopback packets
             else if (SpeedwireData2Packet::isInverterProtocolID(protocolID) &&
-                SpeedwireDiscoveryProtocol(protocol).isUnicastRequestPacket() == false) {
+                SpeedwireDiscoveryProtocol(protocol).isUnicastResponsePacket()) {
                 SpeedwireInverterProtocol inverter_packet(protocol);
                 //LocalHost::hexdump(udp_packet, nbytes);
                 //printf("%s\n", inverter_packet.toString().c_str());

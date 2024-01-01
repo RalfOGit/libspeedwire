@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <SpeedwireByteEncoding.hpp>
 #include <SpeedwireTagHeader.hpp>
+#include <SpeedwireData2Packet.hpp>
+#include <SpeedwireInverterProtocol.hpp>
 #include <SpeedwireDiscoveryProtocol.hpp>
 using namespace libspeedwire;
 
@@ -101,7 +103,47 @@ bool SpeedwireDiscoveryProtocol::isMulticastResponsePacket(void) const {
  *  @return True if the packet header belongs to a valid SMA unicast discovery request packet, false otherwise
  */
 bool SpeedwireDiscoveryProtocol::isUnicastRequestPacket(void) const {
+#if 0
     return (getPacketSize() == unicast_request.size() && memcmp(udp, unicast_request.data(), unicast_request.size()) == 0);
+#else
+    if (tag0_ptr != NULL && data2_ptr != NULL && discovery_ptr == NULL && ip_addr_ptr == NULL && getPacketSize() == unicast_request.size()) {
+        SpeedwireData2Packet data2(*this);
+
+        if (data2.isInverterProtocolID()) {
+            SpeedwireInverterProtocol inverter(data2);
+
+            if (inverter.getCommandID() == 0x0200 &&
+                inverter.getFirstRegisterID() == 0 &&
+                inverter.getLastRegisterID()  == 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+#endif
+}
+
+
+/**
+ *  Check if this packet is a valid SMA unicast discovery response packet.
+ *  @return True if the packet header belongs to a valid SMA unicast discovery response packet, false otherwise
+ */
+bool SpeedwireDiscoveryProtocol::isUnicastResponsePacket(void) const {
+    if (tag0_ptr != NULL && data2_ptr != NULL && discovery_ptr == NULL && ip_addr_ptr == NULL) {
+        SpeedwireData2Packet data2(*this);
+
+        if (data2.isInverterProtocolID()) {
+            SpeedwireInverterProtocol inverter(data2);
+
+            if (inverter.getCommandID() == 0x0201 &&
+                inverter.getFirstRegisterID() == 0 &&
+                inverter.getLastRegisterID()  == 0 &&
+                inverter.getRawDataLength()   == 40) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 

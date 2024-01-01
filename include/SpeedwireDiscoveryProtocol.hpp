@@ -32,6 +32,7 @@ namespace libspeedwire {
         bool isMulticastRequestPacket(void) const;
         bool isMulticastResponsePacket(void) const;
         bool isUnicastRequestPacket(void) const;
+        bool isUnicastResponsePacket(void) const;
 
         bool isValidDiscoveryPacket(void) const;
 

@@ -205,8 +205,9 @@ std::vector<SpeedwireRawData> SpeedwireInverterProtocol::getRawDataElements(void
             current_element = getNextRawDataElement(current_element, element_length);
         }
     }
-    if (elements.size() != (getLastRegisterID() - getFirstRegisterID() + 1)) {
+    if (elements.size() != 0 && elements.size() != (getLastRegisterID() - getFirstRegisterID() + 1)) {
         fprintf(stdout, "missing register\n");
+        //LocalHost::hexdump(udp, size);
     }
     return elements;
 }
