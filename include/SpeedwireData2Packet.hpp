@@ -117,8 +117,9 @@ namespace libspeedwire {
             switch (protocol_id) {
             case sma_extended_emeter_protocol_id:
             case sma_inverter_protocol_id:
-            case sma_0x6075_protocol_id:
                 return sma_control_offset + sma_control_size;   // inverter and extended emeter protocol data payload starts after the control byte
+            case sma_0x6075_protocol_id:
+                return sma_control_offset;                      // 0x6075 protocol data payload starts after the long words field
             case sma_emeter_protocol_id:
             default:
                 return sma_protocol_offset + sma_protocol_size; // emeter protocol data payload starts directly after the protocolID field
