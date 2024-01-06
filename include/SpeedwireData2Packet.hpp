@@ -50,6 +50,7 @@ namespace libspeedwire {
         static constexpr uint16_t sma_emeter_protocol_id = 0x6069;          //!< Protocol id used for SMA emeter packets
         static constexpr uint16_t sma_extended_emeter_protocol_id = 0x6081; //!< Protocol id used for SMA emeter packets sent by home manager
         static constexpr uint16_t sma_inverter_protocol_id = 0x6065;        //!< Protocol id used for SMA inverter packets
+        static constexpr uint16_t sma_0x6075_protocol_id = 0x6075;          //!< Protocol id used for SMA ??? packets
 
         /**
          *  Constructor.
@@ -116,6 +117,7 @@ namespace libspeedwire {
             switch (protocol_id) {
             case sma_extended_emeter_protocol_id:
             case sma_inverter_protocol_id:
+            case sma_0x6075_protocol_id:
                 return sma_control_offset + sma_control_size;   // inverter and extended emeter protocol data payload starts after the control byte
             case sma_emeter_protocol_id:
             default:

@@ -139,12 +139,12 @@ int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& so
                     valid_inverter_packet = true;
                     ++npackets;
                 }
-                // check if it is a sma 6075 packet
-                else if (data2_packet.getProtocolID() == 0x6075) {
+                // check if it is an sma 6075 packet
+                else if (data2_packet.getProtocolID() == SpeedwireData2Packet::sma_0x6075_protocol_id) {
                     logger.print(LogLevel::LOG_INFO_1, "received 6075 packet  time %lu\n", (uint32_t)LocalHost::getUnixEpochTimeInMs());
-                    std::string dump = data2_packet.toString();
-                    logger.print(LogLevel::LOG_INFO_1, "%s\n", dump.c_str());
-                    valid_inverter_packet = true;
+                    logger.print(LogLevel::LOG_INFO_1, "%s\n", data2_packet.toString().c_str());
+                    logger.print(LogLevel::LOG_INFO_1, "%s\n", SpeedwireInverterProtocol(data2_packet).toString().c_str());
+                    SpeedwireInverterProtocol inverter(data2_packet);
                     ++npackets;
                 }
                 else {
