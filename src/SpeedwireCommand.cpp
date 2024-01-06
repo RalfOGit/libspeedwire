@@ -26,6 +26,11 @@ using namespace libspeedwire;
 
 static Logger logger("SpeedwireCommand");
 
+const uint16_t SpeedwireCommand::local_susy_id   = SpeedwireDevice::getLocalDevice().susyID;
+const uint32_t SpeedwireCommand::local_serial_id = SpeedwireDevice::getLocalDevice().serialNumber;
+
+uint16_t SpeedwireCommand::packet_id = 0x8001;
+
 
 SpeedwireCommand::SpeedwireCommand(const LocalHost &_localhost, const std::vector<SpeedwireDevice> &_devices) :
     localhost(_localhost),
@@ -46,7 +51,7 @@ SpeedwireCommand::SpeedwireCommand(const LocalHost &_localhost, const std::vecto
             }
         }
     }
-    packet_id = 0x8001;
+    //packet_id = 0x8001; // | (uint16_t)LocalHost::getUnixEpochTimeInMs();
 }
 
 SpeedwireCommand::~SpeedwireCommand(void) {
@@ -56,12 +61,20 @@ SpeedwireCommand::~SpeedwireCommand(void) {
 
 
 /**
+ *  synchronous login method - send inverter login command to the given destination peer, wait for the response and check for error codes
+ */
+bool SpeedwireCommand::login(const SpeedwireDevice& dst_peer, const bool user, const char* password, const int timeout_in_ms) {
+    return login(dst_peer, SpeedwireDevice::getLocalDevice(), user, password, timeout_in_ms);
+}
+
+
+/**
  *  synchronous login method - send inverter login command to the given peer, wait for the response and check for error codes
  */
-bool SpeedwireCommand::login(const SpeedwireDevice& peer, const bool user, const char* password, const int timeout_in_ms) {
+bool SpeedwireCommand::login(const SpeedwireDevice& dst_peer, const SpeedwireDevice& src_peer, const bool user, const char* password, const int timeout_in_ms) {
 
     // determine receive socket
-    SocketIndex socket_index = socket_map[peer.interface_ip_address];
+    SocketIndex socket_index = socket_map[dst_peer.interface_ip_address];
     if (socket_index < 0) {
         logger.print(LogLevel::LOG_ERROR, "invalid socket_index");
         return false;
@@ -69,7 +82,7 @@ bool SpeedwireCommand::login(const SpeedwireDevice& peer, const bool user, const
     SpeedwireSocket& socket = sockets[socket_index];
 
     // send login request to peer
-    SpeedwireCommandTokenIndex token_index = sendLoginRequest(peer, user, password);
+    SpeedwireCommandTokenIndex token_index = sendLoginRequest(dst_peer, src_peer, user, password);
     if (token_index < 0) {
         return false;
     }
@@ -119,8 +132,17 @@ bool SpeedwireCommand::login(const SpeedwireDevice& peer, const bool user, const
 /**
  *  synchronous logoff method - send inverter logoff command to the given peer and return; there is no reply from the inverter for logoff commands
  */
-bool SpeedwireCommand::logoff(const SpeedwireDevice& peer) {
-    sendLogoffRequest(peer);
+bool SpeedwireCommand::logoff(const SpeedwireDevice& dst_peer) {
+    logoff(dst_peer, SpeedwireDevice::getLocalDevice());
+    return true;
+}
+
+
+/**
+ *  synchronous logoff method - send inverter logoff command to the given peer and return; there is no reply from the inverter for logoff commands
+ */
+bool SpeedwireCommand::logoff(const SpeedwireDevice& dst_peer, const SpeedwireDevice& src_peer) {
+    sendLogoffRequest(dst_peer, src_peer);
     return true;
 }
 
@@ -174,7 +196,7 @@ int32_t SpeedwireCommand::query(const SpeedwireDevice& peer, const Command comma
 /**
  *  send inverter login command to the given peer
  */
-SpeedwireCommandTokenIndex SpeedwireCommand::sendLoginRequest(const SpeedwireDevice& peer, const bool user, const char* password) {
+SpeedwireCommandTokenIndex SpeedwireCommand::sendLoginRequest(const SpeedwireDevice& dst_peer, const SpeedwireDevice& src_peer, const bool user, const char* password) {
     // Request  534d4100000402a000000001003a0010 60650ea0 7a01842a71b30001 7d0042be283a0001 000000000280 0c04fdff 07000000 84030000 00d8e85f 00000000 c1c1c1c18888888888888888 00000000   => login command = 0xfffd040c, first = 0x00000007 (user 7, installer a), last = 0x00000384 (hier timeout), time = 0x5fdf9ae8, 0x00000000, pw 12 bytes
     // Response 534d4100000402a000000001002e0010 60650be0 7d0042be283a0001 7a01842a71b30001 000000000280 0d04fdff 07000000 84030000 00d8e85f 00000000 00000000 => login OK
     // Response 534d4100000402a000000001002e0010 60650be0 7d0042be283a0001 7a01842a71b30001 000100000280 0d04fdff 07000000 84030000 fddbe85f 00000000 00000000 => login INVALID PASSWORD
@@ -184,24 +206,24 @@ SpeedwireCommandTokenIndex SpeedwireCommand::sendLoginRequest(const SpeedwireDev
     memset(request_buffer, 0, sizeof(request_buffer));
 
     SpeedwireHeader request_header(request_buffer, sizeof(request_buffer));
-    request_header.setDefaultHeader(1, sizeof(request_buffer)-20, SpeedwireData2Packet::sma_inverter_protocol_id);   // 4 + 8 + 4 => es fehlen 4 byte an der Länge, prüfen of tagLength erst nach dem control word zählt
+    request_header.setDefaultHeader(1, sizeof(request_buffer) - 20, SpeedwireData2Packet::sma_inverter_protocol_id);   // 4 + 8 + 4 => es fehlen 4 byte an der Länge, prüfen of tagLength erst nach dem control word zählt
     //LocalHost::hexdump(request_buffer, sizeof(request_buffer));
 
     SpeedwireData2Packet data2_packet(request_header);
     data2_packet.setControl(0xa0);
 
     SpeedwireInverterProtocol request(request_header);
-    request.setDstSusyID(peer.susyID);
-    request.setDstSerialNumber(peer.serialNumber);
+    request.setDstSusyID(dst_peer.susyID);
+    request.setDstSerialNumber(dst_peer.serialNumber);
     request.setDstControl(0x0100);
-    request.setSrcSusyID(local_susy_id);
-    request.setSrcSerialNumber(local_serial_id);
+    request.setSrcSusyID(src_peer.susyID);
+    request.setSrcSerialNumber(src_peer.serialNumber);
     request.setSrcControl(0x0100);
     request.setErrorCode(0);
     request.setFragmentCounter(0);
     request.setPacketID(packet_id);
     request.setCommandID(0xfffd040c);
-    request.setFirstRegisterID((user?0x00000007:0x0000000a));    // user: 0x7  installer: 0xa
+    request.setFirstRegisterID((user ? 0x00000007 : 0x0000000a));    // user: 0x7  installer: 0xa
     request.setLastRegisterID(0x00000384);     // timeout
     request.setDataUint32(0, (uint32_t)time(NULL));
     request.setDataUint32(4, 0x00000000);
@@ -213,20 +235,20 @@ SpeedwireCommandTokenIndex SpeedwireCommand::sendLoginRequest(const SpeedwireDev
     request.setDataUint8Array(8, encoded_password, sizeof(encoded_password));
 
     // send login request packet to peer
-    SocketIndex socket_index = socket_map[peer.interface_ip_address];
+    SocketIndex socket_index = socket_map[dst_peer.interface_ip_address];
     if (socket_index < 0) {
         logger.print(LogLevel::LOG_ERROR, "invalid socket_index");
         return -1;
     }
     SpeedwireSocket& socket = sockets[socket_index];
-    int nsent = socket.sendto(request_buffer, sizeof(request_buffer), peer.peer_ip_address);
+    int nsent = socket.sendto(request_buffer, sizeof(request_buffer), dst_peer.peer_ip_address);
     if (nsent <= 0) {
         logger.print(LogLevel::LOG_ERROR, "cannot send data to socket");
         return -1;
     }
 
     // add a query token; this is used to match reply packets to this request packet
-    SpeedwireCommandTokenIndex index = token_repository.add(peer.susyID, peer.serialNumber, packet_id, peer.peer_ip_address, 0xfffd040c);
+    SpeedwireCommandTokenIndex index = token_repository.add(dst_peer.susyID, dst_peer.serialNumber, packet_id, dst_peer.peer_ip_address, 0xfffd040c);
 
     // increment packet id
     packet_id = (packet_id + 1) | 0x8000;
@@ -238,7 +260,7 @@ SpeedwireCommandTokenIndex SpeedwireCommand::sendLoginRequest(const SpeedwireDev
 /**
  *  send inverter logoff command to the given peer
  */
-void SpeedwireCommand::sendLogoffRequest(const SpeedwireDevice& peer) {
+void SpeedwireCommand::sendLogoffRequest(const SpeedwireDevice& dst_peer, const SpeedwireDevice& src_peer) {
     // Request 534d4100000402a00000000100220010 606508a0 ffffffffffff0003 7d0052be283a0003 000000000280 0e01fdff ffffffff 00000000   => logoff command = 0xfffd01e0 (fehlt hier last?)
     // Request 534d4100000402a00000000100220010 606508a0 ffffffffffff0003 7d0042be283a0003 000000000180 e001fdff ffffffff 00000000
     // assemble unicast device logoff packet
@@ -255,8 +277,8 @@ void SpeedwireCommand::sendLogoffRequest(const SpeedwireDevice& peer) {
     request.setDstSusyID(0xffff);
     request.setDstSerialNumber(0xffffffff);
     request.setDstControl(0x0300);
-    request.setSrcSusyID(local_susy_id);
-    request.setSrcSerialNumber(local_serial_id);
+    request.setSrcSusyID(src_peer.susyID);
+    request.setSrcSerialNumber(src_peer.serialNumber);
     request.setSrcControl(0x0300);
     request.setErrorCode(0);
     request.setFragmentCounter(0);
@@ -265,13 +287,13 @@ void SpeedwireCommand::sendLogoffRequest(const SpeedwireDevice& peer) {
     request.setFirstRegisterID(0xffffffff);
     request.setLastRegisterID(0x00000000);
 
-    SocketIndex socket_index = socket_map.at(peer.interface_ip_address);
+    SocketIndex socket_index = socket_map.at(dst_peer.interface_ip_address);
     if (socket_index < 0) {
         logger.print(LogLevel::LOG_ERROR, "invalid socket_index");
         return;
     }
     SpeedwireSocket& socket = sockets[socket_index];
-    int nsent = socket.sendto(request_buffer, sizeof(request_buffer), peer.peer_ip_address);
+    int nsent = socket.sendto(request_buffer, sizeof(request_buffer), dst_peer.peer_ip_address);
     if (nsent <= 0) {
         logger.print(LogLevel::LOG_ERROR, "cannot send data to socket");
         return;
@@ -398,7 +420,12 @@ SpeedwireDevice SpeedwireCommand::queryDeviceType(const SpeedwireDevice& peer, c
     unsigned char udp_packet[2048];
     int32_t nbytes = receiveResponse(token_index, socket, udp_packet, sizeof(udp_packet), timeout_in_ms);
 
-    if (nbytes > 0) {
+    if (nbytes == 0) {
+        if (peer.deviceClass != toString(SpeedwireDeviceClass::EMETER)) {
+            printf("timeout in queryDeviceType() for %s via %s\n", peer.peer_ip_address.c_str(), socket.getLocalInterfaceAddress().c_str());
+        }
+    }
+    else if (nbytes > 0) {
         //LocalHost::hexdump(udp_packet, nbytes);
 
         // parse reply packet
