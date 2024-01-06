@@ -260,6 +260,12 @@ int SpeedwireSocket::openSocketV4(const std::string &local_interface_address, co
                         perror("setsockopt");
                         return -1;
                     }
+                    // also add the broadcast address 239.12.255.255, this is used by Sunny Explorer
+                    mreq.imr_multiaddr.s_addr |= 0xff000000;
+                    if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq)) < 0) {
+                        perror("setsockopt");
+                        return -1;
+                    }
                 }
             }
         }
@@ -272,12 +278,24 @@ int SpeedwireSocket::openSocketV4(const std::string &local_interface_address, co
                 perror("setsockopt IP_ADD_MEMBERSHIP failure");
                 return -1;
             }
+            // also add the broadcast address 239.12.255.255, this is used by Sunny Explorer
+            req.imr_multiaddr.s_addr |= 0xff000000;
+            if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&req, sizeof(req)) < 0) {
+                perror("setsockopt IP_ADD_MEMBERSHIP failure");
+                return -1;
+            }
         }
 #else
         struct ip_mreq req;
         memset(&req, 0, sizeof(req));
         req.imr_multiaddr = speedwire_multicast_address_v4.sin_addr;
         req.imr_interface = socket_interface_v4;
+        if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&req, sizeof(req)) < 0) {
+            perror("setsockopt IP_ADD_MEMBERSHIP failure");
+            return -1;
+        }
+        // also add the broadcast address 239.12.255.255, this is used by Sunny Explorer
+        req.imr_multiaddr.s_addr |= 0xff000000;
         if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&req, sizeof(req)) < 0) {
             perror("setsockopt IP_ADD_MEMBERSHIP failure");
             return -1;
