@@ -144,7 +144,7 @@ int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& so
                     logger.print(LogLevel::LOG_INFO_1, "received 6075 packet  time %lu\n", (uint32_t)LocalHost::getUnixEpochTimeInMs());
                     logger.print(LogLevel::LOG_INFO_1, "%s\n", data2_packet.toString().c_str());
                     logger.print(LogLevel::LOG_INFO_1, "%s\n", SpeedwireInverterProtocol(data2_packet).toString().c_str());
-                    SpeedwireInverterProtocol inverter(data2_packet);
+                    valid_inverter_packet = true;
                     ++npackets;
                 }
                 else {
