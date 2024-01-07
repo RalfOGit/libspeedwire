@@ -82,6 +82,7 @@ namespace libspeedwire {
             return (susyID != 0 && serialNumber != 0 && deviceClass.length() > 0 && deviceModel.length() > 0 && peer_ip_address.length() > 0 && interface_ip_address.length() > 0);
         }
 
+        /** Get a reference to a local device description. This can be used as a source device for commands. */
         static const SpeedwireDevice &getLocalDevice(void) {
             static SpeedwireDevice local;
             local.susyID = 0x0078;
@@ -89,6 +90,18 @@ namespace libspeedwire {
             local.deviceClass = "Communication";
             local.deviceModel = "Local";
             local.peer_ip_address = "127.0.0.1";
+            local.interface_ip_address = local.peer_ip_address;
+            return local;
+        }
+
+        /** Get a reference to a broadcast device description. This can be used as a broadcast destination device for commands. */
+        static const SpeedwireDevice& getBroadcastDevice(void) {
+            static SpeedwireDevice local;
+            local.susyID = 0xffff;
+            local.serialNumber = 0xffffffff;
+            local.deviceClass = "Communication";
+            local.deviceModel = "Broadcast";
+            local.peer_ip_address = "0.0.0.0";
             local.interface_ip_address = local.peer_ip_address;
             return local;
         }

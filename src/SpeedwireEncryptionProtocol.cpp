@@ -82,15 +82,40 @@ void SpeedwireEncryptionProtocol::getDataUint8Array(const unsigned long byte_off
     }
 }
 
-/** Print all raw data elements given in this inverter packet */
+/** Get an array of 8-bit data from the given offset in the data area. */
+std::array<uint8_t, 16> SpeedwireEncryptionProtocol::getDataUint8Array16(const unsigned long byte_offset) const {
+    std::array<uint8_t, 16> result;
+    getDataUint8Array(byte_offset, result.data(), result.size());
+    return result;
+}
+
+/** Print encryption packet */
 std::string SpeedwireEncryptionProtocol::toString(void) const {
     char buffer[1024];
     snprintf(buffer, sizeof(buffer),
-        "PacketType %d  SrcSusyID %u (0x%04x)  SrcSerialNumber %lu (0x%06lx)  DstSusyID %u (0x%04x)  DstSerialNumber %lu (0x%06lx)",
-        (int)getPacketType(),
-        getSrcSusyID(), getSrcSusyID(), getSrcSerialNumber(), getSrcSerialNumber(), 
-        getDstSusyID(), getDstSusyID(), getDstSerialNumber(), getDstSerialNumber());
+        "PacketType %d  SrcSusyID %u  SrcSerialNumber %lu  DstSusyID %u  DstSerialNumber %lu ",
+        (int)getPacketType(), getSrcSusyID(), getSrcSerialNumber(), getDstSusyID(), getDstSerialNumber());
     std::string result(buffer);
+    switch (getPacketType()) {
+    case 0x01: {
+        std::array<uint8_t, 16> src_seed = getDataUint8Array16(0);
+        std::string src_seed_str = toHexString(src_seed.data(), src_seed.size());
+        snprintf(buffer, sizeof(buffer), "SrcSeed %s", src_seed_str.c_str());
+        result.append(buffer);
+        break;
+    }
+    case 0x02:
+        std::array<uint8_t, 16> src_seed = getDataUint8Array16(0);
+        std::array<uint8_t, 16> dst_seed = getDataUint8Array16(16);
+        std::string src_seed_str = toHexString(src_seed.data(), src_seed.size());
+        std::string dst_seed_str = toHexString(dst_seed.data(), dst_seed.size());
+        uint8_t control = SpeedwireByteEncoding::getUint8(udp + sma_data_offset + 32);
+        std::array<uint8_t, 16> string1 = getDataUint8Array16(33);
+        std::array<uint8_t, 16> string2 = getDataUint8Array16(49);
+        snprintf(buffer, sizeof(buffer), "SrcSeed %s DstSeed %s Control %d String1 %s PIC %s", src_seed_str.c_str(), dst_seed_str.c_str(), control, string1.data(), string2.data());
+        result.append(buffer);
+        break;
+    }
     return result;
 }
 
@@ -133,4 +158,16 @@ void SpeedwireEncryptionProtocol::setDataUint64(const unsigned long byte_offset,
 /** Set an array of 8-bit data at the given offset in the data area. */
 void SpeedwireEncryptionProtocol::setDataUint8Array(const unsigned long byte_offset, const uint8_t* const value, const unsigned long value_length) {
     memcpy(udp + sma_data_offset + byte_offset, value, value_length);
+}
+
+/** Convert buffer content to hex string. */
+std::string SpeedwireEncryptionProtocol::toHexString(uint8_t* buff, const size_t buff_size) {
+    std::string result;
+    for (size_t i = 0; i < buff_size; ++i) {
+        uint8_t high_nibble = (buff[i] >> 4u) & 0x0f;
+        uint8_t low_nibble  = buff[i] & 0x0f;
+        result.append(1, "012345667890abcdef"[high_nibble]);
+        result.append(1, "012345667890abcdef"[low_nibble]);
+    }
+    return result;
 }

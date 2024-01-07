@@ -2,6 +2,7 @@
 #define __LIBSPEEDWIRE_SPEEDWIREENCRYPTION_HPP__
 
 #include <cstdint>
+#include <array>
 #include <SpeedwireHeader.hpp>
 #include <SpeedwireData2Packet.hpp>
 #include <SpeedwireData.hpp>
@@ -42,6 +43,8 @@ namespace libspeedwire {
         uint8_t* udp;
         unsigned long size;
 
+        static std::string toHexString(uint8_t* buff, const size_t buff_size);
+
     public:
         //SpeedwireEncryptionProtocol(const void* const udp_packet, const unsigned long udp_packet_size);
         SpeedwireEncryptionProtocol(const SpeedwireHeader& prot);
@@ -57,6 +60,7 @@ namespace libspeedwire {
         uint32_t getDataUint32(unsigned long byte_offset) const;   // offset 0 is the first byte after src serial number
         uint64_t getDataUint64(unsigned long byte_offset) const;
         void getDataUint8Array(const unsigned long byte_offset, uint8_t* buff, const size_t buff_size) const;
+        std::array<uint8_t, 16> getDataUint8Array16(const unsigned long byte_offset) const;
         std::string toString(void) const;
 
         // setter methods
