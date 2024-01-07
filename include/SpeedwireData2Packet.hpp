@@ -50,7 +50,7 @@ namespace libspeedwire {
         static constexpr uint16_t sma_emeter_protocol_id = 0x6069;          //!< Protocol id used for SMA emeter packets
         static constexpr uint16_t sma_extended_emeter_protocol_id = 0x6081; //!< Protocol id used for SMA emeter packets sent by home manager
         static constexpr uint16_t sma_inverter_protocol_id = 0x6065;        //!< Protocol id used for SMA inverter packets
-        static constexpr uint16_t sma_0x6075_protocol_id = 0x6075;          //!< Protocol id used for SMA ??? packets
+        static constexpr uint16_t sma_encryption_protocol_id = 0x6075;      //!< Protocol id used for SMA encryption packets
 
         /**
          *  Constructor.
@@ -118,11 +118,10 @@ namespace libspeedwire {
             case sma_extended_emeter_protocol_id:
             case sma_inverter_protocol_id:
                 return sma_control_offset + sma_control_size;   // inverter and extended emeter protocol data payload starts after the control byte
-            case sma_0x6075_protocol_id:
-                return sma_control_offset;                      // 0x6075 protocol data payload starts after the long words field
+            case sma_encryption_protocol_id:
             case sma_emeter_protocol_id:
             default:
-                return sma_protocol_offset + sma_protocol_size; // emeter protocol data payload starts directly after the protocolID field
+                return sma_protocol_offset + sma_protocol_size; // emeter and encryption protocol data payload starts directly after the protocolID field
             }
         }
 
@@ -135,7 +134,8 @@ namespace libspeedwire {
 
         static bool isEmeterProtocolID        (uint16_t protocol_id) { return (protocol_id == sma_emeter_protocol_id); }
         static bool isExtendedEmeterProtocolID(uint16_t protocol_id) { return (protocol_id == sma_extended_emeter_protocol_id); }
-        static bool isInverterProtocolID      (uint16_t protocol_id) { return (protocol_id == sma_inverter_protocol_id); }
+        static bool isInverterProtocolID(uint16_t protocol_id) { return (protocol_id == sma_inverter_protocol_id); }
+        static bool isEncryptionProtocolID(uint16_t protocol_id) { return (protocol_id == sma_encryption_protocol_id); }
 
         /** Check if protocolID is emeter protocol id. */
         bool isEmeterProtocolID(void) const { return isEmeterProtocolID(getProtocolID()); }
@@ -146,6 +146,8 @@ namespace libspeedwire {
         /** check if protocolID is inverter protocol id. */
         bool isInverterProtocolID(void) const { return isInverterProtocolID(getProtocolID()); }
 
+        /** check if protocolID is encryption protocol id. */
+        bool isEncryptionProtocolID(void) const { return isEncryptionProtocolID(getProtocolID()); }
     };
 
 }   // namespace libspeedwire

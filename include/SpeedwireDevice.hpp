@@ -84,7 +84,7 @@ namespace libspeedwire {
 
         static const SpeedwireDevice &getLocalDevice(void) {
             static SpeedwireDevice local;
-            local.susyID = 0x007d;
+            local.susyID = 0x0078;
             local.serialNumber = 0x3a28be52;
             local.deviceClass = "Communication";
             local.deviceModel = "Local";

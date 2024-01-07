@@ -12,6 +12,7 @@
 #include <AddressConversion.hpp>
 #include <Logger.hpp>
 #include <SpeedwireTagHeader.hpp>
+#include <SpeedwireEncryptionProtocol.hpp>
 #include <SpeedwireReceiveDispatcher.hpp>
 using namespace libspeedwire;
 
@@ -140,10 +141,10 @@ int  SpeedwireReceiveDispatcher::dispatch(const std::vector<SpeedwireSocket>& so
                     ++npackets;
                 }
                 // check if it is an sma 6075 packet
-                else if (data2_packet.getProtocolID() == SpeedwireData2Packet::sma_0x6075_protocol_id) {
-                    logger.print(LogLevel::LOG_INFO_1, "received 6075 packet  time %lu\n", (uint32_t)LocalHost::getUnixEpochTimeInMs());
-                    logger.print(LogLevel::LOG_INFO_1, "%s\n", data2_packet.toString().c_str());
-                    logger.print(LogLevel::LOG_INFO_1, "%s\n", SpeedwireInverterProtocol(data2_packet).toString().c_str());
+                else if (SpeedwireData2Packet::isEncryptionProtocolID(protocolID)) {
+                    SpeedwireEncryptionProtocol encryption(speedwire_packet);
+                    logger.print(LogLevel::LOG_INFO_2, "received encryption packet  time %lu\n", (uint32_t)LocalHost::getUnixEpochTimeInMs());
+                    //logger.print(LogLevel::LOG_INFO_2, "%s\n", encryption.toString().c_str());
                     valid_inverter_packet = true;
                     ++npackets;
                 }
