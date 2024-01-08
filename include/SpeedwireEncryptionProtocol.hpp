@@ -16,19 +16,31 @@ namespace libspeedwire {
      *
      * The encryption specific part of the speedwire udp packet starts directly after the speedwire packet header.
      *
-     *      +---------------------------------------------------------------------------------+
-     *      +  Destination Address                                                            +
-     *      +      2 Bytes   | Susy ID                | Destination devices susy id           +
-     *      +      4 Bytes   | Serial Number          | Destination devices serial number     +
-     *      +---------------------------------------------------------------------------------+
-     *      +  Source Address                                                                 +
-     *      +      2 Bytes   | Susy ID                | Source devices susy id                +
-     *      +      4 Bytes   | Serial Number          | Source devices serial number          +
-     *      +---------------------------------------------------------------------------------+
-     *      +  Encryption Protocol                                                            +
-     *      +      1 Bytes   | Packet Type            | 0x0001 Request encryption keys        +
-     *      +                |                        | 0x0002 Response encryption keys       +
-     *      +---------------------------------------------------------------------------------+
+     *      +----------------------------------------------------------------------------------------+
+     *      +  Destination Address                                                                   +
+     *      +      2 Bytes   | Susy ID                | Destination devices susy id                  +
+     *      +      4 Bytes   | Serial Number          | Destination devices serial number            +
+     *      +----------------------------------------------------------------------------------------+
+     *      +  Source Address                                                                        +
+     *      +      2 Bytes   | Susy ID                | Source devices susy id                       +
+     *      +      4 Bytes   | Serial Number          | Source devices serial number                 +
+     *      +----------------------------------------------------------------------------------------+
+     *      +  Encryption Protocol                                                                   +
+     *      +      1 Bytes   | Packet Type            | 0x0001 Request encryption keys               +
+     *      +                |                        | 0x0002 Response encryption keys              +
+     *      +----------------------------------------------------------------------------------------+
+     *      +  Seeds                                                                                 +
+     *      +     16 Bytes   | Source Seed            | Packet Type 1 and 2                          +
+     *      +     16 Bytes   | Destination Seed       | Packet Type 2 only                           +
+     *      +      1 Bytes   | Encryption Status      | 0x00 unsecured, 0x01 secured                 +
+     *      +     16 Bytes   | Password               | Packet Type 2 only - RID or WPA-PSK Password +
+     *      +     16 Bytes   | PIC                    | Packet Type 2 only - PIC                     +
+     *      +     16 Bytes   | Unknown Seed 1         | Packet Type 2 only                           +
+     *      +     16 Bytes   | Unknown Seed 2         | Packet Type 2 only                           +
+     *      +----------------------------------------------------------------------------------------+
+     *
+     * The PIC, RID or WPA-PSK password is printed on the nameplate. The RID is used for high security,
+     * whereas the WPA-PSK password is used for basic security.
      */
     class SpeedwireEncryptionProtocol {
 
@@ -57,11 +69,12 @@ namespace libspeedwire {
         uint32_t getDstSerialNumber(void) const;
         uint16_t getSrcSusyID(void) const;
         uint32_t getSrcSerialNumber(void) const;
-        uint32_t getDataUint32(unsigned long byte_offset) const;   // offset 0 is the first byte after src serial number
+        uint8_t  getDataUint8(unsigned long byte_offset) const;   // byte offset 0 is the first byte after src serial number
+        uint32_t getDataUint32(unsigned long byte_offset) const;
         uint64_t getDataUint64(unsigned long byte_offset) const;
         void getDataUint8Array(const unsigned long byte_offset, uint8_t* buff, const size_t buff_size) const;
         std::array<uint8_t, 16> getDataUint8Array16(const unsigned long byte_offset) const;
-        std::string toString(void) const;
+        std::string getString16(const unsigned long byte_offset) const;
 
         // setter methods
         void setPacketType(const uint8_t value);
@@ -69,9 +82,14 @@ namespace libspeedwire {
         void setDstSerialNumber(const uint32_t value);
         void setSrcSusyID(const uint16_t value);
         void setSrcSerialNumber(const uint32_t value);
-        void setDataUint32(const unsigned long byte_offset, const uint32_t value);   // offset 0 is the first byte after src serial number
+        void setDataUint8(unsigned long byte_offset, const uint8_t value);          // byte offset 0 is the first byte after src serial number
+        void setDataUint32(const unsigned long byte_offset, const uint32_t value);
         void setDataUint64(const unsigned long byte_offset, const uint64_t value);
         void setDataUint8Array(const unsigned long byte_offset, const uint8_t* const value, const unsigned long value_length);
+        void setDataUint8Array16(const unsigned long byte_offset, const std::array<uint8_t, 16>& value);
+        void setString16(const unsigned long byte_offset, const std::string& value);
+
+        std::string toString(void) const;
     };
 
 }   // namespace libspeedwire

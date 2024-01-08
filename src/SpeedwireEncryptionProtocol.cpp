@@ -65,8 +65,13 @@ uint32_t SpeedwireEncryptionProtocol::getSrcSerialNumber(void) const {
     return SpeedwireByteEncoding::getUint32BigEndian(udp + sma_src_serial_number_offset);
 }
 
+/** Get 8-bit of data from the given offset in the data area. */
+uint8_t SpeedwireEncryptionProtocol::getDataUint8(unsigned long byte_offset) const {
+    return SpeedwireByteEncoding::getUint8(udp + sma_data_offset + byte_offset);
+}
+
 /** Get 32-bit of data from the given offset in the data area. */
-uint32_t SpeedwireEncryptionProtocol::getDataUint32(unsigned long byte_offset) const {   // offset 0 is the first byte after last register index
+uint32_t SpeedwireEncryptionProtocol::getDataUint32(unsigned long byte_offset) const {
     return SpeedwireByteEncoding::getUint32BigEndian(udp + sma_data_offset + byte_offset);
 }
 
@@ -89,33 +94,10 @@ std::array<uint8_t, 16> SpeedwireEncryptionProtocol::getDataUint8Array16(const u
     return result;
 }
 
-/** Print encryption packet */
-std::string SpeedwireEncryptionProtocol::toString(void) const {
-    char buffer[1024];
-    snprintf(buffer, sizeof(buffer),
-        "PacketType %d  SrcSusyID %u  SrcSerialNumber %lu  DstSusyID %u  DstSerialNumber %lu ",
-        (int)getPacketType(), getSrcSusyID(), getSrcSerialNumber(), getDstSusyID(), getDstSerialNumber());
-    std::string result(buffer);
-    switch (getPacketType()) {
-    case 0x01: {
-        std::array<uint8_t, 16> src_seed = getDataUint8Array16(0);
-        std::string src_seed_str = toHexString(src_seed.data(), src_seed.size());
-        snprintf(buffer, sizeof(buffer), "SrcSeed %s", src_seed_str.c_str());
-        result.append(buffer);
-        break;
-    }
-    case 0x02:
-        std::array<uint8_t, 16> src_seed = getDataUint8Array16(0);
-        std::array<uint8_t, 16> dst_seed = getDataUint8Array16(16);
-        std::string src_seed_str = toHexString(src_seed.data(), src_seed.size());
-        std::string dst_seed_str = toHexString(dst_seed.data(), dst_seed.size());
-        uint8_t control = SpeedwireByteEncoding::getUint8(udp + sma_data_offset + 32);
-        std::array<uint8_t, 16> string1 = getDataUint8Array16(33);
-        std::array<uint8_t, 16> string2 = getDataUint8Array16(49);
-        snprintf(buffer, sizeof(buffer), "SrcSeed %s DstSeed %s Control %d String1 %s PIC %s", src_seed_str.c_str(), dst_seed_str.c_str(), control, string1.data(), string2.data());
-        result.append(buffer);
-        break;
-    }
+/** Get a string of at most 16 characters from the given offset in the data area. */
+std::string SpeedwireEncryptionProtocol::getString16(const unsigned long byte_offset) const {
+    std::array<uint8_t, 16> array16 = getDataUint8Array16(byte_offset);
+    std::string result((char*)array16.data(), array16.size());
     return result;
 }
 
@@ -145,13 +127,18 @@ void SpeedwireEncryptionProtocol::setSrcSerialNumber(const uint32_t value) {
     SpeedwireByteEncoding::setUint32LittleEndian(udp + sma_src_serial_number_offset, value);
 }
 
+/** Set 8-bit of data at the given offset in the data area. */
+void SpeedwireEncryptionProtocol::setDataUint8(const unsigned long byte_offset, const uint8_t value) {
+    SpeedwireByteEncoding::setUint8(udp + sma_data_offset + byte_offset, value);
+}
+
 /** Set 32-bit of data at the given offset in the data area. */
-void SpeedwireEncryptionProtocol::setDataUint32(const unsigned long byte_offset, const uint32_t value) {  // offset 0 is the first byte after last register index
+void SpeedwireEncryptionProtocol::setDataUint32(const unsigned long byte_offset, const uint32_t value) {
     SpeedwireByteEncoding::setUint32BigEndian(udp + sma_data_offset + byte_offset, value);
 }
 
 /** Set 64-bit of data at the given offset in the data area. */
-void SpeedwireEncryptionProtocol::setDataUint64(const unsigned long byte_offset, const uint64_t value) {  // offset 0 is the first byte after last register index
+void SpeedwireEncryptionProtocol::setDataUint64(const unsigned long byte_offset, const uint64_t value) {
     SpeedwireByteEncoding::setUint64BigEndian(udp + sma_data_offset + byte_offset, value);
 }
 
@@ -159,6 +146,21 @@ void SpeedwireEncryptionProtocol::setDataUint64(const unsigned long byte_offset,
 void SpeedwireEncryptionProtocol::setDataUint8Array(const unsigned long byte_offset, const uint8_t* const value, const unsigned long value_length) {
     memcpy(udp + sma_data_offset + byte_offset, value, value_length);
 }
+
+/** Set an array of 8-bit data at the given offset in the data area. */
+void SpeedwireEncryptionProtocol::setDataUint8Array16(const unsigned long byte_offset, const std::array<uint8_t, 16>& value) {
+    setDataUint8Array(byte_offset, value.data(), (unsigned long)value.size());
+}
+
+/** Set an array of 8-bit data at the given offset in the data area with the given string. */
+void SpeedwireEncryptionProtocol::setString16(const unsigned long byte_offset, const std::string& value) {
+    std::array<uint8_t, 16> array16;
+    array16.fill(0);
+    size_t n = (value.length() <= array16.size() ? value.length() : array16.size());
+    memcpy(array16.data(), value.data(), n);
+    setDataUint8Array16(byte_offset, array16);
+}
+
 
 /** Convert buffer content to hex string. */
 std::string SpeedwireEncryptionProtocol::toHexString(uint8_t* buff, const size_t buff_size) {
@@ -168,6 +170,37 @@ std::string SpeedwireEncryptionProtocol::toHexString(uint8_t* buff, const size_t
         uint8_t low_nibble  = buff[i] & 0x0f;
         result.append(1, "012345667890abcdef"[high_nibble]);
         result.append(1, "012345667890abcdef"[low_nibble]);
+    }
+    return result;
+}
+
+
+/** Print encryption packet */
+std::string SpeedwireEncryptionProtocol::toString(void) const {
+    char buffer[1024];
+    snprintf(buffer, sizeof(buffer),
+        "PacketType %d  SrcSusyID %u  SrcSerialNumber %lu  DstSusyID %u  DstSerialNumber %lu ",
+        (int)getPacketType(), getSrcSusyID(), getSrcSerialNumber(), getDstSusyID(), getDstSerialNumber());
+    std::string result(buffer);
+    switch (getPacketType()) {
+    case 0x01: {
+        std::array<uint8_t, 16> src_seed = getDataUint8Array16(0);
+        std::string src_seed_str = toHexString(src_seed.data(), src_seed.size());
+        snprintf(buffer, sizeof(buffer), "SrcSeed %s", src_seed_str.c_str());
+        result.append(buffer);
+        break;
+    }
+    case 0x02:
+        std::array<uint8_t, 16> src_seed = getDataUint8Array16(0);
+        std::array<uint8_t, 16> dst_seed = getDataUint8Array16(16);
+        std::string src_seed_str = toHexString(src_seed.data(), src_seed.size());
+        std::string dst_seed_str = toHexString(dst_seed.data(), dst_seed.size());
+        uint8_t control = getDataUint8(32);
+        std::string str1 = getString16(33);
+        std::string str2 = getString16(49);
+        snprintf(buffer, sizeof(buffer), "SrcSeed %s DstSeed %s Control %d RID/Wifi-Password %s PIC %s", src_seed_str.c_str(), dst_seed_str.c_str(), control, str1.c_str(), str2.c_str());
+        result.append(buffer);
+        break;
     }
     return result;
 }
