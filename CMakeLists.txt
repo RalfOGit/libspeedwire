@@ -13,6 +13,7 @@ set(COMMON_SOURCES
     src/MeasurementType.cpp
     src/ObisData.cpp
     src/ObisFilter.cpp
+    src/SpeedwireAuthentication.cpp
     src/SpeedwireByteEncoding.cpp
     src/SpeedwireCommand.cpp
     src/SpeedwireData.cpp

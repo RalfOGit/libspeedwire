@@ -103,7 +103,7 @@ void CalculatedValueProcessor::endOfObisData(const SpeedwireDevice& device, cons
         // experimental setup to feed time-accurate power measurements
         static uint32_t last_time = 0;
         SpeedwireDevice experimental_device;
-        experimental_device.serialNumber = 1234567890;
+        experimental_device.deviceAddress.serialNumber = 1234567890;
         const MeasurementValues& mvalues = sig->second.measurementValues;
         std::vector<MeasurementValueInterval> intervals;
         LineSegmentEstimator::findPiecewiseConstantIntervals(mvalues, intervals);
@@ -285,7 +285,7 @@ void CalculatedValueProcessor::endOfSpeedwireData(const SpeedwireDevice& device,
                 }
 
                 SpeedwireDevice household_device;
-                household_device.serialNumber = 0xcafebabe;
+                household_device.deviceAddress.serialNumber = 0xcafebabe;
 
                 producer.produce(household_device, SpeedwireData::HouseholdPowerTotal.measurementType, SpeedwireData::HouseholdPowerTotal.wire, household, feed_in_time);
 

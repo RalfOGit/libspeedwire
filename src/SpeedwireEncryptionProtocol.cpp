@@ -87,12 +87,20 @@ void SpeedwireEncryptionProtocol::getDataUint8Array(const unsigned long byte_off
     }
 }
 
-/** Get an array of 8-bit data from the given offset in the data area. */
+/** Get an array of 16x 8-bit data from the given offset in the data area. */
 std::array<uint8_t, 16> SpeedwireEncryptionProtocol::getDataUint8Array16(const unsigned long byte_offset) const {
     std::array<uint8_t, 16> result;
     getDataUint8Array(byte_offset, result.data(), result.size());
     return result;
 }
+
+/** Get an array of 32x 8-bit data from the given offset in the data area. */
+std::array<uint8_t, 32> SpeedwireEncryptionProtocol::getDataUint8Array32(const unsigned long byte_offset) const {
+    std::array<uint8_t, 32> result;
+    getDataUint8Array(byte_offset, result.data(), result.size());
+    return result;
+}
+
 
 /** Get a string of at most 16 characters from the given offset in the data area. */
 std::string SpeedwireEncryptionProtocol::getString16(const unsigned long byte_offset) const {
@@ -195,10 +203,14 @@ std::string SpeedwireEncryptionProtocol::toString(void) const {
         std::array<uint8_t, 16> dst_seed = getDataUint8Array16(16);
         std::string src_seed_str = toHexString(src_seed.data(), src_seed.size());
         std::string dst_seed_str = toHexString(dst_seed.data(), dst_seed.size());
-        uint8_t control = getDataUint8(32);
+        uint8_t secured = getDataUint8(32);
         std::string str1 = getString16(33);
         std::string str2 = getString16(49);
-        snprintf(buffer, sizeof(buffer), "SrcSeed %s DstSeed %s Control %d RID/Wifi-Password %s PIC %s", src_seed_str.c_str(), dst_seed_str.c_str(), control, str1.c_str(), str2.c_str());
+        snprintf(buffer, sizeof(buffer), "SrcSeed %s DstSeed %s Secured %d RID/Wifi-Password %s PIC %s", src_seed_str.c_str(), dst_seed_str.c_str(), secured, str1.c_str(), str2.c_str());
+        result.append(buffer);
+        std::array<uint8_t, 32> hash = getDataUint8Array32(65);
+        std::string hash_str = toHexString(hash.data(), hash.size());
+        snprintf(buffer, sizeof(buffer), "\nSHA2-256 %s", hash_str.c_str());
         result.append(buffer);
         break;
     }

@@ -55,10 +55,10 @@ SpeedwireDiscovery::~SpeedwireDiscovery(void) {
  */
 bool SpeedwireDiscovery::preRegisterDevice(const std::string peer_ip_address) {
     SpeedwireDevice info;
-    info.peer_ip_address = peer_ip_address;
+    info.deviceIpAddress = peer_ip_address;
     bool new_device = true;
     for (auto& device : speedwireDevices) {
-        if (info.peer_ip_address == device.peer_ip_address) {
+        if (info.deviceIpAddress == device.deviceIpAddress) {
             new_device = false;
         }
     }
@@ -77,10 +77,10 @@ bool SpeedwireDiscovery::preRegisterDevice(const std::string peer_ip_address) {
  */
 bool SpeedwireDiscovery::requireDevice(const uint32_t serial_number) {
     SpeedwireDevice info;
-    info.serialNumber = serial_number;
+    info.deviceAddress.serialNumber = serial_number;
     bool new_device = true;
     for (auto& device : speedwireDevices) {
-        if (info.serialNumber == device.serialNumber) {
+        if (info.deviceAddress.serialNumber == device.deviceAddress.serialNumber) {
             new_device = false;
         }
     }
@@ -98,12 +98,12 @@ bool SpeedwireDiscovery::registerDevice(const SpeedwireDevice& info) {
     bool new_device = true;
     bool updated_device = false;
     for (auto& device : speedwireDevices) {
-        if (device.hasIPAddressOnly() && info.peer_ip_address == device.peer_ip_address) {
+        if (device.hasIPAddressOnly() && info.deviceIpAddress == device.deviceIpAddress) {
             device = info;
             new_device = false;
             updated_device = true;
         }
-        else if (device.hasSerialNumberOnly() && info.serialNumber == device.serialNumber) {
+        else if (device.hasSerialNumberOnly() && info.deviceAddress.serialNumber == device.deviceAddress.serialNumber) {
             device = info;
             new_device = false;
             updated_device = true;
@@ -353,7 +353,7 @@ bool SpeedwireDiscovery::sendMulticastDiscoveryRequestToDevices(void) {
     const std::vector<std::string>& localIPs = localhost.getLocalIPv4Addresses();
     for (auto& device : speedwireDevices) {
         if (device.hasIPAddressOnly()) {
-            struct in_addr dev_addr = AddressConversion::toInAddress(device.peer_ip_address);
+            struct in_addr dev_addr = AddressConversion::toInAddress(device.deviceIpAddress);
             for (const auto& local_if_addr : localIPs) {
                 struct in_addr if_addr = AddressConversion::toInAddress(local_if_addr);
                 if (AddressConversion::resideOnSameSubnet(if_addr, dev_addr, 24)) {
@@ -380,7 +380,7 @@ bool SpeedwireDiscovery::sendUnicastDiscoveryRequestToDevices(void) {
     const std::vector<std::string>& localIPs = localhost.getLocalIPv4Addresses();
     for (auto& device : speedwireDevices) {
         if (device.hasIPAddressOnly()) {
-            struct in_addr dev_addr = AddressConversion::toInAddress(device.peer_ip_address);
+            struct in_addr dev_addr = AddressConversion::toInAddress(device.deviceIpAddress);
             for (const auto& local_if_addr : localIPs) {
                 SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::SocketType::UNICAST, local_if_addr);
                 sockaddr_in sockaddr;
@@ -490,9 +490,8 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 //LocalHost::hexdump(udp_packet, nbytes);
                 SpeedwireEmeterProtocol emeter(protocol);
                 SpeedwireDevice device;
-                device.susyID = emeter.getSusyID();
-                device.serialNumber = emeter.getSerialNumber();
-                const SpeedwireDeviceType &device_type = SpeedwireDeviceType::fromSusyID(device.susyID);
+                device.deviceAddress = SpeedwireAddress(emeter.getSusyID(), emeter.getSerialNumber());
+                const SpeedwireDeviceType &device_type = SpeedwireDeviceType::fromSusyID(device.deviceAddress.susyID);
                 if (device_type.deviceClass != SpeedwireDeviceClass::UNKNOWN) {
                     device.deviceClass = toString(device_type.deviceClass);
                     device.deviceModel = device_type.name;
@@ -501,13 +500,13 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                     device.deviceClass = "Emeter";
                     device.deviceModel = "Emeter";
                 }
-                device.peer_ip_address = peer_ip_address;
-                device.interface_ip_address = localhost.getMatchingLocalIPAddress(peer_ip_address);
-                if (device.interface_ip_address == "" && socket.isIpAny() == false) {
-                    device.interface_ip_address = socket.getLocalInterfaceAddress();
+                device.deviceIpAddress = peer_ip_address;
+                device.interfaceIpAddress = localhost.getMatchingLocalIPAddress(peer_ip_address);
+                if (device.interfaceIpAddress == "" && socket.isIpAny() == false) {
+                    device.interfaceIpAddress = socket.getLocalInterfaceAddress();
                 }
                 if (registerDevice(device)) {
-                    printf("found susyid %u serial %lu ip %s\n", device.susyID, device.serialNumber, device.peer_ip_address.c_str());
+                    printf("found susyid %u serial %lu ip %s\n", device.deviceAddress.susyID, device.deviceAddress.serialNumber, device.deviceIpAddress.c_str());
                     result = true;
                 }
             }
@@ -518,23 +517,22 @@ bool SpeedwireDiscovery::recvDiscoveryPackets(const SpeedwireSocket& socket) {
                 //LocalHost::hexdump(udp_packet, nbytes);
                 //printf("%s\n", inverter_packet.toString().c_str());
                 SpeedwireDevice device;
-                device.susyID = inverter_packet.getSrcSusyID();
-                device.serialNumber = inverter_packet.getSrcSerialNumber();
+                device.deviceAddress = SpeedwireAddress(inverter_packet.getSrcSusyID(), inverter_packet.getSrcSerialNumber());
                 device.deviceClass = "Inverter";
                 device.deviceModel = "Inverter";
-                device.peer_ip_address = peer_ip_address;
-                device.interface_ip_address = localhost.getMatchingLocalIPAddress(peer_ip_address);
-                if (device.interface_ip_address.length() == 0 && socket.isIpAny() == false) {
-                    device.interface_ip_address = socket.getLocalInterfaceAddress();
+                device.deviceIpAddress = peer_ip_address;
+                device.interfaceIpAddress = localhost.getMatchingLocalIPAddress(peer_ip_address);
+                if (device.interfaceIpAddress.length() == 0 && socket.isIpAny() == false) {
+                    device.interfaceIpAddress = socket.getLocalInterfaceAddress();
                 }
                 // try to get further information about the device by examining the susy id; this is not accurate
-                const SpeedwireDeviceType& device_type = SpeedwireDeviceType::fromSusyID(device.susyID);
+                const SpeedwireDeviceType& device_type = SpeedwireDeviceType::fromSusyID(device.deviceAddress.susyID);
                 if (device_type.deviceClass != SpeedwireDeviceClass::UNKNOWN) {
                     device.deviceClass = toString(device_type.deviceClass);
                     device.deviceModel = device_type.name;
                 }
                 if (registerDevice(device)) {
-                    printf("found susyid %u serial %lu ip %s\n", device.susyID, device.serialNumber, device.peer_ip_address.c_str());
+                    printf("found susyid %u serial %lu ip %s\n", device.deviceAddress.susyID, device.deviceAddress.serialNumber, device.deviceIpAddress.c_str());
                     result = true;
                 }
 #if 0
@@ -566,11 +564,11 @@ bool SpeedwireDiscovery::completeDeviceInformation(void) {
     while (num_retries < max_retries) {
         // try to get further information about the device by querying device type information from the peer
         for (auto& device : speedwireDevices) {
-            if (device.interface_ip_address.length() == 0 || device.interface_ip_address == "0.0.0.0") {
-                device.interface_ip_address = localhost.getMatchingLocalIPAddress(device.peer_ip_address);
+            if (device.interfaceIpAddress.length() == 0 || device.interfaceIpAddress == "0.0.0.0") {
+                device.interfaceIpAddress = localhost.getMatchingLocalIPAddress(device.deviceIpAddress);
             }
             // if the ip address and interface address is known, just query the device
-            if (device.isComplete() == false && device.peer_ip_address.length() != 0 && device.interface_ip_address.length() != 0) {
+            if (device.isComplete() == false && device.deviceIpAddress.length() != 0 && device.interfaceIpAddress.length() != 0) {
                 SpeedwireCommand command(localhost, speedwireDevices);
                 SpeedwireDevice updatedDevice = command.queryDeviceType(device);
                 if (updatedDevice.isComplete() == true) {

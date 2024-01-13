@@ -43,67 +43,80 @@ namespace libspeedwire {
         UNKNOWN = 0000  //!< Unknown device model
     };
 
+    /**
+     *  Class encapsulating information about a speedwire device instance.
+     */
+    class SpeedwireAddress {
+    public:
+        uint16_t    susyID;                //!< Susy ID of the speedwire device.
+        uint32_t    serialNumber;          //!< Serial number of the speedwire device.
+
+        SpeedwireAddress(void) : susyID(0), serialNumber(0) {}
+        SpeedwireAddress(const uint16_t susyid, const uint32_t serial) : susyID(susyid), serialNumber(serial) {}
+
+        /** Compare two instances. */
+        bool operator==(const SpeedwireAddress& rhs) const { return (susyID == rhs.susyID && serialNumber == rhs.serialNumber); }
+
+        bool isComplete(void) const { return (susyID != 0 && serialNumber != 0); }
+
+        bool isBroadcast(void) const { return (susyID == 0xffff && serialNumber == 0xffffffff); }
+
+        /** Convert SpeedwireAddress to a string */
+        std::string toString(void) const {
+            char buffer[256] = { 0 };
+            snprintf(buffer, sizeof(buffer), "%u:%u", susyID, serialNumber);
+            return std::string(buffer);
+        }
+
+        /** Get a reference to a local device address. This can be used as a source device for commands. */
+        static const SpeedwireAddress& getLocalAddress(void) {
+            static SpeedwireAddress local(0x0078, 0x3a28be52);
+            return local;
+        }
+
+        /** Get a reference to a broadcast device address. This can be used as a broadcast destination device for commands. */
+        static const SpeedwireAddress& getBroadcastAddress(void) {
+            static SpeedwireAddress broadcast(0xffff, 0xffffffff);
+            return broadcast;
+        }
+    };
+
 
     /**
      *  Class encapsulating information about a speedwire device instance.
      */
     class SpeedwireDevice {
     public:
-        uint16_t    susyID;                //!< Susy ID of the speedwire device.
-        uint32_t    serialNumber;          //!< Serial number of the speedwire device.
-        std::string deviceClass;           //!< Device class of the speedwire device, i.e. emeter or inverter.
-        std::string deviceModel;           //!< Device model of the speedwire device, i.e. emeter or inverter.
-        std::string peer_ip_address;       //!< IP address of the device, either on the local subnet or somewhere else.
-        std::string interface_ip_address;  //!< IP address of the local interface through which the device is reachable.
+        SpeedwireAddress deviceAddress;         //!< Speedwire device address, i.e. susy ID and serial number
+        std::string      deviceClass;           //!< Device class of the speedwire device, i.e. emeter or inverter.
+        std::string      deviceModel;           //!< Device model of the speedwire device, i.e. emeter or inverter.
+        std::string      deviceIpAddress;       //!< IP address of the device, either on the local subnet or somewhere else.
+        std::string      interfaceIpAddress;    //!< IP address of the local interface through which the device is reachable.
 
         /** Default constructor.
          *  Just initialize all member variables to a defined state; set susyId and serialNumber to 0. */
-        SpeedwireDevice(void) : susyID(0), serialNumber(0), deviceClass(), deviceModel(), peer_ip_address(), interface_ip_address() {}
+        SpeedwireDevice(void) : deviceAddress(), deviceClass(), deviceModel(), deviceIpAddress(), interfaceIpAddress() {}
 
         /** Convert speedwire information to a single line string. */
         std::string toString(void) const {
             char buffer[256] = { 0 };
             snprintf(buffer, sizeof(buffer), "SusyID %3u  Serial %10u  Class %-16s  Model %-14s  IP %s  IF %s",
-                susyID, serialNumber, deviceClass.c_str(), deviceModel.c_str(), peer_ip_address.c_str(), interface_ip_address.c_str());
+                deviceAddress.susyID, deviceAddress.serialNumber, deviceClass.c_str(), deviceModel.c_str(), deviceIpAddress.c_str(), interfaceIpAddress.c_str());
             return std::string(buffer);
         }
 
         /** Compare two instances; assume that if SusyID, Serial and IP is the same, it is the same device. */
-        bool operator==(const SpeedwireDevice& rhs) const { return (susyID == rhs.susyID && serialNumber == rhs.serialNumber && peer_ip_address == rhs.peer_ip_address); }
+        bool operator==(const SpeedwireDevice& rhs) const { return (deviceAddress == rhs.deviceAddress && deviceIpAddress == rhs.deviceIpAddress); }
 
         /** Check if this instance is just pre-registered with a given IP, i.e the device ip address is given. */
-        bool hasIPAddressOnly(void) const { return (peer_ip_address.length() > 0 && susyID == 0 && serialNumber == 0); }
+        bool hasIPAddressOnly(void) const { return (deviceIpAddress.length() > 0 && deviceAddress.isComplete() == false); }
 
         /** Check if this instance is just pre-registered with a given serial number, i.e the device serial number is given. */
-        bool hasSerialNumberOnly(void) const { return (peer_ip_address.length() == 0 && susyID == 0 && serialNumber != 0); }
+        bool hasSerialNumberOnly(void) const { return (deviceIpAddress.length() == 0 && deviceAddress.susyID == 0 && deviceAddress.serialNumber != 0); }
 
         /** Check if this instance is fully registered, i.e all device information is given. */
         bool isComplete(void) const {
-            return (susyID != 0 && serialNumber != 0 && deviceClass.length() > 0 && deviceModel.length() > 0 && peer_ip_address.length() > 0 && interface_ip_address.length() > 0);
-        }
-
-        /** Get a reference to a local device description. This can be used as a source device for commands. */
-        static const SpeedwireDevice &getLocalDevice(void) {
-            static SpeedwireDevice local;
-            local.susyID = 0x0078;
-            local.serialNumber = 0x3a28be52;
-            local.deviceClass = "Communication";
-            local.deviceModel = "Local";
-            local.peer_ip_address = "127.0.0.1";
-            local.interface_ip_address = local.peer_ip_address;
-            return local;
-        }
-
-        /** Get a reference to a broadcast device description. This can be used as a broadcast destination device for commands. */
-        static const SpeedwireDevice& getBroadcastDevice(void) {
-            static SpeedwireDevice local;
-            local.susyID = 0xffff;
-            local.serialNumber = 0xffffffff;
-            local.deviceClass = "Communication";
-            local.deviceModel = "Broadcast";
-            local.peer_ip_address = "0.0.0.0";
-            local.interface_ip_address = local.peer_ip_address;
-            return local;
+            return (deviceAddress.isComplete() && deviceClass.length() > 0 && deviceModel.length() > 0 && deviceIpAddress.length() > 0 && interfaceIpAddress.length() > 0);
         }
     };
 

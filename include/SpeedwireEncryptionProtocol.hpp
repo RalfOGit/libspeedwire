@@ -74,6 +74,7 @@ namespace libspeedwire {
         uint64_t getDataUint64(unsigned long byte_offset) const;
         void getDataUint8Array(const unsigned long byte_offset, uint8_t* buff, const size_t buff_size) const;
         std::array<uint8_t, 16> getDataUint8Array16(const unsigned long byte_offset) const;
+        std::array<uint8_t, 32> getDataUint8Array32(const unsigned long byte_offset) const;
         std::string getString16(const unsigned long byte_offset) const;
 
         // setter methods

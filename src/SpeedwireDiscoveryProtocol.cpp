@@ -312,9 +312,9 @@ std::array<uint8_t, 58> SpeedwireDiscoveryProtocol::getUnicastRequest(void) {
     SpeedwireInverterProtocol inverter_packet(speedwire_packet);
 
     // insert local devices susy id and serial number
-    static const SpeedwireDevice& local_device = SpeedwireDevice::getLocalDevice();
-    inverter_packet.setSrcSusyID(local_device.susyID);
-    inverter_packet.setSrcSerialNumber(local_device.serialNumber);
+    static const SpeedwireAddress& local_address = SpeedwireAddress::getLocalAddress();
+    inverter_packet.setSrcSusyID(local_address.susyID);
+    inverter_packet.setSrcSerialNumber(local_address.serialNumber);
 
     // update packet id
     static uint16_t packet_id = 0x8001;

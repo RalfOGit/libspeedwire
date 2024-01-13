@@ -90,9 +90,9 @@ void AveragingProcessor::addConsumer(SpeedwireConsumer& speedwire_consumer) {
 bool AveragingProcessor::process(const SpeedwireDevice& device, const DeviceType& device_type, Measurement& measurement) {
 
     // find device
-    int index = findStateIndex(device.serialNumber);
+    int index = findStateIndex(device.deviceAddress.serialNumber);
     if (index < 0) {
-        index = initializeState(device.serialNumber, device_type);
+        index = initializeState(device.deviceAddress.serialNumber, device_type);
     }
     AveragingState& state = states[index];
 
@@ -163,7 +163,7 @@ void AveragingProcessor::consume(const SpeedwireDevice& device, SpeedwireData& e
  */
 void AveragingProcessor::endOfObisData(const SpeedwireDevice& device, const uint32_t time) {
     // if averaging time has been reached, signal end of obis data
-    int index = findStateIndex(device.serialNumber);
+    int index = findStateIndex(device.deviceAddress.serialNumber);
     if (index >= 0 && states[index].averagingTimeReached == true) {
         for (int i = 0; i < obisConsumerTable.size(); ++i) {
             obisConsumerTable[i]->endOfObisData(device, time);
@@ -179,7 +179,7 @@ void AveragingProcessor::endOfObisData(const SpeedwireDevice& device, const uint
  */
 void AveragingProcessor::endOfSpeedwireData(const SpeedwireDevice& device, const uint32_t time) {
     // if averaging time has been reached, signal end of obis data
-    int index = findStateIndex(device.serialNumber);
+    int index = findStateIndex(device.deviceAddress.serialNumber);
     if (index >= 0 && states[index].averagingTimeReached == true) {
         for (int i = 0; i < speedwireConsumerTable.size(); ++i) {
             speedwireConsumerTable[i]->endOfSpeedwireData(device, time);
