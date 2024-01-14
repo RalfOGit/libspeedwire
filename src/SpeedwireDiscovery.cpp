@@ -58,10 +58,12 @@ bool SpeedwireDiscovery::preRegisterDevice(const std::string peer_ip_address) {
     info.deviceIpAddress = peer_ip_address;
     bool new_device = true;
     for (auto& device : speedwireDevices) {
+        //printf("device: %s\n", device.toString().c_str());
         if (info.deviceIpAddress == device.deviceIpAddress) {
             new_device = false;
         }
     }
+    //printf("new_device %d\n", new_device);
     if (new_device == true) {
         speedwireDevices.push_back(info);
     }
@@ -362,7 +364,7 @@ bool SpeedwireDiscovery::sendMulticastDiscoveryRequestToDevices(void) {
                     sockaddr.sin_family = AF_INET;
                     sockaddr.sin_addr = dev_addr;
                     sockaddr.sin_port = htons(9522);
-                    //fprintf(stdout, "send multicast discovery request to %s (via interface %s)\n", device.peer_ip_address.c_str(), socket.getLocalInterfaceAddress().c_str());
+                    //fprintf(stdout, "send multicast discovery request to %s (via interface %s)\n", device.deviceIpAddress.c_str(), socket.getLocalInterfaceAddress().c_str());
                     int nbytes = socket.sendto(multicast_request.data(), (unsigned long)multicast_request.size(), sockaddr);
                 }
             }
@@ -387,7 +389,7 @@ bool SpeedwireDiscovery::sendUnicastDiscoveryRequestToDevices(void) {
                 sockaddr.sin_family = AF_INET;
                 sockaddr.sin_addr = dev_addr;
                 sockaddr.sin_port = htons(9522);
-                //fprintf(stdout, "send unicast discovery request to %s (via interface %s)\n", device.peer_ip_address.c_str(), socket.getLocalInterfaceAddress().c_str());
+                //fprintf(stdout, "send unicast discovery request to %s (via interface %s)\n", device.deviceIpAddress.c_str(), socket.getLocalInterfaceAddress().c_str());
                 int nbytes = socket.sendto(unicast_request.data(), (unsigned long)unicast_request.size(), sockaddr);
             }
         }

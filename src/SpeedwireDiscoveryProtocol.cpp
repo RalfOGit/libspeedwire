@@ -314,7 +314,7 @@ std::array<uint8_t, 58> SpeedwireDiscoveryProtocol::getUnicastRequest(void) {
     // insert local devices susy id and serial number
     static const SpeedwireAddress& local_address = SpeedwireAddress::getLocalAddress();
     inverter_packet.setSrcSusyID(local_address.susyID);
-    inverter_packet.setSrcSerialNumber(local_address.serialNumber);
+    inverter_packet.setSrcSerialNumber(local_address.serialNumber + 1);  // use a different serial number for unicast discovery requests
 
     // update packet id
     static uint16_t packet_id = 0x8001;
