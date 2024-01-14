@@ -108,7 +108,7 @@ namespace libspeedwire {
         const SocketMap& getSocketMap(void) const { return socket_map; }
 
         // increment packet id and return it
-        uint16_t getIncrementedPacketID(void) {
+        static uint16_t getIncrementedPacketID(void) {
             packet_id = (packet_id + 1) | 0x8000;
             return packet_id;
         }

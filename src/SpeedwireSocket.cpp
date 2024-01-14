@@ -15,6 +15,15 @@ using namespace libspeedwire;
 static const in_addr  IN4_ADDRESS_ANY = { 0 };    // all 0's
 static const in6_addr IN6_ADDRESS_ANY = { 0 };    // all 0's
 
+// configure ipv4 and ipv6 addresses for mDNS multicast traffic
+static struct sockaddr_in toSockAddrIn(const std::string& addr, uint16_t port) {
+    return AddressConversion::toSockAddrIn(AddressConversion::toSockAddr(AddressConversion::toInAddress(addr), port));
+}
+
+const struct sockaddr_in  SpeedwireSocket::speedwire_multicast_address_239_12_255_254 = toSockAddrIn("239.12.255.254", speedwire_port);;
+const struct sockaddr_in  SpeedwireSocket::speedwire_multicast_address_239_12_255_255 = toSockAddrIn("239.12.255.255", speedwire_port);;
+const struct sockaddr_in6 SpeedwireSocket::speedwire_multicast_address_v6 = AddressConversion::toSockAddrIn6(AddressConversion::toSockAddr(AddressConversion::toIn6Address("::"), speedwire_port));
+
 
 /**
  *  Constructor
@@ -29,17 +38,6 @@ SpeedwireSocket::SpeedwireSocket(const LocalHost &_localhost) :
     socket_interface_v4.s_addr = INADDR_ANY;
     memcpy(&socket_interface_v6, &IN6_ADDRESS_ANY, sizeof(socket_interface_v6));
     isInterfaceAny = false;
-
-    // configure ipv4 and ipv6 addresses for mDNS multicast traffic
-    memset(&speedwire_multicast_address_v4, 0, sizeof(speedwire_multicast_address_v4));
-    speedwire_multicast_address_v4.sin_family = AF_INET;
-    speedwire_multicast_address_v4.sin_addr = AddressConversion::toInAddress("239.12.255.254");
-    speedwire_multicast_address_v4.sin_port = htons(9522);
-
-    memset(&speedwire_multicast_address_v6, 0, sizeof(speedwire_multicast_address_v6));
-    speedwire_multicast_address_v6.sin6_family = AF_INET6;
-    speedwire_multicast_address_v6.sin6_addr = AddressConversion::toIn6Address("::");     // FIXME: tbd
-    speedwire_multicast_address_v6.sin6_port = htons(9522);
 }
 
 
@@ -55,8 +53,6 @@ SpeedwireSocket::SpeedwireSocket(const SpeedwireSocket& rhs) :
     socket_interface_v4 = rhs.socket_interface_v4;
     memcpy(&socket_interface_v6, &rhs.socket_interface_v6, sizeof(socket_interface_v6));
     isInterfaceAny = rhs.isInterfaceAny;
-    speedwire_multicast_address_v4 = rhs.speedwire_multicast_address_v4;
-    speedwire_multicast_address_v6 = rhs.speedwire_multicast_address_v6;
 }
 
 
@@ -129,7 +125,7 @@ const std::string &SpeedwireSocket::getLocalInterfaceAddress(void) const {
  *  Get the speedwire ipv4 multicast address
  */
 const sockaddr_in SpeedwireSocket::getSpeedwireMulticastIn4Address(void) const {
-    return speedwire_multicast_address_v4;
+    return speedwire_multicast_address_239_12_255_254;
 }
 
 /**
@@ -233,7 +229,7 @@ int SpeedwireSocket::openSocketV4(const std::string &local_interface_address, co
     //saddr.sin_addr.s_addr = htonl(INADDR_ANY);  // receive udp unicast and multicast traffic directed to port below
     saddr.sin_addr = socket_interface_v4;         // receive udp unicast and multicast traffic directed to port below
     if (multicast == true) {
-        saddr.sin_port = speedwire_multicast_address_v4.sin_port;
+        saddr.sin_port = htons(speedwire_port);
     } else {
         saddr.sin_port = 0;                       // let the OS choose an available port
     }
@@ -254,14 +250,14 @@ int SpeedwireSocket::openSocketV4(const std::string &local_interface_address, co
             for (auto& addr : local_ip_addresses) {
                 if (addr.find(':') == std::string::npos) {
                     struct ip_mreq mreq;
-                    mreq.imr_multiaddr = speedwire_multicast_address_v4.sin_addr;
+                    mreq.imr_multiaddr = speedwire_multicast_address_239_12_255_254.sin_addr;
                     mreq.imr_interface = AddressConversion::toInAddress(addr);
                     if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq)) < 0) {
                         perror("setsockopt");
                         return -1;
                     }
                     // also add the broadcast address 239.12.255.255, this is used by Sunny Explorer
-                    mreq.imr_multiaddr.s_addr |= 0xff000000;
+                    mreq.imr_multiaddr = speedwire_multicast_address_239_12_255_255.sin_addr;
                     if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq)) < 0) {
                         perror("setsockopt");
                         return -1;
@@ -272,14 +268,14 @@ int SpeedwireSocket::openSocketV4(const std::string &local_interface_address, co
         else {
             struct ip_mreq req;
             memset(&req, 0, sizeof(req));
-            req.imr_multiaddr = speedwire_multicast_address_v4.sin_addr;
+            req.imr_multiaddr = speedwire_multicast_address_239_12_255_254.sin_addr;
             req.imr_interface = socket_interface_v4;
             if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&req, sizeof(req)) < 0) {
                 perror("setsockopt IP_ADD_MEMBERSHIP failure");
                 return -1;
             }
             // also add the broadcast address 239.12.255.255, this is used by Sunny Explorer
-            req.imr_multiaddr.s_addr |= 0xff000000;
+            req.imr_multiaddr = speedwire_multicast_address_239_12_255_255.sin_addr;
             if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&req, sizeof(req)) < 0) {
                 perror("setsockopt IP_ADD_MEMBERSHIP failure");
                 return -1;
@@ -288,14 +284,14 @@ int SpeedwireSocket::openSocketV4(const std::string &local_interface_address, co
 #else
         struct ip_mreq req;
         memset(&req, 0, sizeof(req));
-        req.imr_multiaddr = speedwire_multicast_address_v4.sin_addr;
+        req.imr_multiaddr = speedwire_multicast_address_239_12_255_254.sin_addr;
         req.imr_interface = socket_interface_v4;
         if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&req, sizeof(req)) < 0) {
             perror("setsockopt IP_ADD_MEMBERSHIP failure");
             return -1;
         }
         // also add the broadcast address 239.12.255.255, this is used by Sunny Explorer
-        req.imr_multiaddr.s_addr |= 0xff000000;
+        req.imr_multiaddr = speedwire_multicast_address_239_12_255_255.sin_addr;
         if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&req, sizeof(req)) < 0) {
             perror("setsockopt IP_ADD_MEMBERSHIP failure");
             return -1;
@@ -493,7 +489,7 @@ int SpeedwireSocket::recvfrom(const void *buff, const size_t buff_size, struct s
 int SpeedwireSocket::send(const void* const buff, const unsigned long size) const {
     int nbytes = -1;
     if (isIpv4()) {
-        nbytes = sendto(buff, size, speedwire_multicast_address_v4);
+        nbytes = sendto(buff, size, speedwire_multicast_address_239_12_255_254);
     }
     else if (isIpv6()) {
         nbytes = sendto(buff, size, speedwire_multicast_address_v6);
@@ -507,7 +503,7 @@ int SpeedwireSocket::send(const void* const buff, const unsigned long size) cons
  */
 int SpeedwireSocket::sendto(const void* const buff, const unsigned long size, const std::string& dest) const {
     if (dest.find(':') == std::string::npos) {
-        struct sockaddr_in addr = speedwire_multicast_address_v4;  // use as template
+        struct sockaddr_in addr = speedwire_multicast_address_239_12_255_254;  // use as template
         addr.sin_addr = AddressConversion::toInAddress(dest);
         return sendto(buff, size, addr);
     }

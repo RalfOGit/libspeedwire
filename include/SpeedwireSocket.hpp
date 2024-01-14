@@ -33,13 +33,15 @@ namespace libspeedwire {
 
         const LocalHost& localhost;
 
-        struct sockaddr_in  speedwire_multicast_address_v4;
-        struct sockaddr_in6 speedwire_multicast_address_v6;
-
         int openSocketV4(const std::string& local_interface_address, const bool multicast);
         int openSocketV6(const std::string& local_interface_address, const bool multicast);
 
     public:
+
+        static const uint16_t speedwire_port = 9522;
+        static const struct sockaddr_in  speedwire_multicast_address_239_12_255_254;
+        static const struct sockaddr_in  speedwire_multicast_address_239_12_255_255;
+        static const struct sockaddr_in6 speedwire_multicast_address_v6;
 
         // constructor & destructor
         SpeedwireSocket(const LocalHost& localhost);
