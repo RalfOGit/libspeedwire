@@ -20,9 +20,9 @@ static struct sockaddr_in toSockAddrIn(const std::string& addr, uint16_t port) {
     return AddressConversion::toSockAddrIn(AddressConversion::toSockAddr(AddressConversion::toInAddress(addr), port));
 }
 
-const struct sockaddr_in  SpeedwireSocket::speedwire_multicast_address_239_12_255_254 = toSockAddrIn("239.12.255.254", speedwire_port);;
-const struct sockaddr_in  SpeedwireSocket::speedwire_multicast_address_239_12_255_255 = toSockAddrIn("239.12.255.255", speedwire_port);;
-const struct sockaddr_in6 SpeedwireSocket::speedwire_multicast_address_v6 = AddressConversion::toSockAddrIn6(AddressConversion::toSockAddr(AddressConversion::toIn6Address("::"), speedwire_port));
+const struct sockaddr_in  SpeedwireSocket::speedwire_multicast_address_239_12_255_254 = toSockAddrIn("239.12.255.254", speedwire_port_9522);;
+const struct sockaddr_in  SpeedwireSocket::speedwire_multicast_address_239_12_255_255 = toSockAddrIn("239.12.255.255", speedwire_port_9522);;
+const struct sockaddr_in6 SpeedwireSocket::speedwire_multicast_address_v6 = AddressConversion::toSockAddrIn6(AddressConversion::toSockAddr(AddressConversion::toIn6Address("::"), speedwire_port_9522));
 
 
 /**
@@ -229,7 +229,7 @@ int SpeedwireSocket::openSocketV4(const std::string &local_interface_address, co
     //saddr.sin_addr.s_addr = htonl(INADDR_ANY);  // receive udp unicast and multicast traffic directed to port below
     saddr.sin_addr = socket_interface_v4;         // receive udp unicast and multicast traffic directed to port below
     if (multicast == true) {
-        saddr.sin_port = htons(speedwire_port);
+        saddr.sin_port = htons(speedwire_port_9522);
     } else {
         saddr.sin_port = 0;                       // let the OS choose an available port
     }

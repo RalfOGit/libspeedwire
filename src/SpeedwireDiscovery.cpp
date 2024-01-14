@@ -363,7 +363,7 @@ bool SpeedwireDiscovery::sendMulticastDiscoveryRequestToDevices(void) {
                     sockaddr_in sockaddr;
                     sockaddr.sin_family = AF_INET;
                     sockaddr.sin_addr = dev_addr;
-                    sockaddr.sin_port = htons(9522);
+                    sockaddr.sin_port = htons(SpeedwireSocket::speedwire_port_9522);
                     //fprintf(stdout, "send multicast discovery request to %s (via interface %s)\n", device.deviceIpAddress.c_str(), socket.getLocalInterfaceAddress().c_str());
                     int nbytes = socket.sendto(multicast_request.data(), (unsigned long)multicast_request.size(), sockaddr);
                 }
@@ -388,7 +388,7 @@ bool SpeedwireDiscovery::sendUnicastDiscoveryRequestToDevices(void) {
                 sockaddr_in sockaddr;
                 sockaddr.sin_family = AF_INET;
                 sockaddr.sin_addr = dev_addr;
-                sockaddr.sin_port = htons(9522);
+                sockaddr.sin_port = htons(SpeedwireSocket::speedwire_port_9522);
                 //fprintf(stdout, "send unicast discovery request to %s (via interface %s)\n", device.deviceIpAddress.c_str(), socket.getLocalInterfaceAddress().c_str());
                 int nbytes = socket.sendto(unicast_request.data(), (unsigned long)unicast_request.size(), sockaddr);
             }
@@ -424,7 +424,7 @@ bool SpeedwireDiscovery::sendUnicastDiscoveryRequestToSockets(size_t& subnet_cou
         sockaddr_in sockaddr;
         sockaddr.sin_family = AF_INET;
         sockaddr.sin_addr.s_addr = htonl(saddr);
-        sockaddr.sin_port = htons(9522);
+        sockaddr.sin_port = htons(SpeedwireSocket::speedwire_port_9522);
         // send to socket
         SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::SocketType::UNICAST, addr);
         //fprintf(stdout, "send unicast discovery request to %s (via interface %s)\n", AddressConversion::toString(sockaddr).c_str(), socket.getLocalInterfaceAddress().c_str());

@@ -432,7 +432,7 @@ bool SpeedwireCommand::checkReply(const SpeedwireHeader& speedwire_reply_packet,
 
     if (recvfrom.sa_family == AF_INET) {
         const struct sockaddr_in& addr = AddressConversion::toSockAddrIn(recvfrom);
-        if (addr.sin_port != htons(9522)) {
+        if (addr.sin_port != htons(SpeedwireSocket::speedwire_port_9522)) {
             printf("ipv4 port %u is not 9522\n", (unsigned)ntohs(addr.sin_port));
             return false;
         }
@@ -445,7 +445,7 @@ bool SpeedwireCommand::checkReply(const SpeedwireHeader& speedwire_reply_packet,
     }
     else if (recvfrom.sa_family == AF_INET6) {
         const struct sockaddr_in6& addr = AddressConversion::toSockAddrIn6(recvfrom);
-        if (addr.sin6_port != htons(9522)) {
+        if (addr.sin6_port != htons(SpeedwireSocket::speedwire_port_9522)) {
             printf("ipv6 port %u is not 9522\n", (unsigned)ntohs(addr.sin6_port));
             return false;
         }

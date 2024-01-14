@@ -38,7 +38,7 @@ namespace libspeedwire {
 
     public:
 
-        static const uint16_t speedwire_port = 9522;
+        static const uint16_t speedwire_port_9522 = 9522;
         static const struct sockaddr_in  speedwire_multicast_address_239_12_255_254;
         static const struct sockaddr_in  speedwire_multicast_address_239_12_255_255;
         static const struct sockaddr_in6 speedwire_multicast_address_v6;
