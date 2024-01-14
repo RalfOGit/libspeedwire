@@ -28,8 +28,8 @@ namespace libspeedwire {
         bool logoff(const std::string& if_address, const SpeedwireAddress& dst, const SpeedwireAddress& src);
 
         // asynchronous send command methods - send command requests and return immediately
-        void sendLogoffRequest(const std::string& if_address, const SpeedwireAddress& dst, const SpeedwireAddress& src);
         SpeedwireCommandTokenIndex sendLoginRequest(const std::string& if_address, const SpeedwireAddress& dst, const SpeedwireAddress& src, const bool user, const std::string& password);
+        bool sendLogoffRequest(const std::string& if_address, const SpeedwireAddress& dst, const SpeedwireAddress& src);
     };
 
 }   // namespace libspeedwire

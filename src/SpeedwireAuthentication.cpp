@@ -19,25 +19,27 @@ static Logger logger("SpeedwireAuthentication");
  *  Login this local device from to other devices. This is done by sending a broadcast login command for this device to each local interface.
  */
 bool SpeedwireAuthentication::login(const bool user, const std::string& password, const int timeout_in_ms) {
-    const SpeedwireAddress& local_address = SpeedwireAddress::getLocalAddress();
+    bool result = true;
+    const SpeedwireAddress& local_address     = SpeedwireAddress::getLocalAddress();
     const SpeedwireAddress& broadcast_address = SpeedwireAddress::getBroadcastAddress();
     for (const auto& entry : socket_map) {
-        login(entry.first, broadcast_address, local_address, user, password, timeout_in_ms);
+        result &= login(entry.first, broadcast_address, local_address, user, password, timeout_in_ms);
     }
-    return true;
+    return result;
 }
 
 /**
  *  Login all devices to all other devices. This is done by sending a broadcast login command for each device to each local interface.
  */
 bool SpeedwireAuthentication::loginAnyToAny(const bool user, const std::string& password, const int timeout_in_ms) {
+    bool result = true;
     const SpeedwireAddress& broadcast_address = SpeedwireAddress::getBroadcastAddress();
     for (const auto& device : devices) {
         for (const auto& entry : socket_map) {
-            login(entry.first, broadcast_address, device.deviceAddress, user, password, timeout_in_ms);
+            result &= login(entry.first, broadcast_address, device.deviceAddress, user, password, timeout_in_ms);
         }
     }
-    return true;
+    return result;
 }
 
 /**
@@ -114,25 +116,27 @@ bool SpeedwireAuthentication::login(const std::string& if_address, const Speedwi
  *  Logoff this local device from all other devices. This is done by sending a broadcast logoff command for this device to each local interface.
  */
 bool SpeedwireAuthentication::logoff(void) {
+    bool result = true;
     const SpeedwireAddress &local_address     = SpeedwireAddress::getLocalAddress();
     const SpeedwireAddress &broadcast_address = SpeedwireAddress::getBroadcastAddress();
     for (const auto& entry : socket_map) {
-        logoff(entry.first, broadcast_address, local_address);
+        result &= logoff(entry.first, broadcast_address, local_address);
     }
-    return true;
+    return result;
 }
 
 /**
  *  Logoff all devices from all other devices. This is done by sending a broadcast logoff command for each device to each local interface.
  */
 bool SpeedwireAuthentication::logoffAnyFromAny(void) {
+    bool result = true;
     const SpeedwireAddress& broadcast_address = SpeedwireAddress::getBroadcastAddress();
     for (const auto& device : devices) {
         for (const auto& entry : socket_map) {
-            logoff(entry.first, broadcast_address, device.deviceAddress);
+            result &= logoff(entry.first, broadcast_address, device.deviceAddress);
         }
     }
-    return true;
+    return result;
 }
 
 /**
@@ -148,8 +152,8 @@ bool SpeedwireAuthentication::logoff(const SpeedwireDevice& dst) {
 bool SpeedwireAuthentication::logoff(const std::string& if_address, const SpeedwireAddress& dst, const SpeedwireAddress& src) {
     logger.print(LogLevel::LOG_INFO_0, "logoff susyid %u serial %lu => susyid %u serial %lu time 0x%016llx",
         src.susyID, src.serialNumber, dst.susyID, dst.serialNumber, localhost.getUnixEpochTimeInMs());
-    sendLogoffRequest(if_address, dst, src);
-    return true;
+
+    return sendLogoffRequest(if_address, dst, src);
 }
 
 
@@ -231,7 +235,7 @@ SpeedwireCommandTokenIndex SpeedwireAuthentication::sendLoginRequest(const std::
 /**
  *  Send inverter logoff command to the given peer
  */
-void SpeedwireAuthentication::sendLogoffRequest(const std::string& if_address, const SpeedwireAddress& dst, const SpeedwireAddress& src) {
+bool SpeedwireAuthentication::sendLogoffRequest(const std::string& if_address, const SpeedwireAddress& dst, const SpeedwireAddress& src) {
     // Request 534d4100000402a00000000100220010 606508a0 ffffffffffff0003 7d0052be283a0003 000000000280 0e01fdff ffffffff 00000000   => logoff command = 0xfffd01e0 (fehlt hier last?)
     // Request 534d4100000402a00000000100220010 606508a0 ffffffffffff0003 7d0042be283a0003 000000000180 e001fdff ffffffff 00000000
     // assemble unicast device logoff packet
@@ -264,7 +268,7 @@ void SpeedwireAuthentication::sendLogoffRequest(const std::string& if_address, c
     SocketIndex socket_index = socket_map.at(if_address);
     if (socket_index < 0) {
         logger.print(LogLevel::LOG_ERROR, "invalid socket_index");
-        return;
+        return false;
     }
     SpeedwireSocket& socket = sockets[socket_index];
 
@@ -282,6 +286,8 @@ void SpeedwireAuthentication::sendLogoffRequest(const std::string& if_address, c
     int nsent = socket.sendto(request_buffer, sizeof(request_buffer), dst_ip_address);
     if (nsent <= 0) {
         logger.print(LogLevel::LOG_ERROR, "cannot send data to socket");
-        return;
+        return false;
     }
+
+    return true;
 }
