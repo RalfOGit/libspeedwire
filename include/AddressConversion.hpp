@@ -53,8 +53,12 @@ namespace libspeedwire {
         static const struct sockaddr_in6& toSockAddrIn6(const struct sockaddr& src);
 
         // conversions for bsd socket address information
+        static struct sockaddr_in toSockAddrIn(const struct in_addr& address, const uint16_t port = 0);
+        static struct sockaddr_in6 toSockAddrIn6(const struct in6_addr& address, const uint16_t port = 0);
         static struct sockaddr toSockAddr(const struct in_addr& address, const uint16_t port = 0);
         static struct sockaddr toSockAddr(const struct in6_addr& address, const uint16_t port = 0);
+        static struct sockaddr_in toSockAddrIn(const std::string& ipv4_address, const uint16_t port = 0);
+        static struct sockaddr_in6 toSockAddrIn6(const std::string& ipv6_address, const uint16_t port = 0);
 
         // conversions for ethernet mac addresses
         static std::array<uint8_t, 6> toMacAddress(const std::string& mac);

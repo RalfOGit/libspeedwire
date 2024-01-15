@@ -238,23 +238,40 @@ const struct sockaddr_in& AddressConversion::toSockAddrIn(const struct sockaddr&
 const struct sockaddr_in6& AddressConversion::toSockAddrIn6(const struct sockaddr& src) { return (const struct sockaddr_in6&)src; }
 
 
-struct sockaddr AddressConversion::toSockAddr(const struct in_addr& address, const uint16_t port) {
+struct sockaddr_in AddressConversion::toSockAddrIn(const struct in_addr& address, const uint16_t port) {
     struct sockaddr_in socket_address;
     memset(&socket_address, 0, sizeof(socket_address));
     socket_address.sin_family = AF_INET;
     socket_address.sin_port = htons(port);
     socket_address.sin_addr = address;
-    return toSockAddr(socket_address);
+    return socket_address;
 }
 
-struct sockaddr AddressConversion::toSockAddr(const struct in6_addr& address, const uint16_t port) {
+struct sockaddr_in6 AddressConversion::toSockAddrIn6(const struct in6_addr& address, const uint16_t port) {
     struct sockaddr_in6 socket_address;
     memset(&socket_address, 0, sizeof(socket_address));
     socket_address.sin6_family = AF_INET6;
     socket_address.sin6_port = htons(port);
     socket_address.sin6_addr = address;
-    return toSockAddr(socket_address);
+    return socket_address;
 }
+
+struct sockaddr AddressConversion::toSockAddr(const struct in_addr& address, const uint16_t port) {
+    return toSockAddr(toSockAddrIn(address, port));
+}
+
+struct sockaddr AddressConversion::toSockAddr(const struct in6_addr& address, const uint16_t port) {
+    return toSockAddr(toSockAddrIn6(address, port));
+}
+
+struct sockaddr_in AddressConversion::toSockAddrIn(const std::string& ipv4_address, const uint16_t port) {
+    return toSockAddrIn(toInAddress(ipv4_address), port);
+}
+
+struct sockaddr_in6 AddressConversion::toSockAddrIn6(const std::string& ipv6_address, const uint16_t port) {
+    return toSockAddrIn6(toIn6Address(ipv6_address), port);
+}
+
 
 /**
  *  Convert a string representation of a an ethernet mac address into its binary format

@@ -355,15 +355,12 @@ bool SpeedwireDiscovery::sendMulticastDiscoveryRequestToDevices(void) {
     const std::vector<std::string>& localIPs = localhost.getLocalIPv4Addresses();
     for (auto& device : speedwireDevices) {
         if (device.hasIPAddressOnly()) {
-            struct in_addr dev_addr = AddressConversion::toInAddress(device.deviceIpAddress);
+            struct in_addr     dev_addr = AddressConversion::toInAddress(device.deviceIpAddress);
+            struct sockaddr_in sockaddr = AddressConversion::toSockAddrIn(dev_addr, SpeedwireSocket::speedwire_port_9522);
             for (const auto& local_if_addr : localIPs) {
                 struct in_addr if_addr = AddressConversion::toInAddress(local_if_addr);
                 if (AddressConversion::resideOnSameSubnet(if_addr, dev_addr, 24)) {
                     SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::SocketType::UNICAST, local_if_addr);
-                    sockaddr_in sockaddr;
-                    sockaddr.sin_family = AF_INET;
-                    sockaddr.sin_addr = dev_addr;
-                    sockaddr.sin_port = htons(SpeedwireSocket::speedwire_port_9522);
                     //fprintf(stdout, "send multicast discovery request to %s (via interface %s)\n", device.deviceIpAddress.c_str(), socket.getLocalInterfaceAddress().c_str());
                     int nbytes = socket.sendto(multicast_request.data(), (unsigned long)multicast_request.size(), sockaddr);
                 }
@@ -382,14 +379,18 @@ bool SpeedwireDiscovery::sendUnicastDiscoveryRequestToDevices(void) {
     const std::vector<std::string>& localIPs = localhost.getLocalIPv4Addresses();
     for (auto& device : speedwireDevices) {
         if (device.hasIPAddressOnly()) {
-            struct in_addr dev_addr = AddressConversion::toInAddress(device.deviceIpAddress);
+            struct sockaddr_in sockaddr = AddressConversion::toSockAddrIn(device.deviceIpAddress, SpeedwireSocket::speedwire_port_9522);
             for (const auto& local_if_addr : localIPs) {
                 SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::SocketType::UNICAST, local_if_addr);
-                sockaddr_in sockaddr;
-                sockaddr.sin_family = AF_INET;
-                sockaddr.sin_addr = dev_addr;
-                sockaddr.sin_port = htons(SpeedwireSocket::speedwire_port_9522);
                 //fprintf(stdout, "send unicast discovery request to %s (via interface %s)\n", device.deviceIpAddress.c_str(), socket.getLocalInterfaceAddress().c_str());
+                int nbytes = socket.sendto(unicast_request.data(), (unsigned long)unicast_request.size(), sockaddr);
+            }
+        }
+        else if (device.hasSerialNumberOnly()) {
+            for (const auto& local_if_addr : localIPs) {
+                SpeedwireSocket socket = SpeedwireSocketFactory::getInstance(localhost)->getSendSocket(SpeedwireSocketFactory::SocketType::UNICAST, local_if_addr);
+                sockaddr_in sockaddr = SpeedwireSocket::speedwire_multicast_address_239_12_255_254;
+                //fprintf(stdout, "send unicast discovery request to %lu (via interface %s)\n", device.deviceAddress.serialNumber, socket.getLocalInterfaceAddress().c_str());
                 int nbytes = socket.sendto(unicast_request.data(), (unsigned long)unicast_request.size(), sockaddr);
             }
         }

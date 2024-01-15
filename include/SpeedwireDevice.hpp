@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <string>
+#include <AddressConversion.hpp>
+#include <LocalHost.hpp>
 
 namespace libspeedwire {
 
@@ -71,6 +73,18 @@ namespace libspeedwire {
         /** Get a reference to a local device address. This can be used as a source device for commands. */
         static const SpeedwireAddress& getLocalAddress(void) {
             static SpeedwireAddress local(0x0078, 0x3a28be52);
+            // assign different serial numbers for libspeedwire instances running on different nodes
+            // based on the least-significant byte of the local interfaces ip address
+            static bool initialized = false;
+            if (!initialized) {
+                initialized = true;
+                for (const auto& if_addr : LocalHost::getInstance().getLocalIPv4Addresses()) {
+                    if (if_addr.substr(0, 7) == "192.168") {
+                        uint8_t byte0 = (uint8_t)((AddressConversion::toInAddress(if_addr).s_addr >> 24) & 0xff);
+                        local.serialNumber = ((local.serialNumber / 1000) * 1000) + byte0;
+                    }
+                }
+            }
             return local;
         }
 
