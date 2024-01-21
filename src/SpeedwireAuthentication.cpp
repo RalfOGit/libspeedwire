@@ -25,6 +25,11 @@ bool SpeedwireAuthentication::login(const bool user, const std::string& password
     for (const auto& entry : socket_map) {
         result &= login(entry.first, broadcast_address, local_address, user, password, timeout_in_ms);
     }
+    for (const auto& device : devices) {
+        if (!AddressConversion::resideOnSameSubnet(device.deviceIpAddress, device.interfaceIpAddress, 24)) { // FIXME: hard coded prefix
+            result &= login(device.interfaceIpAddress, device.deviceAddress, local_address, user, password, timeout_in_ms);
+        }
+    }
     return result;
 }
 
@@ -121,6 +126,11 @@ bool SpeedwireAuthentication::logoff(void) {
     const SpeedwireAddress &broadcast_address = SpeedwireAddress::getBroadcastAddress();
     for (const auto& entry : socket_map) {
         result &= logoff(entry.first, broadcast_address, local_address);
+    }
+    for (const auto& device : devices) {
+        if (!AddressConversion::resideOnSameSubnet(device.deviceIpAddress, device.interfaceIpAddress, 24)) { // FIXME: hard coded prefix
+            result &= logoff(device.interfaceIpAddress, device.deviceAddress, local_address);
+        }
     }
     return result;
 }

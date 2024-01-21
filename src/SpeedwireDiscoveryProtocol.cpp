@@ -1,6 +1,7 @@
 #include <cstring>
 #include <stdio.h>
 #include <SpeedwireByteEncoding.hpp>
+#include <SpeedwireCommand.hpp>
 #include <SpeedwireDevice.hpp>
 #include <SpeedwireTagHeader.hpp>
 #include <SpeedwireData2Packet.hpp>
@@ -314,12 +315,11 @@ std::array<uint8_t, 58> SpeedwireDiscoveryProtocol::getUnicastRequest(void) {
     // insert local devices susy id and serial number
     static const SpeedwireAddress& local_address = SpeedwireAddress::getLocalAddress();
     inverter_packet.setSrcSusyID(local_address.susyID);
-    inverter_packet.setSrcSerialNumber(local_address.serialNumber + 1);  // use a different serial number for unicast discovery requests
+    inverter_packet.setSrcSerialNumber(local_address.serialNumber);
 
     // update packet id
-    static uint16_t packet_id = 0x8001;
+    uint16_t packet_id = SpeedwireCommand::getIncrementedPacketID();
     inverter_packet.setPacketID(packet_id);
-    packet_id = (packet_id + 1) | 0x8000;
 
     return unicast_req;
 }

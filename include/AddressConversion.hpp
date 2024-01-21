@@ -41,6 +41,7 @@ namespace libspeedwire {
         static struct in6_addr toIn6NetMask(const uint32_t prefix_length);
         static bool resideOnSameSubnet(const struct in_addr& host1, const struct in_addr& host2, const uint32_t prefix_length);
         static bool resideOnSameSubnet(const struct in6_addr& host1, const struct in6_addr& host2, const uint32_t prefix_length);
+        static bool resideOnSameSubnet(const std::string& host1, const std::string& host2, const uint32_t prefix_length);
 
         // type casts for bsd socket address information
         static struct sockaddr& toSockAddr(struct sockaddr_in& src);

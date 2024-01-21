@@ -177,7 +177,7 @@ struct in6_addr AddressConversion::toIn6NetMask(const uint32_t prefix_length) {
 }
 
 /**
- *  Check if both given ipv4 hosts are residing on the same subnet as defined by its prefix_length
+ *  Check if both given ipv4 hosts are residing on the same subnet as defined by its prefix_length.
  */
 bool AddressConversion::resideOnSameSubnet(const struct in_addr& host1, const struct in_addr& host2, const uint32_t prefix_length) {
     struct in_addr netmask = toInNetMask(prefix_length);
@@ -185,7 +185,7 @@ bool AddressConversion::resideOnSameSubnet(const struct in_addr& host1, const st
 }
 
 /**
- *  Check if both given ipv6 hosts are residing on the same subnet as defined by its prefix_length
+ *  Check if both given ipv6 hosts are residing on the same subnet as defined by its prefix_length.
  */
 bool AddressConversion::resideOnSameSubnet(const struct in6_addr& host1, const struct in6_addr& host2, const uint32_t prefix_length) {
     struct in6_addr netmask = toIn6NetMask(prefix_length);
@@ -195,6 +195,23 @@ bool AddressConversion::resideOnSameSubnet(const struct in6_addr& host1, const s
         }
     }
     return true;
+}
+
+/**
+ *  Check if both given ipv4 or ipv6 hosts are residing on the same subnet as defined by its prefix_length.
+ */
+bool AddressConversion::resideOnSameSubnet(const std::string& host1, const std::string& host2, const uint32_t prefix_length) {
+    if (isIpv4(host1) && isIpv4(host2)) {
+        struct in_addr inaddr1 = AddressConversion::toInAddress(host1);
+        struct in_addr inaddr2 = AddressConversion::toInAddress(host2);
+        return resideOnSameSubnet(inaddr1, inaddr2, prefix_length);
+    }
+    if (isIpv6(host1) && isIpv6(host2)) {
+        struct in6_addr inaddr1 = AddressConversion::toIn6Address(host1);
+        struct in6_addr inaddr2 = AddressConversion::toIn6Address(host2);
+        return resideOnSameSubnet(inaddr1, inaddr2, prefix_length);
+    }
+    return false;
 }
 
 
