@@ -104,6 +104,10 @@ std::string SpeedwireRawData::toString(void) const {
         // battery connection id is 0x7, however some definitions are identical to inverter connection id 0x1, check if this can be used
         iterator = data_map.find(toKey() ^ 0x6);
     }
+    if (conn == 0x00 && iterator == data_map.end()) {
+        // other connection id is 0x0, however some definitions are identical to inverter connection id 0x1, check if this can be used
+        iterator = data_map.find(toKey() | 0x1);
+    }
     if (iterator != data_map.end()) {
         description = iterator->second.name;
         //unsigned long divisor = iterator->second.measurementType.divisor;
@@ -113,7 +117,7 @@ std::string SpeedwireRawData::toString(void) const {
     char buff[256];
     snprintf(buff, sizeof(buff), "id 0x%08lx (%12s) conn 0x%02x type 0x%02x (%10s)  time 0x%08lx  data ", (unsigned)id, description.c_str(), (unsigned)conn, (unsigned)type, libspeedwire::toString(type).c_str(),  (uint32_t)time);
 
-    // decode values and append them to the string
+    // extract raw values and append them to the string
     std::string result(buff);
     size_t num_values = getNumberOfValues();
     for (size_t i = 0; i < num_values; ++i) {
@@ -122,13 +126,13 @@ std::string SpeedwireRawData::toString(void) const {
         case SpeedwireDataType::Signed32: {
             SpeedwireRawDataSigned32 rd(*this);
             int32_t value = rd.getValue(i);
-            value_string = rd.convertValueToString(value);
+            value_string = rd.convertValueToString(value, true);
             break;
         }
         case SpeedwireDataType::Unsigned32: {
             SpeedwireRawDataUnsigned32 rd(*this);
             uint32_t value = rd.getValue(i);
-            value_string = rd.convertValueToString(value);
+            value_string = rd.convertValueToString(value, true);
             break;
         }
         case SpeedwireDataType::Status32: {
@@ -146,7 +150,7 @@ std::string SpeedwireRawData::toString(void) const {
         //}
         case SpeedwireDataType::String32: {
             SpeedwireRawDataString32 rd(*this);
-            value_string = rd.getValue(i);
+            value_string = rd.getHexValue(i);
             break;
         }
         }
@@ -156,37 +160,52 @@ std::string SpeedwireRawData::toString(void) const {
         }
         result.append(value_string);
     }
-    // if there are 4 identical signed or unsigned values, print a decimal representation of these values
-    if (num_values > 4) {
-        switch (type) {
-        case SpeedwireDataType::Signed32: {
-            SpeedwireRawDataSigned32 rd(*this);
-            int32_t value = rd.getValue(0);
-            if (value == rd.getValue(1) && value == rd.getValue(2) && value == rd.getValue(3) && !rd.isNanValue(value)) {
-                char buffer[12];
-                snprintf(buffer, sizeof(buffer), "  => %ld", value);
-                result.append(buffer);
-            }
-            break;
+    // decode values and print their representation
+    switch (type) {
+    case SpeedwireDataType::Signed32: {
+        SpeedwireRawDataSigned32 rd(*this);
+        std::vector<int32_t> values = rd.getValues();
+        for (size_t i = 0; i < values.size(); ++i) {
+            result.append((i == 0) ? "  => " : ", ");
+            result.append(rd.convertValueToString(values[i], false));
         }
-        case SpeedwireDataType::Unsigned32: {
-            SpeedwireRawDataUnsigned32 rd(*this);
-            uint32_t value = rd.getValue(0);
-            if (value == rd.getValue(1) && value == rd.getValue(2) && value == rd.getValue(3) && !rd.isNanValue(value)) {
-                char buffer[12];
-                snprintf(buffer, sizeof(buffer), "  => %lu", value);
-                result.append(buffer);
-            }
-            break;
+        break;
+    }
+    case SpeedwireDataType::Unsigned32: {
+        SpeedwireRawDataUnsigned32 rd(*this);
+        std::vector<uint32_t> values = rd.getValues();
+        for (size_t i = 0; i < values.size(); ++i) {
+            result.append((i == 0) ? "  => " : ", ");
+            result.append(rd.convertValueToString(values[i], false));
         }
+        break;
+    }
+    case SpeedwireDataType::Status32: {
+        SpeedwireRawDataStatus32 rd(*this);
+        std::vector<uint32_t> values = rd.getValues();
+        result.append("  => ");
+        if (values.size() > 0) {
+            result.append(rd.convertValueToString(values[0]));
         }
+        break;
+    }
+    case SpeedwireDataType::String32: {
+        SpeedwireRawDataString32 rd(*this);
+        std::vector<std::string> values = rd.getValues();
+        for (size_t i = 0; i < values.size(); ++i) {
+            result.append((i == 0) ? "  => \"" : ", \"");
+            result.append(rd.getValue(i).c_str());  // use c_str() to remove the 32 null bytes
+            result.append("\"");
+        }
+        break;
+    }
     }
     return result;
 }
 
 
 /** 
- *  Get number of data values available in the payload data 
+ *  Get number of data values available in the payload data.
  */
 size_t SpeedwireRawData::getNumberOfValues(void) const {
     switch (type) {
@@ -202,6 +221,118 @@ size_t SpeedwireRawData::getNumberOfValues(void) const {
         return data_size / SpeedwireRawDataString32::value_size;
     }
     return 0;
+}
+
+
+/**
+ * Determine the number of significant data values available in the payload data.
+ *
+ * For types Unsigned32 and Signed32 the following cases have been seen in packets:
+ * - 2 values, the last one is 0
+ *   => the first value is significant
+ * - 5 values, the last one is 1, the first four values are identical
+ *   => there is just one significant value
+ * - 5 values, the last one is 1, the first three values are different, the third and fourth values are identical
+ *   => the first three values are significant
+ * - 8 values, pairs of values are identical, the last pair is 0
+ *   => the first three pairs are significant
+ * - 8 values, pairs of values are identical, the last pair is not 0
+ *   => the first four pairs are significant
+ */
+size_t SpeedwireRawData::getNumberOfSignificantValues(void) const {
+    if (type == SpeedwireDataType::Unsigned32 || type == SpeedwireDataType::Signed32) {
+        size_t num_values = getNumberOfValues();
+        if (num_values == 2) {
+            uint32_t value1 = SpeedwireByteEncoding::getUint32LittleEndian(data);
+            uint32_t value2 = SpeedwireByteEncoding::getUint32LittleEndian(data + 4u);
+            return (value2 == 0 ? 1 : 2);
+        }
+        else if (num_values == 5) {
+            uint32_t value1 = SpeedwireByteEncoding::getUint32LittleEndian(data);
+            uint32_t value2 = SpeedwireByteEncoding::getUint32LittleEndian(data + 4u);
+            uint32_t value3 = SpeedwireByteEncoding::getUint32LittleEndian(data + 2 * 4u);
+            uint32_t value4 = SpeedwireByteEncoding::getUint32LittleEndian(data + 3 * 4u);
+            uint32_t value5 = SpeedwireByteEncoding::getUint32LittleEndian(data + 4 * 4u);
+            if (value5 == 1) {
+                if (value1 == value2 && value2 == value3 && value3 == value4) {
+                    return 1;
+                }
+                else if (value3 == value4) {
+                    return 3;
+                }
+                return 4;
+            }
+            return 5;
+        }
+        else if (num_values == 8) {
+            uint32_t value1 = SpeedwireByteEncoding::getUint32LittleEndian(data);
+            uint32_t value2 = SpeedwireByteEncoding::getUint32LittleEndian(data + 4u);
+            uint32_t value3 = SpeedwireByteEncoding::getUint32LittleEndian(data + 2 * 4u);
+            uint32_t value4 = SpeedwireByteEncoding::getUint32LittleEndian(data + 3 * 4u);
+            uint32_t value5 = SpeedwireByteEncoding::getUint32LittleEndian(data + 4 * 4u);
+            uint32_t value6 = SpeedwireByteEncoding::getUint32LittleEndian(data + 5 * 4u);
+            uint32_t value7 = SpeedwireByteEncoding::getUint32LittleEndian(data + 6 * 4u);
+            uint32_t value8 = SpeedwireByteEncoding::getUint32LittleEndian(data + 7 * 4u);
+            if (value1 == value2 && value3 == value4 && value5 == value6 && value7 == value8) {
+                return (value8 == 0 ? 3 : 4);
+            }
+        }
+    }
+    printf("unexpected raw data value sequence\n");
+    return getNumberOfValues();
+}
+
+
+/**
+ * Decode the sequence of raw data values into a vector of significant values.
+ *
+ * The following cases have been seen in packets:
+ * - 2 values, the last one is 0
+ *   => the first value is significant
+ * - 5 values, the last one is 1, the first four values are identical
+ *   => there is just one significant value
+ * - 5 values, the last one is 1, the first three values are different, the third and fourth values are identical
+ *   => the first three values are significant
+ * - 8 values, pairs of values are identical, the last pair is 0
+ *   => the first three pairs are significant
+ * - 8 values, pairs of values are identical, the last pair is not 0
+ *   => the first four pairs are significant
+ */
+std::vector<uint32_t> SpeedwireRawDataUnsigned32::getValues(void) const {
+    std::vector<uint32_t> values;
+    size_t n = base.getNumberOfSignificantValues();
+    size_t d = (getNumberOfValues() == 8 ? 2 : 1);
+    for (size_t i = 0; i < n; ++i) {
+        values.push_back(getValue(i * d));
+    }
+    return values;
+}
+
+
+/**
+ * Decode the sequence of raw data values into a vector of significant values.
+ *
+ * The following cases have been seen in packets:
+ * - 2 values, the last one is 0
+ *   => the first value is significant
+ * - 5 values, the last one is 1, the first four values are identical
+ *   => there is just one significant value
+ * - 5 values, the last one is 1, the first three values are different, the third and fourth values are identical
+ *   => the first three values are significant
+ * - 8 values, pairs of values are identical, the last pair is 0
+ *   => the first three pairs are significant
+ * - 8 values, pairs of values are identical, the last pair is not 0
+ *   => the first four pairs are significant
+ */
+std::vector<int32_t> SpeedwireRawDataSigned32::getValues(void) const {
+    std::vector<int32_t> values;
+    size_t n = base.getNumberOfSignificantValues();
+    size_t d = (getNumberOfValues() == 8 ? 2 : 1);
+    for (size_t i = 0; i < n; ++i) {
+        values.push_back(getValue(i * d));
+    }
+    return values;
+
 }
 
 
@@ -512,6 +643,7 @@ const SpeedwireData SpeedwireData::BatteryGridReactivePower  (Command::COMMAND_A
 const SpeedwireData SpeedwireData::BatterySetVoltage         (Command::COMMAND_AC_QUERY, 0x00493300, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::NO_WIRE, "BatSetUdc");
 const SpeedwireData SpeedwireData::BatteryOperationStatus    (Command::COMMAND_STATUS_QUERY, 0x00214800, 0x07, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::DEVICE_OK, "OpInvCtlStt");
 const SpeedwireData SpeedwireData::BatteryRelay              (Command::COMMAND_STATUS_QUERY, 0x00416400, 0x07, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterRelay(),   Wire::RELAY_ON, "OpGriSwStt");
+const SpeedwireData SpeedwireData::BatteryType               (Command::COMMAND_STATUS_QUERY, 0x00918d00, 0x07, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "BmsType");
 
 // pre-defined instances of derived measurement values
 const SpeedwireData SpeedwireData::InverterPowerDCTotal   (0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(),      Wire::MPP_TOTAL, "Pdc");

@@ -64,11 +64,16 @@ namespace libspeedwire {
         static const SpeedwireStatus& Standby(void) { static const SpeedwireStatus status(1295, "Standby", "Standby"); return status; }
         static const SpeedwireStatus& Automatic(void) { static const SpeedwireStatus status(1438, "Automatic", "Automatic"); return status; }
         static const SpeedwireStatus& Locked(void) { static const SpeedwireStatus status(1795, "Locked", "Locked"); return status; }
+        static const SpeedwireStatus& BatWait(void) { static const SpeedwireStatus status(2291, "BatWait", "Battery wait/standby"); return status; }
+        static const SpeedwireStatus& BatCharging(void) { static const SpeedwireStatus status(2292, "BatCharging", "Battery charging"); return status; }
+        static const SpeedwireStatus& BatDischarging(void) { static const SpeedwireStatus status(2293, "BatDischarging", "Battery discharging"); return status; }
         static const SpeedwireStatus& UpdateRecv(void) { static const SpeedwireStatus status(3179, "UpdateRecv", "Update receiving"); return status; }
         static const SpeedwireStatus& UpdateExec(void) { static const SpeedwireStatus status(3180, "UpdateExec", "Update executing"); return status; }
         static const SpeedwireStatus& UpdateOK(void) { static const SpeedwireStatus status(3181, "UpdateOK", "Update installed OK"); return status; }
         static const SpeedwireStatus& UpdateFailed(void) { static const SpeedwireStatus status(3182, "UpdateFail", "Update failed"); return status; }
         static const SpeedwireStatus& UpdateNone(void) { static const SpeedwireStatus status(3584, "UpdateNone", "Update none"); return status; }
+        static const SpeedwireStatus& Byd(void) { static const SpeedwireStatus status(8620, "BYD", "BYD"); return status; }
+        static const SpeedwireStatus& BydHvs(void) { static const SpeedwireStatus status(19046, "BatBoxPremHVS", "Battery box BYD-HVS"); return status; }
         static const SpeedwireStatus& NaN(void) { static const SpeedwireStatus status(0x00fffffd, "NaN", "Nan"); return status; }
         static const SpeedwireStatus& EoD(void) { static const SpeedwireStatus status(0x00fffffe, "EoD", "EoD"); return status; }
 
@@ -103,11 +108,16 @@ namespace libspeedwire {
             predefined.push_back(Standby());
             predefined.push_back(Automatic());
             predefined.push_back(Locked());
+            predefined.push_back(BatWait());
+            predefined.push_back(BatCharging());
+            predefined.push_back(BatDischarging());
             predefined.push_back(UpdateRecv());
             predefined.push_back(UpdateExec());
             predefined.push_back(UpdateOK());
             predefined.push_back(UpdateFailed());
             predefined.push_back(UpdateNone());
+            predefined.push_back(Byd());
+            predefined.push_back(BydHvs());
             predefined.push_back(NaN());
             predefined.push_back(EoD());
             return predefined;

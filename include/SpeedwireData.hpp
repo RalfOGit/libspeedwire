@@ -73,6 +73,7 @@ namespace libspeedwire {
         std::string toString(void) const;
 
         size_t getNumberOfValues(void) const;
+        size_t getNumberOfSignificantValues(void) const;
     };
 
 
@@ -94,13 +95,14 @@ namespace libspeedwire {
         bool isNanValue(uint32_t value) const { return (value == nan); }
         bool isEoDValue(uint32_t value) const { return (value == eod); }
         uint32_t getValue(size_t pos) const { return SpeedwireByteEncoding::getUint32LittleEndian(base.data + pos * value_size); }
+        std::vector<uint32_t> getValues(void) const;
         double convertValueToDouble(uint32_t value) const { return (double)value; }
 
-        std::string convertValueToString(uint32_t value) const {
+        std::string convertValueToString(uint32_t value, bool hex) const {
             if (value == nan) { return "NaN"; }
             if (value == eod) { return "EoD"; }
             char byte[32];
-            snprintf(byte, sizeof(byte), "0x%08lx", (unsigned long)value);
+            snprintf(byte, sizeof(byte), (hex ? "0x%08lx" : "%lu"), (unsigned long)value);
             return std::string(byte);
         }
     };
@@ -122,12 +124,13 @@ namespace libspeedwire {
         size_t getNumberOfValues(void) const { return base.data_size / value_size; }
         bool isNanValue(int32_t value) const { return (value == nan); }
         int32_t getValue(size_t pos) const { return (int32_t)SpeedwireByteEncoding::getUint32LittleEndian(base.data + pos * value_size); }
+        std::vector<int32_t> getValues(void) const;
         double convertValueToDouble(int32_t value) const { return (double)value; }
 
-        std::string convertValueToString(int32_t value) const {
+        std::string convertValueToString(int32_t value, bool hex) const {
             if (value == nan) { return "NaN"; }
             char byte[32];
-            snprintf(byte, sizeof(byte), "0x%08lx", (unsigned long)value);
+            snprintf(byte, sizeof(byte), (hex ? "0x%08lx" : "%ld"), (unsigned long)value);
             return std::string(byte);
         }
     };
@@ -186,6 +189,15 @@ namespace libspeedwire {
             snprintf(byte, sizeof(byte), "0x%08lx", (unsigned long)value);
             return std::string(byte);
         }
+
+        std::vector<uint32_t> getValues(void) const {
+            std::vector<uint32_t> values;
+            size_t sel = getSelectionIndex();
+            if (sel != (size_t)-1) {
+                values.push_back(getValue(sel, true));
+            }
+            return values;
+        }
     };
 
 
@@ -202,8 +214,25 @@ namespace libspeedwire {
         SpeedwireRawDataString32(const SpeedwireRawData& raw_data) : base(raw_data) {}
 
         size_t getNumberOfValues(void) const { return base.data_size / value_size; }
-        std::string getValue(size_t pos) { return std::string((char*)base.data + pos * value_size, base.data_size - pos * value_size); }
+        std::string getValue(size_t pos) const { return std::string((char*)base.data + pos * value_size, base.data_size - pos * value_size); }
 
+        std::vector<std::string> getValues(void) const {
+            std::vector<std::string> values;
+            for (size_t i = 0; i < getNumberOfValues(); ++i) {
+                values.push_back(getValue(i));
+            }
+            return values;
+        }
+
+        std::string getHexValue(size_t pos) const {
+            std::string result("0x");
+            for (size_t i = pos * value_size; i < (pos + 1) * value_size; ++i) {
+                static const char hex[17] = "0123456789abcdef";
+                result.append(1, hex[(base.data[i] >> 4) & 0x0f]);
+                result.append(1, hex[ base.data[i]       & 0x0f]);
+            }
+            return result;
+        }
     };
 
 
@@ -301,8 +330,9 @@ namespace libspeedwire {
         static const SpeedwireData BatteryGridReactivePowerL3;     //!< Reactive power as reported by emeter on grid connection point phase L3
         static const SpeedwireData BatteryGridReactivePower;       //!< Reactive power as reported by emeter on grid connection point total
         static const SpeedwireData BatterySetVoltage;              //!< Battery DC target set voltage
-        static const SpeedwireData BatteryOperationStatus;        //!< Inverter operation status
+        static const SpeedwireData BatteryOperationStatus;         //!< Inverter operation status
         static const SpeedwireData BatteryRelay;                   //!< Grid relay status
+        static const SpeedwireData BatteryType;                    //!< Battery type
 
         static const SpeedwireData InverterPowerDCTotal;           //!< Total power on direct current inverter inputs MPP1 + MPP2
         static const SpeedwireData InverterPowerLoss;              //!< Total power loss

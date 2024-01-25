@@ -134,7 +134,7 @@ uint32_t SpeedwireInverterProtocol::getRawDataLength(void) const {
         uint32_t num_register_ids = last_register_id - first_register_id + 1;   // number of data elements
         uint32_t register_payload_size = size - sma_data_offset;                // payload size
         // check if the data elements exactly fit into the payload size
-        if ((register_payload_size % num_register_ids) == 0) {
+        if (register_payload_size > 0 && num_register_ids != 0 && (register_payload_size % num_register_ids) == 0) {
             uint32_t length = register_payload_size / num_register_ids;         // length of each data element
             // check if at least a code word, a timestamp and one data word would fit into each data element
             if (length >= 12) {
@@ -187,7 +187,12 @@ SpeedwireRawData SpeedwireInverterProtocol::getRawData(const void* const current
         (element_length - 8 < sizeof(SpeedwireRawData::data) ? element_length - 8 : sizeof(SpeedwireRawData::data))
     };
     if (current_element != NULL) {
-        memcpy(raw_data.data, (uint8_t*)current_element + 8, raw_data.data_size);
+        if (raw_data.conn == 0x00) {    // connector id 0x00 has no timestamp, data starts at offset 4
+            memcpy(raw_data.data, (uint8_t*)current_element + 4, raw_data.data_size + 4);
+        }
+        else {
+            memcpy(raw_data.data, (uint8_t*)current_element + 8, raw_data.data_size);
+        }
     }
     return raw_data;
 }
