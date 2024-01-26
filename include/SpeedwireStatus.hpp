@@ -44,6 +44,9 @@ namespace libspeedwire {
         static const SpeedwireStatus& On(void) { static const SpeedwireStatus status(308, "On", "On"); return status; }
         static const SpeedwireStatus& Operation(void) { static const SpeedwireStatus status(309, "Operation", "Operation"); return status; }
         static const SpeedwireStatus& Open(void) { static const SpeedwireStatus status(311, "Open", "Open"); return status; }
+        static const SpeedwireStatus& PhaseL1(void) { static const SpeedwireStatus status(325, "PhaseL1", "Phase L1"); return status; }
+        static const SpeedwireStatus& PhaseL2(void) { static const SpeedwireStatus status(327, "PhaseL2", "Phase L2"); return status; }
+        static const SpeedwireStatus& PhaseL3(void) { static const SpeedwireStatus status(329, "PhaseL3", "Phase L3"); return status; }
         static const SpeedwireStatus& ContactSMA(void) { static const SpeedwireStatus status(336, "ContactSMA", "Contact SMA"); return status; }
         static const SpeedwireStatus& ContactInstaller(void) { static const SpeedwireStatus status(337, "ContactInst", "Contact Installer"); return status; }
         static const SpeedwireStatus& Invalid(void) { static const SpeedwireStatus status(338, "Invalid", "Invalid"); return status; }
@@ -64,16 +67,19 @@ namespace libspeedwire {
         static const SpeedwireStatus& Standby(void) { static const SpeedwireStatus status(1295, "Standby", "Standby"); return status; }
         static const SpeedwireStatus& Automatic(void) { static const SpeedwireStatus status(1438, "Automatic", "Automatic"); return status; }
         static const SpeedwireStatus& Locked(void) { static const SpeedwireStatus status(1795, "Locked", "Locked"); return status; }
+        static const SpeedwireStatus& BatChargeMode(void) { static const SpeedwireStatus status(2289, "BatChaMod", "Battery charge mode"); return status; }
+        static const SpeedwireStatus& BatDischargeMode(void) { static const SpeedwireStatus status(2290, "BatDschMod", "Battery discharge mode"); return status; }
         static const SpeedwireStatus& BatWait(void) { static const SpeedwireStatus status(2291, "BatWait", "Battery wait/standby"); return status; }
-        static const SpeedwireStatus& BatCharging(void) { static const SpeedwireStatus status(2292, "BatCharging", "Battery charging"); return status; }
-        static const SpeedwireStatus& BatDischarging(void) { static const SpeedwireStatus status(2293, "BatDischarging", "Battery discharging"); return status; }
+        static const SpeedwireStatus& BatCharging(void) { static const SpeedwireStatus status(2292, "BatChrge", "Battery charging"); return status; }
+        static const SpeedwireStatus& BatDischarging(void) { static const SpeedwireStatus status(2293, "BatDisch", "Battery discharging"); return status; }
+        static const SpeedwireStatus& Default(void) { static const SpeedwireStatus status(2424, "Default", "Default"); return status; }
         static const SpeedwireStatus& UpdateRecv(void) { static const SpeedwireStatus status(3179, "UpdateRecv", "Update receiving"); return status; }
         static const SpeedwireStatus& UpdateExec(void) { static const SpeedwireStatus status(3180, "UpdateExec", "Update executing"); return status; }
         static const SpeedwireStatus& UpdateOK(void) { static const SpeedwireStatus status(3181, "UpdateOK", "Update installed OK"); return status; }
         static const SpeedwireStatus& UpdateFailed(void) { static const SpeedwireStatus status(3182, "UpdateFail", "Update failed"); return status; }
         static const SpeedwireStatus& UpdateNone(void) { static const SpeedwireStatus status(3584, "UpdateNone", "Update none"); return status; }
         static const SpeedwireStatus& Byd(void) { static const SpeedwireStatus status(8620, "BYD", "BYD"); return status; }
-        static const SpeedwireStatus& BydHvs(void) { static const SpeedwireStatus status(19046, "BatBoxPremHVS", "Battery box BYD-HVS"); return status; }
+        static const SpeedwireStatus& BydHvs(void) { static const SpeedwireStatus status(19046, "BatPremHVS", "Battery box BYD-HVS"); return status; }
         static const SpeedwireStatus& NaN(void) { static const SpeedwireStatus status(0x00fffffd, "NaN", "Nan"); return status; }
         static const SpeedwireStatus& EoD(void) { static const SpeedwireStatus status(0x00fffffe, "EoD", "EoD"); return status; }
 
@@ -88,6 +94,9 @@ namespace libspeedwire {
             predefined.push_back(On());
             predefined.push_back(Operation());
             predefined.push_back(Open());
+            predefined.push_back(PhaseL1());
+            predefined.push_back(PhaseL2());
+            predefined.push_back(PhaseL3());
             predefined.push_back(ContactSMA());
             predefined.push_back(ContactInstaller());
             predefined.push_back(Invalid());
@@ -108,9 +117,12 @@ namespace libspeedwire {
             predefined.push_back(Standby());
             predefined.push_back(Automatic());
             predefined.push_back(Locked());
+            predefined.push_back(BatChargeMode());
+            predefined.push_back(BatDischargeMode());
             predefined.push_back(BatWait());
             predefined.push_back(BatCharging());
             predefined.push_back(BatDischarging());
+            predefined.push_back(Default());
             predefined.push_back(UpdateRecv());
             predefined.push_back(UpdateExec());
             predefined.push_back(UpdateOK());

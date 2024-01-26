@@ -165,18 +165,41 @@ std::string SpeedwireRawData::toString(void) const {
     case SpeedwireDataType::Signed32: {
         SpeedwireRawDataSigned32 rd(*this);
         std::vector<int32_t> values = rd.getValues();
-        for (size_t i = 0; i < values.size(); ++i) {
-            result.append((i == 0) ? "  => " : ", ");
-            result.append(rd.convertValueToString(values[i], false));
+        if (values.size() == 3 || (values.size() == 4 && rd.isNanValue(values[3]))) {
+            result.append("  => (");
+            result.append(rd.convertValueToString(values[0], false)); result.append("...");
+            result.append(rd.convertValueToString(values[1], false)); result.append(") ");
+            result.append(rd.convertValueToString(values[2], false));
+        }
+        else {
+            for (size_t i = 0; i < values.size(); ++i) {
+                result.append((i == 0) ? "  => " : ", ");
+                result.append(rd.convertValueToString(values[i], false));
+            }
         }
         break;
     }
     case SpeedwireDataType::Unsigned32: {
         SpeedwireRawDataUnsigned32 rd(*this);
         std::vector<uint32_t> values = rd.getValues();
-        for (size_t i = 0; i < values.size(); ++i) {
-            result.append((i == 0) ? "  => " : ", ");
-            result.append(rd.convertValueToString(values[i], false));
+        if ((values.size() == 3 || values.size() == 4) && values[0] == 0 && (rd.isEoDValue(values[1]) || rd.isNanValue(values[1]))) {
+            result.append("  => ");
+            result.append(rd.convertValueToString(values[2], false)); result.append(", rev: ");
+            result.append(rd.convertValueToString((values[2] >> 24) & 0xff, false)); result.append(".");
+            result.append(rd.convertValueToString((values[2] >> 16) & 0xff, false)); result.append(".");
+            result.append(rd.convertValueToString((values[2] >>  8) & 0xff, false)); result.append(".");
+            result.append(rd.convertValueToString((values[2]      ) & 0xff, false));
+        } else if (values.size() == 3 || (values.size() == 4 && rd.isNanValue(values[3]))) {
+            result.append("  => (");
+            result.append(rd.convertValueToString(values[0], false)); result.append("...");
+            result.append(rd.convertValueToString(values[1], false)); result.append(") ");
+            result.append(rd.convertValueToString(values[2], false));
+        }
+        else {
+            for (size_t i = 0; i < values.size(); ++i) {
+                result.append((i == 0) ? "  => " : ", ");
+                result.append(rd.convertValueToString(values[i], false));
+            }
         }
         break;
     }
@@ -516,6 +539,7 @@ std::vector<SpeedwireData> SpeedwireData::getAllPredefined(void) {
     predefined.push_back(InverterErrorStatus);
     predefined.push_back(InverterRelay);
 
+    predefined.push_back(BatterySoftwareVersion);
     predefined.push_back(BatteryStateOfCharge);
     predefined.push_back(BatteryDiagChargeCycles);
     predefined.push_back(BatteryDiagTotalAhIn);
@@ -607,7 +631,8 @@ const SpeedwireData SpeedwireData::InverterDescriptionStatus    (Command::COMMAN
 const SpeedwireData SpeedwireData::InverterErrorStatus          (Command::COMMAND_STATUS_QUERY, 0x00414c00, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvErrStt");
 const SpeedwireData SpeedwireData::InverterRelay                (Command::COMMAND_STATUS_QUERY, 0x00416400, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterRelay(),   Wire::RELAY_ON, "OpGriSwStt");
 
-const SpeedwireData SpeedwireData::BatteryPowerACTotal       (Command::COMMAND_AC_QUERY, 0x00263F00, 0x07, SpeedwireDataType::Signed32,   0, NULL, 0, MeasurementType::InverterPower(), Wire::TOTAL, "BatPacTotal");
+const SpeedwireData SpeedwireData::BatterySoftwareVersion    (Command::COMMAND_AC_QUERY, 0x00823300, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "SwRev");
+const SpeedwireData SpeedwireData::BatteryPowerACTotal       (Command::COMMAND_AC_QUERY, 0x00263F00, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::TOTAL, "BatPacTotal");
 const SpeedwireData SpeedwireData::BatteryStateOfCharge      (Command::COMMAND_AC_QUERY, 0x00295a00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterStateOfCharge(), Wire::NO_WIRE, "BatSoC");
 const SpeedwireData SpeedwireData::BatteryDiagChargeCycles   (Command::COMMAND_AC_QUERY, 0x00491e00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterRelay(), Wire::NO_WIRE, "BatChargeCycl");
 const SpeedwireData SpeedwireData::BatteryDiagTotalAhIn      (Command::COMMAND_AC_QUERY, 0x00492600, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterRelay(), Wire::NO_WIRE, "BatTotAhIn");

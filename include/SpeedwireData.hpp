@@ -296,6 +296,7 @@ namespace libspeedwire {
         static const SpeedwireData InverterErrorStatus;            //!< Inverter error status
         static const SpeedwireData InverterRelay;                  //!< Grid relay status
 
+        static const SpeedwireData BatterySoftwareVersion;         //!< Software version
         static const SpeedwireData BatteryStateOfCharge;           //!< Battery charge status
         static const SpeedwireData BatteryDiagChargeCycles;        //!< Battery charge cycles
         static const SpeedwireData BatteryDiagTotalAhIn;           //!< Battery total Ah charged
