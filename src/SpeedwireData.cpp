@@ -165,11 +165,9 @@ std::string SpeedwireRawData::toString(void) const {
     case SpeedwireDataType::Signed32: {
         SpeedwireRawDataSigned32 rd(*this);
         std::vector<int32_t> values = rd.getValues();
-        if (values.size() == 3 || (values.size() == 4 && rd.isNanValue(values[3]))) {
-            result.append("  => (");
-            result.append(rd.convertValueToString(values[0], false)); result.append("...");
-            result.append(rd.convertValueToString(values[1], false)); result.append(") ");
-            result.append(rd.convertValueToString(values[2], false));
+        if (rd.isValueWithRange()) {
+            result.append("  => ");
+            result.append(rd.toValueWithRangeString());
         }
         else {
             for (size_t i = 0; i < values.size(); ++i) {
@@ -182,18 +180,13 @@ std::string SpeedwireRawData::toString(void) const {
     case SpeedwireDataType::Unsigned32: {
         SpeedwireRawDataUnsigned32 rd(*this);
         std::vector<uint32_t> values = rd.getValues();
-        if ((values.size() == 3 || values.size() == 4) && values[0] == 0 && (rd.isEoDValue(values[1]) || rd.isNanValue(values[1]))) {
+        if (rd.isRevisionOrSerial()) {
             result.append("  => ");
-            result.append(rd.convertValueToString(values[2], false)); result.append(", rev: ");
-            result.append(rd.convertValueToString((values[2] >> 24) & 0xff, false)); result.append(".");
-            result.append(rd.convertValueToString((values[2] >> 16) & 0xff, false)); result.append(".");
-            result.append(rd.convertValueToString((values[2] >>  8) & 0xff, false)); result.append(".");
-            result.append(rd.convertValueToString((values[2]      ) & 0xff, false));
-        } else if (values.size() == 3 || (values.size() == 4 && rd.isNanValue(values[3]))) {
-            result.append("  => (");
-            result.append(rd.convertValueToString(values[0], false)); result.append("...");
-            result.append(rd.convertValueToString(values[1], false)); result.append(") ");
-            result.append(rd.convertValueToString(values[2], false));
+            result.append(rd.toRevisionOrSerialString());
+        }
+        else if (rd.isValueWithRange()) {
+            result.append("  => ");
+            result.append(rd.toValueWithRangeString());
         }
         else {
             for (size_t i = 0; i < values.size(); ++i) {
@@ -257,10 +250,8 @@ size_t SpeedwireRawData::getNumberOfValues(void) const {
  *   => there is just one significant value
  * - 5 values, the last one is 1, the first three values are different, the third and fourth values are identical
  *   => the first three values are significant
- * - 8 values, pairs of values are identical, the last pair is 0
- *   => the first three pairs are significant
- * - 8 values, pairs of values are identical, the last pair is not 0
- *   => the first four pairs are significant
+ * - 8 values, pairs of values are identical
+ *   => the four pairs are significant to encode a value with range: min_value, max_value, value, default_value
  */
 size_t SpeedwireRawData::getNumberOfSignificantValues(void) const {
     if (type == SpeedwireDataType::Unsigned32 || type == SpeedwireDataType::Signed32) {
@@ -297,7 +288,7 @@ size_t SpeedwireRawData::getNumberOfSignificantValues(void) const {
             uint32_t value7 = SpeedwireByteEncoding::getUint32LittleEndian(data + 6 * 4u);
             uint32_t value8 = SpeedwireByteEncoding::getUint32LittleEndian(data + 7 * 4u);
             if (value1 == value2 && value3 == value4 && value5 == value6 && value7 == value8) {
-                return (value8 == 0 ? 3 : 4);
+                return 4;
             }
         }
     }
@@ -316,10 +307,8 @@ size_t SpeedwireRawData::getNumberOfSignificantValues(void) const {
  *   => there is just one significant value
  * - 5 values, the last one is 1, the first three values are different, the third and fourth values are identical
  *   => the first three values are significant
- * - 8 values, pairs of values are identical, the last pair is 0
- *   => the first three pairs are significant
- * - 8 values, pairs of values are identical, the last pair is not 0
- *   => the first four pairs are significant
+ * - 8 values, pairs of values are identical
+ *   => the four pairs are significant to encode a value with range: min_value, max_value, value, unused
  */
 std::vector<uint32_t> SpeedwireRawDataUnsigned32::getValues(void) const {
     std::vector<uint32_t> values;
@@ -329,6 +318,66 @@ std::vector<uint32_t> SpeedwireRawDataUnsigned32::getValues(void) const {
         values.push_back(getValue(i * d));
     }
     return values;
+}
+
+
+/**
+ * Convert the sequence of raw data values into a string, provided it is a value with range (i.e. 4 pairs of values).
+ * @return a string representation or an empty string if is not a value with range
+ */
+std::string  SpeedwireRawDataUnsigned32::toValueWithRangeString(void) const {
+    std::string result;
+    if (isValueWithRange()) {
+        auto values = getValues();
+        result.append("(");
+        result.append(convertValueToString(values[0], false)); result.append("...");
+        result.append(convertValueToString(values[1], false)); result.append(") ");
+        result.append(convertValueToString(values[2], false));
+    }
+    return result;
+}
+
+
+static bool isBCD(uint8_t value) {
+    return ((value & 0xf0) >= 0x00 && (value & 0xf0) <= 0x90 && (value & 0x0f) >= 0x00 && (value & 0x0f) <= 0x09);
+}
+
+/**
+ * Convert the sequence of raw data values into a string, provided it is a value with range (i.e. 4 pairs of values) encoding a revision or serial number.
+ * @return a string representation or an empty string if is not a revision or serial number
+ */
+std::string  SpeedwireRawDataUnsigned32::toRevisionOrSerialString(void) const {
+    std::string result;
+    if (isRevisionOrSerial()) {
+        uint32_t value = getValue(4);  // values 4 and 5 hold the revision or serial
+        uint8_t byte0 = (value >> 24) & 0xff;
+        uint8_t byte1 = (value >> 16) & 0xff;
+        uint8_t byte2 = (value >>  8) & 0xff;
+        uint8_t byte3 = value & 0xff;
+        if (isBCD(byte0) && isBCD(byte1) && byte3 <= 5) {
+            result.append("revision ");
+            result.append(convertValueToString((byte0 >> 4) & 0xf, false)); result.append(convertValueToString(byte0 & 0xf, false)); result.append(".");
+            result.append(convertValueToString((byte1 >> 4) & 0xf, false)); result.append(convertValueToString(byte1 & 0xf, false)); result.append(".");
+            result.append(convertValueToString(byte2, false)); result.append(".");  // binary encoded
+            switch (byte3) {
+            case 0: result.append("N"); break;
+            case 1: result.append("E"); break;
+            case 2: result.append("A"); break;
+            case 3: result.append("B"); break;
+            case 4: result.append("R"); break;
+            case 5: result.append("S"); break;
+            default: break;
+            }
+        }
+        else if (value >= 1000000000) {
+            result.append("serial ");
+            result.append(convertValueToString(value, false));
+        }
+        else {
+            result.append(toValueWithRangeString());
+        }
+    }
+    return result;
 }
 
 
@@ -356,6 +405,24 @@ std::vector<int32_t> SpeedwireRawDataSigned32::getValues(void) const {
     }
     return values;
 
+}
+
+
+/**
+ * Convert the sequence of raw data values into a string, provided it is a value with range (i.e. 4 pairs of values).
+ * @return a string representation or an empty string if is not a value with range
+ */
+std::string  SpeedwireRawDataSigned32::toValueWithRangeString(void) const {
+    std::string result;
+    if (isValueWithRange()) {
+        auto values = getValues();
+        result.append("(");
+        result.append(convertValueToString(values[0], false)); result.append("...");
+        result.append(convertValueToString(values[1], false)); result.append(") ");
+        result.append(convertValueToString(values[2], false)); //result.append(" default: ");
+        //result.append(convertValueToString(values[3], false));
+    }
+    return result;
 }
 
 

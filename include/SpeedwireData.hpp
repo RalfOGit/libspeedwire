@@ -105,6 +105,11 @@ namespace libspeedwire {
             snprintf(byte, sizeof(byte), (hex ? "0x%08lx" : "%lu"), (unsigned long)value);
             return std::string(byte);
         }
+
+        bool isValueWithRange(void) const { return (base.getNumberOfValues() == 8 && base.getNumberOfSignificantValues() == 4); }
+        bool isRevisionOrSerial(void) const { return (isValueWithRange() && getValue(0) == 0 && (isEoDValue(getValue(2)) || isNanValue(getValue(2))) && !isNanValue(getValue(4))); }
+        std::string toValueWithRangeString(void) const;
+        std::string toRevisionOrSerialString(void) const;
     };
 
 
@@ -133,6 +138,9 @@ namespace libspeedwire {
             snprintf(byte, sizeof(byte), (hex ? "0x%08lx" : "%ld"), (unsigned long)value);
             return std::string(byte);
         }
+
+        bool isValueWithRange(void) const { return (base.getNumberOfValues() == 8 && base.getNumberOfSignificantValues() == 4); }
+        std::string toValueWithRangeString(void) const;
     };
 
 
