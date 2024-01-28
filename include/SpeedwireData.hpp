@@ -188,7 +188,7 @@ namespace libspeedwire {
             if (value == nan) { return "NaN"; }
             if (value == (sel | nan)) { return "->NaN"; }
             if (value == eod) { return "EoD"; }
-            const SpeedwireStatus& status = SpeedwireStatusMap::getPredefined(value & value_mask);
+            const SpeedwireStatus& status = SpeedwireStatusMap::getFromGlobalMap(value & value_mask);
             if (status != SpeedwireStatus::NOTFOUND()) {
                 if (value == (sel | status.value)) { return "->" + status.name; }
                 return status.name;
@@ -360,7 +360,7 @@ namespace libspeedwire {
         a SpeedwireRawData instance.
      */
     class SpeedwireDataMap : public std::map<uint32_t, SpeedwireData> {
-        static SpeedwireDataMap allPredefined;
+        static SpeedwireDataMap globalMap;  // map containing all known definitions
 
     public:
         /**
@@ -400,7 +400,7 @@ namespace libspeedwire {
             erase(entry.toKey());
         }
 
-        static const SpeedwireDataMap &getAllPredefined(void);
+        static SpeedwireDataMap &getGlobalMap(void);
     };
 
 }   // namespace libspeedwire

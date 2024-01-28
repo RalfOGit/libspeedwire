@@ -138,8 +138,8 @@ namespace libspeedwire {
 
 
     /**
-     *  Class implementing a map for emeter obis data.
-     *  The class extends std::map<uint32_t, ObisData>.
+     *  Class implementing a map for speedwire status / enum definitions.
+     *  The class extends std::map<uint32_t, SpeedwireStatus>.
      */
     class SpeedwireStatusMap : public std::map<uint32_t, SpeedwireStatus> {
     public:
@@ -181,45 +181,45 @@ namespace libspeedwire {
         }
         
         /**
-         *  Get a reference to the SpeedwireStatusMap containing all predefined elements
+         *  Get a reference to the SpeedwireStatusMap containing all globally defined elements
          *  @return the map
          */
-        static const SpeedwireStatusMap& getAllPredefined(void) {
-            static SpeedwireStatusMap allPredefined;
-            if (allPredefined.size() == 0) {
-                allPredefined = SpeedwireStatusMap(SpeedwireStatus::getAllPredefined());
+        static SpeedwireStatusMap& getGlobalMap(void) {
+            static SpeedwireStatusMap global_map;
+            if (global_map.size() == 0) {
+                global_map = SpeedwireStatusMap(SpeedwireStatus::getAllPredefined());
             }
-            return allPredefined;
+            return global_map;
         }
 
         /**
-         *  Find the given status value in the map map of predefined speedwire status elements.
+         *  Find the given status value in the global map of speedwire status elements.
          *  @param value status value
          *  @return a const iterator pointing to the element, or to cend()
          */
-        static const /*SpeedwireStatusMap::*/const_iterator findPredefined(uint32_t value) {
-            const SpeedwireStatusMap& map = getAllPredefined();
+        static const const_iterator findInGlobalMap(uint32_t value) {
+            const SpeedwireStatusMap& map = getGlobalMap();
             return map.find(value & 0x00ffffff);
         }
 
         /**
-         *  Check if the given status value is contained in the map map of predefined speedwire status elements.
+         *  Check if the given status value is contained in the global map of speedwire status elements.
          *  @param value status value
          *  @return true or false
          */
-        static bool isPredefined(uint32_t value) {
-            const SpeedwireStatusMap& map = getAllPredefined();
+        static bool isInGlobalMap(uint32_t value) {
+            const SpeedwireStatusMap& map = getGlobalMap();
             const auto& it = map.find(value & 0x00ffffff);
             return (it == map.cend());
         }
 
         /**
-         *  Get the given status value from the map map of predefined speedwire status elements.
+         *  Get the given status value from the global map of speedwire status elements.
          *  @param value status value
          *  @return a const reference to the predefined speedwire status element, or a const reference to the NOTFOUND status element
          */
-        static const SpeedwireStatus& getPredefined(uint32_t value) {
-            const SpeedwireStatusMap& map = getAllPredefined();
+        static const SpeedwireStatus& getFromGlobalMap(uint32_t value) {
+            const SpeedwireStatusMap& map = getGlobalMap();
             const auto& it = map.find(value & 0x00ffffff);
             if (it != map.cend()) {
                 return it->second;

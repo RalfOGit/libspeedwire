@@ -98,16 +98,16 @@ std::string SpeedwireRawData::toHexString(void) const {
 std::string SpeedwireRawData::toString(void) const {
     // check if this raw data element is one of the predefined elements, if so get description string 
     std::string description = "unknown";
-    const SpeedwireDataMap &data_map = SpeedwireDataMap::getAllPredefined();
+    const SpeedwireDataMap &data_map = SpeedwireDataMap::getGlobalMap();
     auto iterator = data_map.find(toKey());
     if (conn == 0x7 && iterator == data_map.end()) {
         // battery connection id is 0x7, however some definitions are identical to inverter connection id 0x1, check if this can be used
         iterator = data_map.find(toKey() ^ 0x6);
     }
-    if (conn == 0x00 && iterator == data_map.end()) {
-        // other connection id is 0x0, however some definitions are identical to inverter connection id 0x1, check if this can be used
-        iterator = data_map.find(toKey() | 0x1);
-    }
+    //if (conn == 0x00 && iterator == data_map.end()) {
+    //    // other connection id is 0x0, however some definitions are identical to inverter connection id 0x1, check if this can be used
+    //    iterator = data_map.find(toKey() | 0x1);
+    //}
     if (iterator != data_map.end()) {
         description = iterator->second.name;
         //unsigned long divisor = iterator->second.measurementType.divisor;
@@ -115,44 +115,56 @@ std::string SpeedwireRawData::toString(void) const {
 
     // assemble a string from the header fields
     char buff[256];
-    snprintf(buff, sizeof(buff), "id 0x%08lx (%12s) conn 0x%02x type 0x%02x (%10s)  time 0x%08lx  data ", (unsigned)id, description.c_str(), (unsigned)conn, (unsigned)type, libspeedwire::toString(type).c_str(),  (uint32_t)time);
+    snprintf(buff, sizeof(buff), "id 0x%08lx (%32s) conn 0x%02x type 0x%02x (%10s)  time 0x%08lx  data ", (unsigned)id, description.c_str(), (unsigned)conn, (unsigned)type, libspeedwire::toString(type).c_str(),  (uint32_t)time);
 
     // extract raw values and append them to the string
     std::string result(buff);
     size_t num_values = getNumberOfValues();
+    if (conn == 0x00 && type == SpeedwireDataType::String32) {
+        num_values *= 8;
+    }
     for (size_t i = 0; i < num_values; ++i) {
         std::string value_string;
-        switch (type) {
-        case SpeedwireDataType::Signed32: {
-            SpeedwireRawDataSigned32 rd(*this);
-            int32_t value = rd.getValue(i);
-            value_string = rd.convertValueToString(value, true);
-            break;
-        }
-        case SpeedwireDataType::Unsigned32: {
+        if (conn == 0x00) {  // conn = 0x00 is not understood
             SpeedwireRawDataUnsigned32 rd(*this);
             uint32_t value = rd.getValue(i);
-            value_string = rd.convertValueToString(value, true);
-            break;
+            char byte[32];
+            snprintf(byte, sizeof(byte), "0x%08lx", (unsigned long)value);
+            value_string = std::string(byte);
         }
-        case SpeedwireDataType::Status32: {
-            SpeedwireRawDataStatus32 rd(*this);
-            uint32_t value = rd.getValue(i);
-            value_string = rd.convertValueToString(value);
-            break;
-        }
-        //case SpeedwireDataType::Float: {
-        //    float value = 0.0f;
-        //    getFloatValue(i, value);
-        //    snprintf(byte, sizeof(byte), " %7.2f", value);
-        //    result.append(byte);
-        //    break;
-        //}
-        case SpeedwireDataType::String32: {
-            SpeedwireRawDataString32 rd(*this);
-            value_string = rd.getHexValue(i);
-            break;
-        }
+        else {
+            switch (type) {
+            case SpeedwireDataType::Signed32: {
+                SpeedwireRawDataSigned32 rd(*this);
+                int32_t value = rd.getValue(i);
+                value_string = rd.convertValueToString(value, true);
+                break;
+            }
+            case SpeedwireDataType::Unsigned32: {
+                SpeedwireRawDataUnsigned32 rd(*this);
+                uint32_t value = rd.getValue(i);
+                value_string = rd.convertValueToString(value, true);
+                break;
+            }
+            case SpeedwireDataType::Status32: {
+                SpeedwireRawDataStatus32 rd(*this);
+                uint32_t value = rd.getValue(i);
+                value_string = rd.convertValueToString(value);
+                break;
+            }
+            //case SpeedwireDataType::Float: {
+            //    float value = 0.0f;
+            //    getFloatValue(i, value);
+            //    snprintf(byte, sizeof(byte), " %7.2f", value);
+            //    result.append(byte);
+            //    break;
+            //}
+            case SpeedwireDataType::String32: {
+                SpeedwireRawDataString32 rd(*this);
+                value_string = rd.getHexValue(i);
+                break;
+            }
+            }
         }
         const size_t num_chars = 12;
         if (num_chars > value_string.length()) {
@@ -161,60 +173,62 @@ std::string SpeedwireRawData::toString(void) const {
         result.append(value_string);
     }
     // decode values and print their representation
-    switch (type) {
-    case SpeedwireDataType::Signed32: {
-        SpeedwireRawDataSigned32 rd(*this);
-        std::vector<int32_t> values = rd.getValues();
-        if (rd.isValueWithRange()) {
-            result.append("  => ");
-            result.append(rd.toValueWithRangeString());
-        }
-        else {
-            for (size_t i = 0; i < values.size(); ++i) {
-                result.append((i == 0) ? "  => " : ", ");
-                result.append(rd.convertValueToString(values[i], false));
+    if (conn != 0x00) {
+        switch (type) {
+        case SpeedwireDataType::Signed32: {
+            SpeedwireRawDataSigned32 rd(*this);
+            std::vector<int32_t> values = rd.getValues();
+            if (rd.isValueWithRange()) {
+                result.append("  => ");
+                result.append(rd.toValueWithRangeString());
             }
-        }
-        break;
-    }
-    case SpeedwireDataType::Unsigned32: {
-        SpeedwireRawDataUnsigned32 rd(*this);
-        std::vector<uint32_t> values = rd.getValues();
-        if (rd.isRevisionOrSerial()) {
-            result.append("  => ");
-            result.append(rd.toRevisionOrSerialString());
-        }
-        else if (rd.isValueWithRange()) {
-            result.append("  => ");
-            result.append(rd.toValueWithRangeString());
-        }
-        else {
-            for (size_t i = 0; i < values.size(); ++i) {
-                result.append((i == 0) ? "  => " : ", ");
-                result.append(rd.convertValueToString(values[i], false));
+            else {
+                for (size_t i = 0; i < values.size(); ++i) {
+                    result.append((i == 0) ? "  => " : ", ");
+                    result.append(rd.convertValueToString(values[i], false));
+                }
             }
+            break;
         }
-        break;
-    }
-    case SpeedwireDataType::Status32: {
-        SpeedwireRawDataStatus32 rd(*this);
-        std::vector<uint32_t> values = rd.getValues();
-        result.append("  => ");
-        if (values.size() > 0) {
-            result.append(rd.convertValueToString(values[0]));
+        case SpeedwireDataType::Unsigned32: {
+            SpeedwireRawDataUnsigned32 rd(*this);
+            std::vector<uint32_t> values = rd.getValues();
+            if (rd.isRevisionOrSerial()) {
+                result.append("  => ");
+                result.append(rd.toRevisionOrSerialString());
+            }
+            else if (rd.isValueWithRange()) {
+                result.append("  => ");
+                result.append(rd.toValueWithRangeString());
+            }
+            else {
+                for (size_t i = 0; i < values.size(); ++i) {
+                    result.append((i == 0) ? "  => " : ", ");
+                    result.append(rd.convertValueToString(values[i], false));
+                }
+            }
+            break;
         }
-        break;
-    }
-    case SpeedwireDataType::String32: {
-        SpeedwireRawDataString32 rd(*this);
-        std::vector<std::string> values = rd.getValues();
-        for (size_t i = 0; i < values.size(); ++i) {
-            result.append((i == 0) ? "  => \"" : ", \"");
-            result.append(rd.getValue(i).c_str());  // use c_str() to remove the 32 null bytes
-            result.append("\"");
+        case SpeedwireDataType::Status32: {
+            SpeedwireRawDataStatus32 rd(*this);
+            std::vector<uint32_t> values = rd.getValues();
+            result.append("  => ");
+            if (values.size() > 0) {
+                result.append(rd.convertValueToString(values[0]));
+            }
+            break;
         }
-        break;
-    }
+        case SpeedwireDataType::String32: {
+            SpeedwireRawDataString32 rd(*this);
+            std::vector<std::string> values = rd.getValues();
+            for (size_t i = 0; i < values.size(); ++i) {
+                result.append((i == 0) ? "  => \"" : ", \"");
+                result.append(rd.getValue(i).c_str());  // use c_str() to remove the 32 null bytes
+                result.append("\"");
+            }
+            break;
+        }
+        }
     }
     return result;
 }
@@ -245,13 +259,13 @@ size_t SpeedwireRawData::getNumberOfValues(void) const {
  *
  * For types Unsigned32 and Signed32 the following cases have been seen in packets:
  * - 2 values, the last one is 0
- *   => the first value is significant
+ *   => the first value is significant; this is used to encode history data, like daily consumption, etc.
  * - 5 values, the last one is 1, the first four values are identical
- *   => there is just one significant value
+ *   => there is just one significant value; this is used to encode measurement values
  * - 5 values, the last one is 1, the first three values are different, the third and fourth values are identical
- *   => the first three values are significant
+ *   => the first three values are significant; this is used to encode measurement values
  * - 8 values, pairs of values are identical
- *   => the four pairs are significant to encode a value with range: min_value, max_value, value, default_value
+ *   => the four pairs are significant to encode a settings data values with range: min_value, max_value, value, unknown
  */
 size_t SpeedwireRawData::getNumberOfSignificantValues(void) const {
     if (type == SpeedwireDataType::Unsigned32 || type == SpeedwireDataType::Signed32) {
@@ -300,15 +314,15 @@ size_t SpeedwireRawData::getNumberOfSignificantValues(void) const {
 /**
  * Decode the sequence of raw data values into a vector of significant values.
  *
- * The following cases have been seen in packets:
+ * For types Unsigned32 and Signed32 the following cases have been seen in packets:
  * - 2 values, the last one is 0
- *   => the first value is significant
+ *   => the first value is significant; this is used to encode history data, like daily consumption, etc.
  * - 5 values, the last one is 1, the first four values are identical
- *   => there is just one significant value
+ *   => there is just one significant value; this is used to encode measurement values
  * - 5 values, the last one is 1, the first three values are different, the third and fourth values are identical
- *   => the first three values are significant
+ *   => the first three values are significant; this is used to encode measurement values
  * - 8 values, pairs of values are identical
- *   => the four pairs are significant to encode a value with range: min_value, max_value, value, unused
+ *   => the four pairs are significant to encode a settings data values with range: min_value, max_value, value, unknown
  */
 std::vector<uint32_t> SpeedwireRawDataUnsigned32::getValues(void) const {
     std::vector<uint32_t> values;
@@ -384,17 +398,15 @@ std::string  SpeedwireRawDataUnsigned32::toRevisionOrSerialString(void) const {
 /**
  * Decode the sequence of raw data values into a vector of significant values.
  *
- * The following cases have been seen in packets:
+ * For types Unsigned32 and Signed32 the following cases have been seen in packets:
  * - 2 values, the last one is 0
- *   => the first value is significant
+ *   => the first value is significant; this is used to encode history data, like daily consumption, etc.
  * - 5 values, the last one is 1, the first four values are identical
- *   => there is just one significant value
+ *   => there is just one significant value; this is used to encode measurement values
  * - 5 values, the last one is 1, the first three values are different, the third and fourth values are identical
- *   => the first three values are significant
- * - 8 values, pairs of values are identical, the last pair is 0
- *   => the first three pairs are significant
- * - 8 values, pairs of values are identical, the last pair is not 0
- *   => the first four pairs are significant
+ *   => the first three values are significant; this is used to encode measurement values
+ * - 8 values, pairs of values are identical
+ *   => the four pairs are significant to encode a settings data values with range: min_value, max_value, value, unknown
  */
 std::vector<int32_t> SpeedwireRawDataSigned32::getValues(void) const {
     std::vector<int32_t> values;
@@ -419,8 +431,7 @@ std::string  SpeedwireRawDataSigned32::toValueWithRangeString(void) const {
         result.append("(");
         result.append(convertValueToString(values[0], false)); result.append("...");
         result.append(convertValueToString(values[1], false)); result.append(") ");
-        result.append(convertValueToString(values[2], false)); //result.append(" default: ");
-        //result.append(convertValueToString(values[3], false));
+        result.append(convertValueToString(values[2], false));
     }
     return result;
 }
@@ -753,15 +764,16 @@ const SpeedwireData SpeedwireData::HouseholdIncomeSelfConsumption(0, 0, 0, Speed
  *  Class holding a map of SpeedwireData elements.
  ********************************/
 
+SpeedwireDataMap SpeedwireDataMap::globalMap = SpeedwireDataMap(SpeedwireData::getAllPredefined());
+
 /**
  *  Get a reference to the SpeedwireDataMap containing all predefined elements
  *  @return the map
  */
-const SpeedwireDataMap& SpeedwireDataMap::getAllPredefined(void) {
-    if (allPredefined.size() == 0) {
-        allPredefined = SpeedwireDataMap(SpeedwireData::getAllPredefined());
+SpeedwireDataMap& SpeedwireDataMap::getGlobalMap(void) {
+    if (globalMap.size() == 0) {
+        globalMap = SpeedwireDataMap(SpeedwireData::getAllPredefined());
     }
-    return allPredefined;
+    return globalMap;
 }
 
-SpeedwireDataMap SpeedwireDataMap::allPredefined;

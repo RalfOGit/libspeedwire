@@ -188,7 +188,8 @@ SpeedwireRawData SpeedwireInverterProtocol::getRawData(const void* const current
     };
     if (current_element != NULL) {
         if (raw_data.conn == 0x00) {    // connector id 0x00 has no timestamp, data starts at offset 4
-            memcpy(raw_data.data, (uint8_t*)current_element + 4, raw_data.data_size + 4);
+            raw_data.data_size += 4;
+            memcpy(raw_data.data, (uint8_t*)current_element + 4, raw_data.data_size);
         }
         else {
             memcpy(raw_data.data, (uint8_t*)current_element + 8, raw_data.data_size);
