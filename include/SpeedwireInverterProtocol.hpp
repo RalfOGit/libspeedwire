@@ -92,6 +92,7 @@ namespace libspeedwire {
         const void* getFirstRawDataElement(void) const;
         const void* getNextRawDataElement(const void* const current, uint32_t length) const;
         SpeedwireRawData getRawData(const void* const current, uint32_t length) const;
+        SpeedwireRawData getRawTimelineData(const void* const current, uint32_t length) const;
         std::vector<SpeedwireRawData> getRawDataElements(void) const;
         std::string toString(void) const;
 

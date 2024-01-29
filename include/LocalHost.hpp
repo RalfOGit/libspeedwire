@@ -78,6 +78,9 @@ namespace libspeedwire {
         // platform neutral get unix epoch time in ms
         static uint64_t getUnixEpochTimeInMs(void);
 
+        // platform neutral conversion of unix epoch time in ms to a formatted string
+        static std::string unixEpochTimeInMsToString(uint64_t epoch);
+
         // Calculate the absolute time difference between time1 and time2
         static uint64_t calculateAbsTimeDifference(uint64_t time1, uint64_t time2);
 

@@ -91,7 +91,7 @@ void Logger::print(LogLevel level, const char* format, ... )
     text.append(m_module_name);
     text.append(": ");
 
-    char cbuf[8000];
+    char cbuf[16384];
     va_list list;
     va_start(list, format);
     vsnprintf(cbuf, sizeof(cbuf), format, list);

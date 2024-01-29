@@ -1,4 +1,6 @@
+#define  _CRT_SECURE_NO_WARNINGS (1)
 #include <memory.h>
+#include <time.h>
 #include <SpeedwireByteEncoding.hpp>
 #include <SpeedwireData.hpp>
 #include <SpeedwireCommand.hpp>
@@ -13,6 +15,7 @@ std::string libspeedwire::toString(SpeedwireDataType type) {
     case SpeedwireDataType::String32:   return "String32";
     case SpeedwireDataType::Float:      return "Float";
     case SpeedwireDataType::Signed32:   return "Signed32";
+    case SpeedwireDataType::Unsigned64: return "Unsigned64";
     }
     return "unknown-type";
 }
@@ -104,10 +107,6 @@ std::string SpeedwireRawData::toString(void) const {
         // battery connection id is 0x7, however some definitions are identical to inverter connection id 0x1, check if this can be used
         iterator = data_map.find(toKey() ^ 0x6);
     }
-    //if (conn == 0x00 && iterator == data_map.end()) {
-    //    // other connection id is 0x0, however some definitions are identical to inverter connection id 0x1, check if this can be used
-    //    iterator = data_map.find(toKey() | 0x1);
-    //}
     if (iterator != data_map.end()) {
         description = iterator->second.name;
         //unsigned long divisor = iterator->second.measurementType.divisor;
@@ -115,24 +114,21 @@ std::string SpeedwireRawData::toString(void) const {
 
     // assemble a string from the header fields
     char buff[256];
-    snprintf(buff, sizeof(buff), "id 0x%08lx (%32s) conn 0x%02x type 0x%02x (%10s)  time 0x%08lx  data ", (unsigned)id, description.c_str(), (unsigned)conn, (unsigned)type, libspeedwire::toString(type).c_str(),  (uint32_t)time);
+    if (conn != 0x00) {
+        snprintf(buff, sizeof(buff), "id 0x%08lx (%32s) conn 0x%02x type 0x%02x (%10s)  time 0x%08lx  data ", (unsigned)id, description.c_str(), (unsigned)conn, (unsigned)type, libspeedwire::toString(type).c_str(), (uint32_t)time);
+    }
+    else {
+        snprintf(buff, sizeof(buff), "id 0x%08lx conn 0x%02x type 0x%02x (%10s)  data ", (unsigned)id, (unsigned)conn, (unsigned)type, libspeedwire::toString(type).c_str());
+    }
 
     // extract raw values and append them to the string
     std::string result(buff);
     size_t num_values = getNumberOfValues();
-    if (conn == 0x00 && type == SpeedwireDataType::String32) {
-        num_values *= 8;
-    }
-    for (size_t i = 0; i < num_values; ++i) {
-        std::string value_string;
-        if (conn == 0x00) {  // conn = 0x00 is not understood
-            SpeedwireRawDataUnsigned32 rd(*this);
-            uint32_t value = rd.getValue(i);
-            char byte[32];
-            snprintf(byte, sizeof(byte), "0x%08lx", (unsigned long)value);
-            value_string = std::string(byte);
-        }
-        else {
+
+    // for register data, append the binary representation of each data element, depending on its type
+    if (conn != 0x00) {
+        for (size_t i = 0; i < num_values; ++i) {
+            std::string value_string;
             switch (type) {
             case SpeedwireDataType::Signed32: {
                 SpeedwireRawDataSigned32 rd(*this);
@@ -164,14 +160,31 @@ std::string SpeedwireRawData::toString(void) const {
                 value_string = rd.getHexValue(i);
                 break;
             }
+            case SpeedwireDataType::Unsigned64: {
+                uint64_t value = SpeedwireByteEncoding::getUint64LittleEndian(data + i * sizeof(uint64_t));
+                char str[32];
+                snprintf(str, sizeof(str), "%016llx ", value);
+                value_string.append(str);
             }
+            }
+            const size_t num_chars = 12;
+            if (num_chars > value_string.length()) {
+                result.append(num_chars - value_string.length(), ' ');
+            }
+            result.append(value_string);
         }
-        const size_t num_chars = 12;
-        if (num_chars > value_string.length()) {
-            result.append(num_chars - value_string.length(), ' ');
+    }
+    // for timeline data, append the binary representation of each data byte
+    else {
+        std::string value_string;
+        for (size_t i = 0; i < data_size; ++i) {
+            char byte[8];
+            snprintf(byte, sizeof(byte), "%02x ", (unsigned int)data[i]);
+            value_string.append(byte);
         }
         result.append(value_string);
     }
+
     // decode values and print their representation
     if (conn != 0x00) {
         switch (type) {
@@ -228,6 +241,30 @@ std::string SpeedwireRawData::toString(void) const {
             }
             break;
         }
+        case SpeedwireDataType::Unsigned64: {
+            for (size_t i = 0; i < num_values; ++i) {
+                result.append((i == 0) ? "  => " : ", ");
+                uint64_t value = SpeedwireByteEncoding::getUint64LittleEndian(data + i * sizeof(uint64_t));
+                char str[32];
+                snprintf(str, sizeof(str), "%llu ", value);
+                result.append(str);
+            }
+            break;
+        }
+        }
+    }
+    // decode timeline data and add formatted timestamp
+    else {
+        if (type == SpeedwireDataType::Unsigned64) {
+            result.append("  => ");
+            uint64_t value = SpeedwireByteEncoding::getUint64LittleEndian(data);
+            char str[64];
+            snprintf(str, sizeof(str), "%llu ", value);
+            result.append(str);
+
+            result.append("  ");
+            std::string time = LocalHost::unixEpochTimeInMsToString(SpeedwireTime::convertInverterTimeToUnixEpochTime(id));
+            result.append(time);
         }
     }
     return result;
@@ -249,6 +286,8 @@ size_t SpeedwireRawData::getNumberOfValues(void) const {
         return data_size / SpeedwireRawDataSigned32::value_size;
     case SpeedwireDataType::String32:
         return data_size / SpeedwireRawDataString32::value_size;
+    case SpeedwireDataType::Unsigned64:
+        return data_size / 8u;
     }
     return 0;
 }

@@ -1,4 +1,5 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 #include <cstring>
 #include <stdio.h>
 #include <chrono>
@@ -432,6 +433,22 @@ uint64_t LocalHost::getUnixEpochTimeInMs(void) {
     }
     return spec.tv_sec * 1000 + spec.tv_nsec / 1000000;
 #endif
+}
+
+
+/**
+ *  Platform neutral conversion of unix epoch time in ms to a formatted string.
+ */
+std::string LocalHost::unixEpochTimeInMsToString(uint64_t epoch) {
+    std::string result;
+    const time_t time = epoch / 1000u;
+    struct tm* ts_ptr = localtime(&time);
+    if (ts_ptr != NULL) {
+        char buf[80];
+        strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ts_ptr);
+        result.append(buf);
+    }
+    return result;
 }
 
 

@@ -13,15 +13,23 @@
 namespace libspeedwire {
 
     enum Command : uint32_t {
-        COMMAND_AC_QUERY          = 0x51000200,
-        COMMAND_STATUS_QUERY      = 0x51800200,
-        COMMAND_TEMPERATURE_QUERY = 0x52000200,
-        COMMAND_DC_QUERY          = 0x53800200,
-        COMMAND_ENERGY_QUERY      = 0x54000200,
-        COMMAND_DEVICE_QUERY      = 0x58000200,
-        COMMAND_DEVICE_QUERY_1    = 0x58010200,
-        COMMAND_DEVICE_QUERY_2    = 0x58020200,
-        COMMAND_DEVICE_QUERY_3    = 0x58030200
+        COMMAND_AC_QUERY              = 0x51000200,
+        COMMAND_AC_QUERY_2            = 0x51020200,
+        COMMAND_STATUS_QUERY          = 0x51800200,
+        COMMAND_TEMPERATURE_QUERY     = 0x52000200,
+        COMMAND_DC_QUERY              = 0x53800200,
+        COMMAND_DC_QUERY_2            = 0x53820200,
+        COMMAND_UNKNOWN               = 0x53400200,
+        COMMAND_UNKNOWN_2             = 0x53420200,
+        COMMAND_ENERGY_QUERY          = 0x54000200,
+        COMMAND_ENERGY_QUERY_2        = 0x54020200,
+        COMMAND_DEVICE_QUERY          = 0x58000200,
+        COMMAND_DEVICE_QUERY_1        = 0x58010200,
+        COMMAND_DEVICE_QUERY_2        = 0x58020200,
+        COMMAND_DEVICE_QUERY_3        = 0x58030200,
+        COMMAND_YIELD_BY_MINUTE_QUERY = 0x70000200,  // query yield in 5 minute intervals
+        COMMAND_YIELD_BY_DAY_QUERY    = 0x70200200,  // query yield in 24 hour intervals
+        COMMAND_EVENT_QUERY           = 0x70100200   // query events
     };
 
 

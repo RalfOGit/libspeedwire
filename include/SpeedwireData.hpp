@@ -35,6 +35,7 @@ namespace libspeedwire {
      */
     enum class SpeedwireDataType : uint8_t {
         Unsigned32 = 0x00,
+        Unsigned64 = 0x01,  // arbitrary custom definition, not defined by SMA
         Status32   = 0x08,
         String32   = 0x10,
         Float      = 0x20,  // likely unused

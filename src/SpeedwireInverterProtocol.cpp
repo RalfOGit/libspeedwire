@@ -180,7 +180,7 @@ SpeedwireRawData SpeedwireInverterProtocol::getRawData(const void* const current
     SpeedwireRawData raw_data = {
         first_word,                             // command
         (uint32_t)(first_word & 0x00ffff00),    // register id;
-        (uint8_t)(first_word & 0x000000ff),     // connector id (mpp #1, mpp #2, ac #1);
+        (uint8_t) (first_word & 0x000000ff),    // connector id (mpp #1, mpp #2, ac #1);
         SpeedwireDataType(first_word >> 24),    // type;
         second_word,                            // time;
         NULL,
@@ -198,6 +198,29 @@ SpeedwireRawData SpeedwireInverterProtocol::getRawData(const void* const current
     return raw_data;
 }
 
+/** Get raw timeline data from the given raw data element. Timeline data uses the register id to encode the unix epoch time.
+ *  Data bytes start directly after the "register id"; there is no further timestamp field. */
+SpeedwireRawData SpeedwireInverterProtocol::getRawTimelineData(const void* const current_element, uint32_t element_length) const {
+    uint32_t first_word = 0xffffffff;
+    uint32_t second_word = 0xffffffff;
+    if (current_element != NULL) {
+        first_word  = SpeedwireByteEncoding::getUint32LittleEndian(current_element);
+    }
+    SpeedwireRawData raw_data = {
+        first_word,                     // command      => set to unix epoch timestamp;
+        first_word,                     // register id  => set to unix epoch timestamp;
+        (uint8_t)(0x00),                // connector id => set to 0
+        SpeedwireDataType::Unsigned64,  // type         => arbitrarily set to Unsigned64;
+        first_word,                     // time         => set to unix epoch timestamp
+        NULL,
+        (element_length - 4 < sizeof(SpeedwireRawData::data) ? element_length - 4 : sizeof(SpeedwireRawData::data))
+    };
+    if (current_element != NULL) {
+        memcpy(raw_data.data, (uint8_t*)current_element + 4, raw_data.data_size);
+    }
+    return raw_data;
+}
+
 /** Get a vector of all raw data elements given in this inverter packet */
 std::vector<SpeedwireRawData> SpeedwireInverterProtocol::getRawDataElements(void) const {
     std::vector<SpeedwireRawData> elements;
@@ -205,9 +228,16 @@ std::vector<SpeedwireRawData> SpeedwireInverterProtocol::getRawDataElements(void
     if (element_length > 0) {
         const void* current_element = getFirstRawDataElement();
         while (current_element != NULL) {
-            SpeedwireRawData data = getRawData(current_element, element_length);
-            elements.push_back(data);
-            //fprintf(stdout, "%s\n", data.toString().c_str());
+            // if this is a COMMAND_YIELD or COMMAND_EVENT, there is no sub-structure, just inverter timestamp followed by 64-bit yield value
+            if ((getCommandID() & 0xff000000) == 0x70000000) {
+                SpeedwireRawData data = getRawTimelineData(current_element, element_length);
+                elements.push_back(data);
+            }
+            else {
+                SpeedwireRawData data = getRawData(current_element, element_length);
+                elements.push_back(data);
+                //fprintf(stdout, "%s\n", data.toString().c_str());
+            }
             current_element = getNextRawDataElement(current_element, element_length);
         }
     }
@@ -228,6 +258,7 @@ std::string SpeedwireInverterProtocol::toString(void) const {
         getErrorCode(), getFragmentCounter(), getPacketID(), getCommandID(), getFirstRegisterID(), getLastRegisterID());
     std::string result(buffer);
 
+    //LocalHost::hexdump(udp + sma_data_offset, (size >= sma_data_offset ? size - sma_data_offset : 0));
     std::vector<SpeedwireRawData> elements = getRawDataElements();
     uint32_t register_id = getFirstRegisterID();
     for (const auto &el : elements) {
