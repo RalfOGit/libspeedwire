@@ -39,7 +39,9 @@ namespace libspeedwire {
         Status32   = 0x08,
         String32   = 0x10,
         Float      = 0x20,  // likely unused
-        Signed32   = 0x40
+        Signed32   = 0x40,
+        Event      = 0xfe,  // arbitrary custom definition, not defined by SMA
+        Yield      = 0xff   // arbitrary custom definition, not defined by SMA
     };
 
     //! Convert SpeedwireDataType to a string
@@ -56,7 +58,7 @@ namespace libspeedwire {
         uint8_t  conn;                      //!< connector id (mpp #1, mpp #2, ac #1)
         SpeedwireDataType type;             //!< type
         time_t   time;                      //!< timestamp
-        uint8_t  data[40];                  //!< payload data
+        uint8_t  data[44];                  //!< payload data
         size_t   data_size;                 //!< payload data size in bytes
 
         SpeedwireRawData(const uint32_t command, const uint32_t id, const uint8_t conn, const SpeedwireDataType type, const time_t time, const void* const data, const size_t data_size);
@@ -246,6 +248,87 @@ namespace libspeedwire {
 
 
     /**
+     *  Wrapper class to simplify access to SpeedwireRawData of type Yield.
+     */
+    class SpeedwireRawDataYield {
+    protected:
+        const SpeedwireRawData& base;
+
+    public:
+        static const size_t value_size = 8u;
+
+        class YieldValue {
+        public:
+            time_t    epoch_time;
+            uint64_t  yield_value;
+            YieldValue(time_t time, uint64_t value) : epoch_time(time), yield_value(value) {}
+        };
+
+        SpeedwireRawDataYield(const SpeedwireRawData& raw_data) : base(raw_data) {}
+
+        size_t getNumberOfValues(void) const { return base.data_size / value_size; }
+        YieldValue getValue(size_t pos) const { return YieldValue(base.time, SpeedwireByteEncoding::getUint64LittleEndian(base.data + pos * value_size)); }
+
+        std::vector<YieldValue> getValues(void) const {
+            std::vector<YieldValue> values;
+            for (size_t i = 0; i < getNumberOfValues(); ++i) {
+                values.push_back(getValue(i));
+            }
+            return values;
+        }
+
+        std::string convertValueToString(const YieldValue& value, bool hex) const {
+            std::string result = LocalHost::unixEpochTimeInMsToString(SpeedwireTime::convertInverterTimeToUnixEpochTime((uint32_t)value.epoch_time));
+
+            char str[64];
+            snprintf(str, sizeof(str), (hex ? " 0x%016llx" : " %llu"), value.yield_value);
+            result.append(str);
+            return result;
+        }
+    };
+
+
+    /**
+     *  Wrapper class to simplify access to SpeedwireRawData of type Event.
+     */
+    class SpeedwireRawDataEvent {
+    protected:
+        const SpeedwireRawData& base;
+
+    public:
+        static const size_t value_size = 44u;
+
+        class EventValue {
+        public:
+            time_t    epoch_time;
+            uint16_t  counter;
+            uint16_t  susy_id;
+            uint32_t  serial_number;
+            uint16_t  event_id;
+            uint8_t   marker_1;
+            uint8_t   marker_2;
+            uint32_t  value[7];
+            EventValue(time_t time, uint8_t* data, size_t data_size);
+        };
+
+        SpeedwireRawDataEvent(const SpeedwireRawData& raw_data) : base(raw_data) {}
+
+        size_t getNumberOfValues(void) const { return base.data_size / value_size; }
+        EventValue getValue(size_t pos) const { return EventValue(base.time, (uint8_t*)base.data + pos * value_size, value_size); }
+
+        std::vector<EventValue> getValues(void) const {
+            std::vector<EventValue> values;
+            for (size_t i = 0; i < getNumberOfValues(); ++i) {
+                values.push_back(getValue(i));
+            }
+            return values;
+        }
+
+        std::string convertValueToString(const EventValue& value, bool hex) const;
+    };
+
+
+    /**
      *  Class holding data from the speedwire inverter reply packet, enriched by measurement type information and the interpreted measurement value.
      */
     class SpeedwireData : public SpeedwireRawData, public Measurement {
@@ -352,6 +435,10 @@ namespace libspeedwire {
         static const SpeedwireData HouseholdIncomeTotal;           //!< Income generated
         static const SpeedwireData HouseholdIncomeFeedIn;          //!< Income generated from grid feed-in
         static const SpeedwireData HouseholdIncomeSelfConsumption; //!< Income generated from self-consumption
+
+        static const SpeedwireData YieldByMinute;                  //!< Energy yield in 5 minute intervals
+        static const SpeedwireData YieldByDay;                     //!< Energy yield in 24 hour intervals
+        static const SpeedwireData Event;                          //!< Device event
     };
 
 

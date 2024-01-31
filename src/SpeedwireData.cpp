@@ -16,6 +16,8 @@ std::string libspeedwire::toString(SpeedwireDataType type) {
     case SpeedwireDataType::Float:      return "Float";
     case SpeedwireDataType::Signed32:   return "Signed32";
     case SpeedwireDataType::Unsigned64: return "Unsigned64";
+    case SpeedwireDataType::Event:      return "Event";
+    case SpeedwireDataType::Yield:      return "Yield";
     }
     return "unknown-type";
 }
@@ -114,12 +116,7 @@ std::string SpeedwireRawData::toString(void) const {
 
     // assemble a string from the header fields
     char buff[256];
-    if (conn != 0x00) {
-        snprintf(buff, sizeof(buff), "id 0x%08lx (%32s) conn 0x%02x type 0x%02x (%10s)  time 0x%08lx  data ", (unsigned)id, description.c_str(), (unsigned)conn, (unsigned)type, libspeedwire::toString(type).c_str(), (uint32_t)time);
-    }
-    else {
-        snprintf(buff, sizeof(buff), "id 0x%08lx conn 0x%02x type 0x%02x (%10s)  data ", (unsigned)id, (unsigned)conn, (unsigned)type, libspeedwire::toString(type).c_str());
-    }
+    snprintf(buff, sizeof(buff), "id 0x%08lx (%32s) conn 0x%02x type 0x%02x (%10s)  time 0x%08lx  data ", (unsigned)id, description.c_str(), (unsigned)conn, (unsigned)type, libspeedwire::toString(type).c_str(), (uint32_t)time);
 
     // extract raw values and append them to the string
     std::string result(buff);
@@ -255,16 +252,19 @@ std::string SpeedwireRawData::toString(void) const {
     }
     // decode timeline data and add formatted timestamp
     else {
-        if (type == SpeedwireDataType::Unsigned64) {
+        switch (type) {
+        case SpeedwireDataType::Yield: {
+            SpeedwireRawDataYield rd(*this);
             result.append("  => ");
-            uint64_t value = SpeedwireByteEncoding::getUint64LittleEndian(data);
-            char str[64];
-            snprintf(str, sizeof(str), "%llu ", value);
-            result.append(str);
-
-            result.append("  ");
-            std::string time = LocalHost::unixEpochTimeInMsToString(SpeedwireTime::convertInverterTimeToUnixEpochTime(id));
-            result.append(time);
+            result.append(rd.convertValueToString(rd.getValue(0), false));
+            break;
+        }
+        case SpeedwireDataType::Event: {
+            SpeedwireRawDataEvent rd(*this);
+            result.append("  => ");
+            result.append(rd.convertValueToString(rd.getValue(0), false));
+            break;
+        }
         }
     }
     return result;
@@ -288,6 +288,10 @@ size_t SpeedwireRawData::getNumberOfValues(void) const {
         return data_size / SpeedwireRawDataString32::value_size;
     case SpeedwireDataType::Unsigned64:
         return data_size / 8u;
+    case SpeedwireDataType::Yield:
+        return data_size / SpeedwireRawDataYield::value_size;
+    case SpeedwireDataType::Event:
+        return data_size / SpeedwireRawDataEvent::value_size;
     }
     return 0;
 }
@@ -474,6 +478,58 @@ std::string  SpeedwireRawDataSigned32::toValueWithRangeString(void) const {
     }
     return result;
 }
+
+
+/**
+ * Constructor for EventValues. It parses the content from the byte array.
+ */
+SpeedwireRawDataEvent::EventValue::EventValue(time_t time, uint8_t* data, size_t data_size) {
+    epoch_time = time;
+
+    SpeedwireRawData rd(0x00000000, 0, 0, SpeedwireDataType::Unsigned32, time, data, data_size);
+    SpeedwireRawDataUnsigned32 rd32(rd);
+    counter       = rd32.getValue(0) & 0x0000ffff;      // some counter
+    susy_id       = (rd32.getValue(0) >> 16) & 0xffff;  // susy id
+    serial_number = rd32.getValue(1);                   // serial number
+    event_id      = rd32.getValue(2) & 0x0000ffff;      // event id
+    marker_1      = (rd32.getValue(2) >> 16) & 0xff;    // unknown marker 1
+    marker_2      = (rd32.getValue(2) >> 24) & 0xff;    // unknown marker 2
+    for (size_t i = 0; i < 7; ++i) {
+        value[i]  = rd32.getValue(3 + i);               // unknown 32-bit value
+    }
+}
+
+
+/**
+ * Convert the sequence of raw data event values into a string.
+ * @return a string representation
+ */
+std::string SpeedwireRawDataEvent::convertValueToString(const EventValue& value, bool hex) const {
+    std::string result = LocalHost::unixEpochTimeInMsToString(SpeedwireTime::convertInverterTimeToUnixEpochTime((uint32_t)value.epoch_time));
+    result.append(" ");
+
+    SpeedwireRawDataUnsigned32 rd(base);
+    for (size_t i = 0; i < base.getNumberOfValues(); ++i) {
+        EventValue value = getValue(i);
+        result.append(rd.convertValueToString(value.counter, false));
+        result.append(", ");
+        result.append(rd.convertValueToString(value.susy_id, false));
+        result.append("-");
+        result.append(rd.convertValueToString(value.serial_number, false));
+        result.append(", ");
+        result.append(rd.convertValueToString(value.event_id, false));
+        result.append("-");
+        result.append(rd.convertValueToString(value.marker_1, false));
+        result.append("-");
+        result.append(rd.convertValueToString(value.marker_2, false));
+        for (size_t j = 0; j < 7; ++j) {
+            result.append(", ");
+            result.append(rd.convertValueToString(value.value[j], false));
+        }
+    }
+    return result;
+}
+
 
 
 /*******************************
@@ -701,6 +757,10 @@ std::vector<SpeedwireData> SpeedwireData::getAllPredefined(void) {
     predefined.push_back(HouseholdIncomeFeedIn);
     predefined.push_back(HouseholdIncomeSelfConsumption);
 
+    predefined.push_back(YieldByMinute);
+    predefined.push_back(YieldByDay);
+    predefined.push_back(Event);
+
     return predefined;
 }
 
@@ -797,6 +857,10 @@ const SpeedwireData SpeedwireData::HouseholdPowerTotal           (0, 0, 0, Speed
 const SpeedwireData SpeedwireData::HouseholdIncomeTotal          (0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::Currency(),      Wire::TOTAL, "Chh");
 const SpeedwireData SpeedwireData::HouseholdIncomeFeedIn         (0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::Currency(),      Wire::FEED_IN, "ChhFeedIn");
 const SpeedwireData SpeedwireData::HouseholdIncomeSelfConsumption(0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::Currency(),      Wire::SELF_CONSUMPTION, "ChhCons");
+
+const SpeedwireData SpeedwireData::YieldByMinute                 (Command::COMMAND_YIELD_BY_MINUTE_QUERY, Command::COMMAND_YIELD_BY_MINUTE_QUERY, 0, SpeedwireDataType::Yield, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "EYieldByMinute");
+const SpeedwireData SpeedwireData::YieldByDay                    (Command::COMMAND_YIELD_BY_DAY_QUERY,    Command::COMMAND_YIELD_BY_DAY_QUERY,    0, SpeedwireDataType::Yield, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "EYieldByDay");
+const SpeedwireData SpeedwireData::Event                         (Command::COMMAND_EVENT_QUERY,           Command::COMMAND_EVENT_QUERY,           0, SpeedwireDataType::Event, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "Event");
 
 
 /*******************************
