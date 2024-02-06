@@ -114,7 +114,7 @@ bool SpeedwireDiscoveryProtocol::isUnicastRequestPacket(void) const {
         if (data2.isInverterProtocolID()) {
             SpeedwireInverterProtocol inverter(data2);
 
-            if (inverter.getCommandID() == 0x0200 &&
+            if ((uint32_t)inverter.getCommandID() == 0x0200 &&
                 inverter.getFirstRegisterID() == 0 &&
                 inverter.getLastRegisterID()  == 0) {
                 return true;
@@ -137,7 +137,7 @@ bool SpeedwireDiscoveryProtocol::isUnicastResponsePacket(void) const {
         if (data2.isInverterProtocolID()) {
             SpeedwireInverterProtocol inverter(data2);
 
-            if (inverter.getCommandID() == 0x0201 &&
+            if ((uint32_t)inverter.getCommandID() == 0x0201 &&
                 inverter.getFirstRegisterID() == 0 &&
                 inverter.getLastRegisterID()  == 0 &&
                 inverter.getRawDataLength()   == 40) {

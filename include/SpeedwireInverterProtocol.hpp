@@ -2,6 +2,7 @@
 #define __LIBSPEEDWIRE_SPEEDWIREINVERTER_HPP__
 
 #include <cstdint>
+#include <SpeedwireCommand.hpp>
 #include <SpeedwireHeader.hpp>
 #include <SpeedwireData2Packet.hpp>
 #include <SpeedwireData.hpp>
@@ -82,7 +83,7 @@ namespace libspeedwire {
         uint16_t getErrorCode(void) const;
         uint16_t getFragmentCounter(void) const;
         uint16_t getPacketID(void) const;
-        uint32_t getCommandID(void) const;
+        Command  getCommandID(void) const;
         uint32_t getFirstRegisterID(void) const;
         uint32_t getLastRegisterID(void) const;
         uint32_t getDataUint32(unsigned long byte_offset) const;   // offset 0 is the first byte after last register index
@@ -107,7 +108,7 @@ namespace libspeedwire {
         void setErrorCode(const uint16_t value);
         void setFragmentCounter(const uint16_t value);
         void setPacketID(const uint16_t value);
-        void setCommandID(const uint32_t value);
+        void setCommandID(const Command value);
         void setFirstRegisterID(const uint32_t value);
         void setLastRegisterID(const uint32_t value);
         void setDataUint32(const unsigned long byte_offset, const uint32_t value);   // offset 0 is the first byte after last register index

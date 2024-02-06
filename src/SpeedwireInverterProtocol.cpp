@@ -89,8 +89,8 @@ uint16_t SpeedwireInverterProtocol::getPacketID(void) const {
 }
 
 /** Get command id. */
-uint32_t SpeedwireInverterProtocol::getCommandID(void) const {
-    return SpeedwireByteEncoding::getUint32LittleEndian(udp + sma_command_id_offset);
+Command SpeedwireInverterProtocol::getCommandID(void) const {
+    return (Command)SpeedwireByteEncoding::getUint32LittleEndian(udp + sma_command_id_offset);
 }
 
 /** Get first register id. */
@@ -210,9 +210,9 @@ SpeedwireRawData SpeedwireInverterProtocol::getRawTimelineData(const void* const
         first_word = SpeedwireByteEncoding::getUint32LittleEndian(current_element);
     }
     return SpeedwireRawData(getCommandID(),     // command
-        getCommandID() & 0xffffff00,            // register id  => set to command id
+        (uint32_t)getCommandID() & 0xffffff00,  // register id  => set to command id
         0x00,                                   // connector id => set to 0x00
-        data_type,                              // type         => set to SpeedwireDataType::Yield
+        data_type,                              // type         => set to SpeedwireDataType::Yield or SpeedwireDataType::Event
         first_word,                             // timestamp    => set to unix epoch time
         (uint8_t*)current_element + 4,          // pointer to data
         element_length - 4);                    // data size
@@ -226,15 +226,17 @@ std::vector<SpeedwireRawData> SpeedwireInverterProtocol::getRawDataElements(void
         const void* current_element = getFirstRawDataElement();
         while (current_element != NULL) {
             uint32_t first_word = SpeedwireByteEncoding::getUint32LittleEndian(current_element);
-            if ((getCommandID() & 0xffff0000) == 0x70100000) {      // COMMAND_EVENT_QUERY => timeline with event records
+            Command  command_id = getCommandID();
+            if ((command_id & Command::ID_MASK) == (Command::EVENT_QUERY & Command::ID_MASK)) { // EVENT_QUERY => timeline with event records
                 SpeedwireRawData data = getRawTimelineData(current_element, element_length, SpeedwireDataType::Event);
                 elements.push_back(data);
             }
-            else if ((getCommandID() & 0xff000000) == 0x70000000) { // COMMAND_YIELD => timeline with energy yield data
+            else if ((command_id & Command::ID_MASK) == (Command::YIELD_BY_MINUTE_QUERY & Command::ID_MASK) ||
+                     (command_id & Command::ID_MASK) == (Command::YIELD_BY_DAY_QUERY    & Command::ID_MASK)) { // COMMAND_YIELD => timeline with energy yield data
                 SpeedwireRawData data = getRawTimelineData(current_element, element_length, SpeedwireDataType::Yield);
                 elements.push_back(data);
             }
-            else if ((getCommandID() & 0x000000ff) == 0x00000000) { // connector id is 0x00 => data fields without timestamp
+            else if ((command_id & Command::REQUEST_TYPE_MASK) == Command::NONE) { // connector id is 0x00 => data fields without timestamp
                 SpeedwireRawData data = getRawConnector0Data(current_element, element_length, SpeedwireDataType(first_word >> 24));
                 elements.push_back(data);
             }
@@ -321,8 +323,8 @@ void SpeedwireInverterProtocol::setPacketID(const uint16_t value) {
 }
 
 /** Set command id. */
-void SpeedwireInverterProtocol::setCommandID(const uint32_t value) {
-    SpeedwireByteEncoding::setUint32LittleEndian(udp + sma_command_id_offset, value);
+void SpeedwireInverterProtocol::setCommandID(const Command value) {
+    SpeedwireByteEncoding::setUint32LittleEndian(udp + sma_command_id_offset, (uint32_t)value);
 }
 
 /** Set first register id. */

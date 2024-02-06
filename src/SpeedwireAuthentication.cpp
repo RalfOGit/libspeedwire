@@ -96,7 +96,7 @@ bool SpeedwireAuthentication::login(const std::string& if_address, const Speedwi
                     logger.print(LogLevel::LOG_ERROR, "lost connection - not authenticated (error code 0x0017)");
                     token_repository.needs_login = true;
                 }
-                else if (token_repository.at(token_index).command == 0xfffd040c) { // login command
+                else if (token_repository.at(token_index).command == Command::LOGIN) { // login command
                     if (error_code == 0x0100) {
                         logger.print(LogLevel::LOG_ERROR, "invalid password - not authenticated");
                     }
@@ -198,7 +198,7 @@ SpeedwireCommandTokenIndex SpeedwireAuthentication::sendLoginRequest(const std::
     request.setErrorCode(0);
     request.setFragmentCounter(0);
     request.setPacketID(packet_id);
-    request.setCommandID(0xfffd040c);
+    request.setCommandID(Command::LOGIN);
     request.setFirstRegisterID((user ? 0x00000007 : 0x0000000a));    // user: 0x7  installer: 0xa
     request.setLastRegisterID(0x00000384);     // timeout
     request.setDataUint32(0, SpeedwireTime::getInverterTimeNow());
@@ -236,7 +236,7 @@ SpeedwireCommandTokenIndex SpeedwireAuthentication::sendLoginRequest(const std::
     }
 
     // add a query token; this is used to match reply packets to this request packet
-    SpeedwireCommandTokenIndex index = token_repository.add(dst.susyID, dst.serialNumber, packet_id, dst_ip_address, 0xfffd040c);
+    SpeedwireCommandTokenIndex index = token_repository.add(dst.susyID, dst.serialNumber, packet_id, dst_ip_address, Command::LOGIN);
 
     return index;
 }
@@ -270,7 +270,7 @@ bool SpeedwireAuthentication::sendLogoffRequest(const std::string& if_address, c
     request.setErrorCode(0);
     request.setFragmentCounter(0);
     request.setPacketID(packet_id);
-    request.setCommandID(0xfffd01e0);
+    request.setCommandID(Command::LOGOFF);
     request.setFirstRegisterID(0xffffffff);
     request.setLastRegisterID(0x00000000);
 

@@ -5,6 +5,7 @@
 #include <string>
 #include <stdio.h>
 #include <map>
+#include <SpeedwireCommand.hpp>
 #include <Measurement.hpp>
 #include <MeasurementType.hpp>
 #include <MeasurementValues.hpp>
@@ -35,17 +36,26 @@ namespace libspeedwire {
      */
     enum class SpeedwireDataType : uint8_t {
         Unsigned32 = 0x00,
-        Unsigned64 = 0x01,  // arbitrary custom definition, not defined by SMA
         Status32   = 0x08,
         String32   = 0x10,
         Float      = 0x20,  // likely unused
         Signed32   = 0x40,
-        Event      = 0xfe,  // arbitrary custom definition, not defined by SMA
-        Yield      = 0xff   // arbitrary custom definition, not defined by SMA
+        Event      = 0xf0,  // arbitrary custom definition, not defined by SMA
+        Yield      = 0xf8,  // arbitrary custom definition, not defined by SMA
+
+        TypeMask   = 0xf8,  // to mask data type bits, like Unsigned32 ... Yield
+        FlagMask   = 0x07,  // to mask flag bits, like write flag, ...
+
+        WriteFlag  = 0x02   // signifies a data type used for a write operation
     };
 
     //! Convert SpeedwireDataType to a string
     std::string toString(SpeedwireDataType type);
+
+    static SpeedwireDataType operator|(SpeedwireDataType lhs, SpeedwireDataType rhs) { return (SpeedwireDataType)(((uint8_t)lhs) | ((uint8_t)rhs)); }
+    static SpeedwireDataType operator&(SpeedwireDataType lhs, SpeedwireDataType rhs) { return (SpeedwireDataType)(((uint8_t)lhs) & ((uint8_t)rhs)); }
+    static SpeedwireDataType operator~(SpeedwireDataType rhs) { return (SpeedwireDataType)~((uint8_t)rhs); }
+    static bool operator==(SpeedwireDataType lhs, SpeedwireDataType rhs) { return (((uint8_t)lhs) == ((uint8_t)rhs)); }
 
 
     /**
@@ -53,15 +63,15 @@ namespace libspeedwire {
      */
     class SpeedwireRawData {
     public:
-        uint32_t command;                   //!< command code
-        uint32_t id;                        //!< register id
-        uint8_t  conn;                      //!< connector id (mpp #1, mpp #2, ac #1)
-        SpeedwireDataType type;             //!< type
-        time_t   time;                      //!< timestamp
-        uint8_t  data[44];                  //!< payload data
-        size_t   data_size;                 //!< payload data size in bytes
+        Command  command;        //!< command code
+        uint32_t id;             //!< register id
+        uint8_t  conn;           //!< connector id (mpp #1, mpp #2, ac #1)
+        SpeedwireDataType type;  //!< type
+        time_t   time;           //!< timestamp
+        uint8_t  data[44];       //!< payload data
+        size_t   data_size;      //!< payload data size in bytes
 
-        SpeedwireRawData(const uint32_t command, const uint32_t id, const uint8_t conn, const SpeedwireDataType type, const time_t time, const void* const data, const size_t data_size);
+        SpeedwireRawData(const Command command, const uint32_t id, const uint8_t conn, const SpeedwireDataType type, const time_t time, const void* const data, const size_t data_size);
         SpeedwireRawData(void);
 
         bool equals(const SpeedwireRawData& other) const;
@@ -301,13 +311,16 @@ namespace libspeedwire {
         class EventValue {
         public:
             time_t    epoch_time;
-            uint16_t  counter;
+            uint16_t  entry_id;
             uint16_t  susy_id;
             uint32_t  serial_number;
             uint16_t  event_id;
             uint8_t   marker_1;
             uint8_t   marker_2;
-            uint32_t  value[7];
+            uint32_t  value_1;
+            uint32_t  value_2;
+            uint32_t  event_tag_id;
+            uint32_t  value[5];
             EventValue(time_t time, uint8_t* data, size_t data_size);
         };
 
@@ -335,7 +348,7 @@ namespace libspeedwire {
     public:
         std::string name;
 
-        SpeedwireData(const uint32_t command, const uint32_t id, const uint8_t conn, const SpeedwireDataType type, const time_t time,
+        SpeedwireData(const Command command, const uint32_t id, const uint8_t conn, const SpeedwireDataType type, const time_t time,
             const void* data, const size_t data_size, const MeasurementType& mType, const Wire wire, const std::string &name);
         SpeedwireData(void);
 

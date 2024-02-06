@@ -202,8 +202,8 @@ SpeedwireDevice SpeedwireCommand::queryDeviceType(const SpeedwireDevice& peer, c
     //                                                                                                                              011f8208 6f89e95f 411f0001 feffff00 00000000 00000000 00000000 00000000 00000000 00000000  => 1f41 solar inverter
     //                                                                                                                              01208208 6f89e95f 96240000 80240000 81240001 82240000 feffff00 00000000 00000000 00000000 00000000
     // send unicast query device type request
-    SpeedwireCommandTokenIndex token_index = sendQueryRequest(peer, Command::COMMAND_DEVICE_QUERY, 0x00821E00, 0x008220FF);
-    //SpeedwireCommandTokenIndex token_index = sendQueryRequest(peer, Command::COMMAND_DEVICE_QUERY, 0x00823400, 0x008234FF);  // query software version
+    SpeedwireCommandTokenIndex token_index = sendQueryRequest(peer, Command::DEVICE_QUERY, 0x00821E00, 0x008220FF);
+    //SpeedwireCommandTokenIndex token_index = sendQueryRequest(peer, Command::DEVICE_QUERY, 0x00823400, 0x008234FF);  // query software version
 
     // determine socket
     SocketIndex socket_index = socket_map[peer.interfaceIpAddress];
@@ -243,7 +243,7 @@ SpeedwireDevice SpeedwireCommand::queryDeviceType(const SpeedwireDevice& peer, c
 
                 // augment the device information with data obtained the peer
                 for (auto& raw_data : raw_data_vector) {
-                    if (raw_data.id == SpeedwireData::InverterDeviceClass.id && raw_data.type == SpeedwireDataType::Status32) {
+                    if (raw_data.id == SpeedwireData::InverterDeviceClass.id && (raw_data.type & SpeedwireDataType::TypeMask) == SpeedwireDataType::Status32) {
                         SpeedwireRawDataStatus32 status_data(raw_data);
                         size_t index = status_data.getSelectionIndex();
                         if (index != (size_t)-1) {
@@ -251,7 +251,7 @@ SpeedwireDevice SpeedwireCommand::queryDeviceType(const SpeedwireDevice& peer, c
                             info.deviceClass = libspeedwire::toString(device_class);
                         }
                     }
-                    else if (raw_data.id == SpeedwireData::InverterDeviceType.id && raw_data.type == SpeedwireDataType::Status32) {
+                    else if (raw_data.id == SpeedwireData::InverterDeviceType.id && (raw_data.type & SpeedwireDataType::TypeMask) == SpeedwireDataType::Status32) {
                         SpeedwireRawDataStatus32 status_data(raw_data);
                         size_t index = status_data.getSelectionIndex();
                         if (index != (size_t)-1) {
@@ -462,7 +462,7 @@ bool SpeedwireCommand::checkReply(const SpeedwireHeader& speedwire_reply_packet,
 
 //=====================================================================================
 
-SpeedwireCommandTokenIndex SpeedwireCommandTokenRepository::add(const uint16_t susyid, const uint32_t serialnumber, const uint16_t packetid, const std::string& peer_ip_address, const uint32_t command) {
+SpeedwireCommandTokenIndex SpeedwireCommandTokenRepository::add(const uint16_t susyid, const uint32_t serialnumber, const uint16_t packetid, const std::string& peer_ip_address, const Command command) {
     uint32_t create_time = (uint32_t)LocalHost::getUnixEpochTimeInMs();
     SpeedwireCommandToken new_token = { susyid, serialnumber, packetid, peer_ip_address, command, create_time };
     token.push_back(new_token);

@@ -3,23 +3,26 @@
 #include <time.h>
 #include <SpeedwireByteEncoding.hpp>
 #include <SpeedwireData.hpp>
-#include <SpeedwireCommand.hpp>
 using namespace libspeedwire;
 
 
 //! Convert SpeedwireDataType to a string
 std::string libspeedwire::toString(SpeedwireDataType type) {
+    std::string result;
     switch (type) {
-    case SpeedwireDataType::Unsigned32: return "Unsigned32";
-    case SpeedwireDataType::Status32:   return "Status32";
-    case SpeedwireDataType::String32:   return "String32";
-    case SpeedwireDataType::Float:      return "Float";
-    case SpeedwireDataType::Signed32:   return "Signed32";
-    case SpeedwireDataType::Unsigned64: return "Unsigned64";
-    case SpeedwireDataType::Event:      return "Event";
-    case SpeedwireDataType::Yield:      return "Yield";
+    case SpeedwireDataType::Unsigned32: result = "Unsigned32"; break;
+    case SpeedwireDataType::Status32:   result = "Status32"; break;
+    case SpeedwireDataType::String32:   result = "String32"; break;
+    case SpeedwireDataType::Float:      result = "Float"; break;
+    case SpeedwireDataType::Signed32:   result = "Signed32"; break;
+    case SpeedwireDataType::Event:      result = "Event"; break;
+    case SpeedwireDataType::Yield:      result = "Yield"; break;
+    default:                            result = "Unknown-Type"; break;
     }
-    return "unknown-type";
+    if ((uint8_t)(type & SpeedwireDataType::WriteFlag) != 0) {
+        result.append(" (Write)");
+    }
+    return result;
 }
 
 
@@ -36,7 +39,7 @@ std::string libspeedwire::toString(SpeedwireDataType type) {
  *  @param _data The binary data
  *  @param _data_size The size of the binary data
  */
-SpeedwireRawData::SpeedwireRawData(const uint32_t _command, const uint32_t _id, const uint8_t _conn, const SpeedwireDataType _type, const time_t _time, const void *const _data, const size_t _data_size) :
+SpeedwireRawData::SpeedwireRawData(const Command _command, const uint32_t _id, const uint8_t _conn, const SpeedwireDataType _type, const time_t _time, const void* const _data, const size_t _data_size) :
     command(_command),
     id(_id),
     conn(_conn),
@@ -53,7 +56,7 @@ SpeedwireRawData::SpeedwireRawData(const uint32_t _command, const uint32_t _id, 
  *  Default constructor; not very useful, but needed for std::map.
  */
 SpeedwireRawData::SpeedwireRawData(void) :
-    command(0), id(0), conn(0), type(SpeedwireDataType::Unsigned32), time(0), data_size(0) {
+    command(Command::NONE), id(0), conn(0), type(SpeedwireDataType::Unsigned32), time(0), data_size(0) {
     memset(data, 0, sizeof(data));
 }
 
@@ -126,7 +129,7 @@ std::string SpeedwireRawData::toString(void) const {
     if (conn != 0x00) {
         for (size_t i = 0; i < num_values; ++i) {
             std::string value_string;
-            switch (type) {
+            switch (type & SpeedwireDataType::TypeMask) {
             case SpeedwireDataType::Signed32: {
                 SpeedwireRawDataSigned32 rd(*this);
                 int32_t value = rd.getValue(i);
@@ -157,12 +160,6 @@ std::string SpeedwireRawData::toString(void) const {
                 value_string = rd.getHexValue(i);
                 break;
             }
-            case SpeedwireDataType::Unsigned64: {
-                uint64_t value = SpeedwireByteEncoding::getUint64LittleEndian(data + i * sizeof(uint64_t));
-                char str[32];
-                snprintf(str, sizeof(str), "%016llx ", value);
-                value_string.append(str);
-            }
             }
             const size_t num_chars = 12;
             if (num_chars > value_string.length()) {
@@ -184,7 +181,7 @@ std::string SpeedwireRawData::toString(void) const {
 
     // decode values and print their representation
     if (conn != 0x00) {
-        switch (type) {
+        switch (type & SpeedwireDataType::TypeMask) {
         case SpeedwireDataType::Signed32: {
             SpeedwireRawDataSigned32 rd(*this);
             std::vector<int32_t> values = rd.getValues();
@@ -238,21 +235,11 @@ std::string SpeedwireRawData::toString(void) const {
             }
             break;
         }
-        case SpeedwireDataType::Unsigned64: {
-            for (size_t i = 0; i < num_values; ++i) {
-                result.append((i == 0) ? "  => " : ", ");
-                uint64_t value = SpeedwireByteEncoding::getUint64LittleEndian(data + i * sizeof(uint64_t));
-                char str[32];
-                snprintf(str, sizeof(str), "%llu ", value);
-                result.append(str);
-            }
-            break;
-        }
         }
     }
     // decode timeline data and add formatted timestamp
     else {
-        switch (type) {
+        switch (type & SpeedwireDataType::TypeMask) {
         case SpeedwireDataType::Yield: {
             SpeedwireRawDataYield rd(*this);
             result.append("  => ");
@@ -275,7 +262,7 @@ std::string SpeedwireRawData::toString(void) const {
  *  Get number of data values available in the payload data.
  */
 size_t SpeedwireRawData::getNumberOfValues(void) const {
-    switch (type) {
+    switch (type & SpeedwireDataType::TypeMask) {
     case SpeedwireDataType::Unsigned32:
         return data_size / SpeedwireRawDataUnsigned32::value_size;
     case SpeedwireDataType::Status32:
@@ -286,8 +273,6 @@ size_t SpeedwireRawData::getNumberOfValues(void) const {
         return data_size / SpeedwireRawDataSigned32::value_size;
     case SpeedwireDataType::String32:
         return data_size / SpeedwireRawDataString32::value_size;
-    case SpeedwireDataType::Unsigned64:
-        return data_size / 8u;
     case SpeedwireDataType::Yield:
         return data_size / SpeedwireRawDataYield::value_size;
     case SpeedwireDataType::Event:
@@ -311,7 +296,8 @@ size_t SpeedwireRawData::getNumberOfValues(void) const {
  *   => the four pairs are significant to encode a settings data values with range: min_value, max_value, value, unknown
  */
 size_t SpeedwireRawData::getNumberOfSignificantValues(void) const {
-    if (type == SpeedwireDataType::Unsigned32 || type == SpeedwireDataType::Signed32) {
+    if ((type & SpeedwireDataType::TypeMask) == SpeedwireDataType::Unsigned32 || 
+        (type & SpeedwireDataType::TypeMask) == SpeedwireDataType::Signed32) {
         size_t num_values = getNumberOfValues();
         if (num_values == 2) {
             uint32_t value1 = SpeedwireByteEncoding::getUint32LittleEndian(data);
@@ -486,16 +472,19 @@ std::string  SpeedwireRawDataSigned32::toValueWithRangeString(void) const {
 SpeedwireRawDataEvent::EventValue::EventValue(time_t time, uint8_t* data, size_t data_size) {
     epoch_time = time;
 
-    SpeedwireRawData rd(0x00000000, 0, 0, SpeedwireDataType::Unsigned32, time, data, data_size);
+    SpeedwireRawData rd((Command)0x00000000, 0, 0, SpeedwireDataType::Unsigned32, time, data, data_size);
     SpeedwireRawDataUnsigned32 rd32(rd);
-    counter       = rd32.getValue(0) & 0x0000ffff;      // some counter
+    entry_id      = rd32.getValue(0) & 0x0000ffff;      // some counter
     susy_id       = (rd32.getValue(0) >> 16) & 0xffff;  // susy id
     serial_number = rd32.getValue(1);                   // serial number
     event_id      = rd32.getValue(2) & 0x0000ffff;      // event id
     marker_1      = (rd32.getValue(2) >> 16) & 0xff;    // unknown marker 1
     marker_2      = (rd32.getValue(2) >> 24) & 0xff;    // unknown marker 2
-    for (size_t i = 0; i < 7; ++i) {
-        value[i]  = rd32.getValue(3 + i);               // unknown 32-bit value
+    value_1       = rd32.getValue(3);                   // unknown value
+    value_2       = rd32.getValue(4);                   // unknown value
+    event_tag_id  = rd32.getValue(5);                   // event tag id
+    for (size_t i = 0; i < 5; ++i) {
+        value[i]  = rd32.getValue(6 + i);               // unknown 32-bit value
     }
 }
 
@@ -511,7 +500,7 @@ std::string SpeedwireRawDataEvent::convertValueToString(const EventValue& value,
     SpeedwireRawDataUnsigned32 rd(base);
     for (size_t i = 0; i < base.getNumberOfValues(); ++i) {
         EventValue value = getValue(i);
-        result.append(rd.convertValueToString(value.counter, false));
+        result.append(rd.convertValueToString(value.entry_id, false));
         result.append(", ");
         result.append(rd.convertValueToString(value.susy_id, false));
         result.append("-");
@@ -522,9 +511,26 @@ std::string SpeedwireRawDataEvent::convertValueToString(const EventValue& value,
         result.append(rd.convertValueToString(value.marker_1, false));
         result.append("-");
         result.append(rd.convertValueToString(value.marker_2, false));
-        for (size_t j = 0; j < 7; ++j) {
+        result.append(", ");
+        result.append(rd.convertValueToString(value.value_1, false));
+        result.append(", ");
+        result.append(rd.convertValueToString(value.value_2, false));
+        result.append(", ");
+        std::string tag = SpeedwireStatusMap::getFromGlobalMap(value.event_tag_id);
+        result.append(tag);
+        for (size_t j = 0; j < 3; ++j) {
             result.append(", ");
             result.append(rd.convertValueToString(value.value[j], false));
+        }
+        if (value.value[3] != 0) {
+            result.append(", ");
+            std::string to_status = SpeedwireStatusMap::getFromGlobalMap(value.value[3]);
+            result.append(to_status);
+        }
+        if (value.value[4] != 0) {
+            result.append(" <= ");
+            std::string from_status = SpeedwireStatusMap::getFromGlobalMap(value.value[4]);
+            result.append(from_status);
         }
     }
     return result;
@@ -549,7 +555,7 @@ std::string SpeedwireRawDataEvent::convertValueToString(const EventValue& value,
  *  @param mType The MeasurementType
  *  @param _wire The Wire
  */
-SpeedwireData::SpeedwireData(const uint32_t command, const uint32_t id, const uint8_t conn, const SpeedwireDataType type, const time_t time, const void *const data, const size_t data_size,
+SpeedwireData::SpeedwireData(const Command command, const uint32_t id, const uint8_t conn, const SpeedwireDataType type, const time_t time, const void *const data, const size_t data_size,
                              const MeasurementType& mType, const Wire _wire, const std::string &sname) :
     SpeedwireRawData(command, id, conn, type, time, data, data_size),
     Measurement(mType, _wire),
@@ -561,7 +567,7 @@ SpeedwireData::SpeedwireData(const uint32_t command, const uint32_t id, const ui
  *  Default constructor; not very useful, but needed for std::map.
  */
 SpeedwireData::SpeedwireData(void) :
-    SpeedwireRawData(0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0),
+    SpeedwireRawData((Command)0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0),
     Measurement(MeasurementType(Direction::NO_DIRECTION, Type::NO_TYPE, Quantity::NO_QUANTITY, "", 0), Wire::NO_WIRE) {
     description = "";
 }
@@ -578,7 +584,7 @@ bool SpeedwireData::consume(const SpeedwireRawData& data) {
     if (!isSameSignature(data)) return false;
     if (data.data == NULL || data.data_size < 20) return false;
 
-    switch (type) {
+    switch (type & SpeedwireDataType::TypeMask) {
 
     case SpeedwireDataType::Signed32: {
         SpeedwireRawDataSigned32 rd((SpeedwireRawData&)data);
@@ -766,101 +772,101 @@ std::vector<SpeedwireData> SpeedwireData::getAllPredefined(void) {
 
 
 // pre-defined SpeedwireData instances
-const SpeedwireData SpeedwireData::InverterDiscovery         (Command::COMMAND_DEVICE_QUERY, 0x00000300, 0x00, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "Discovery");
-const SpeedwireData SpeedwireData::InverterDeviceName        (Command::COMMAND_DEVICE_QUERY, 0x00821e00, 0x01, SpeedwireDataType::String32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "Name");
-const SpeedwireData SpeedwireData::InverterDeviceClass       (Command::COMMAND_DEVICE_QUERY, 0x00821f00, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "MainModel");
-const SpeedwireData SpeedwireData::InverterDeviceType        (Command::COMMAND_DEVICE_QUERY, 0x00822000, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "Model");
-const SpeedwireData SpeedwireData::InverterSoftwareVersion   (Command::COMMAND_DEVICE_QUERY, 0x00823400, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "SwRev");
-const SpeedwireData SpeedwireData::InverterPowerMPP1         (Command::COMMAND_DC_QUERY,     0x00251E00, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::MPP1, "PpvdcA");
-const SpeedwireData SpeedwireData::InverterPowerMPP2         (Command::COMMAND_DC_QUERY,     0x00251E00, 0x02, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::MPP2, "PpvdcB");
-const SpeedwireData SpeedwireData::InverterVoltageMPP1       (Command::COMMAND_DC_QUERY,     0x00451F00, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::MPP1, "UpvdcA");
-const SpeedwireData SpeedwireData::InverterVoltageMPP2       (Command::COMMAND_DC_QUERY,     0x00451F00, 0x02, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::MPP2, "UpvdcB");
-const SpeedwireData SpeedwireData::InverterCurrentMPP1       (Command::COMMAND_DC_QUERY,     0x00452100, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::MPP1, "IpvdcA");
-const SpeedwireData SpeedwireData::InverterCurrentMPP2       (Command::COMMAND_DC_QUERY,     0x00452100, 0x02, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::MPP2, "IpvdcB");
-const SpeedwireData SpeedwireData::InverterPowerL1           (Command::COMMAND_AC_QUERY,     0x00464000, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::L1, "PacL1");
-const SpeedwireData SpeedwireData::InverterPowerL2           (Command::COMMAND_AC_QUERY,     0x00464100, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::L2, "PacL2");
-const SpeedwireData SpeedwireData::InverterPowerL3           (Command::COMMAND_AC_QUERY,     0x00464200, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::L3, "PacL3");
-const SpeedwireData SpeedwireData::InverterVoltageL1         (Command::COMMAND_AC_QUERY,     0x00464800, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L1, "UacL1");    // L1 -> N
-const SpeedwireData SpeedwireData::InverterVoltageL2         (Command::COMMAND_AC_QUERY,     0x00464900, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L2, "UacL2");    // L2 -> N
-const SpeedwireData SpeedwireData::InverterVoltageL3         (Command::COMMAND_AC_QUERY,     0x00464a00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L3, "UacL3");    // L3 -> N
-const SpeedwireData SpeedwireData::InverterVoltageL1toL2     (Command::COMMAND_AC_QUERY,     0x00464b00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L1L2, "UacL1L2");  // L1 -> L2
-const SpeedwireData SpeedwireData::InverterVoltageL2toL3     (Command::COMMAND_AC_QUERY,     0x00464c00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L2L3, "UacL2L3");  // L2 -> L3
-const SpeedwireData SpeedwireData::InverterVoltageL3toL1     (Command::COMMAND_AC_QUERY,     0x00464d00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L3L1, "UacL3L1");  // L3 -> L1
-const SpeedwireData SpeedwireData::InverterPowerFactor       (Command::COMMAND_AC_QUERY,     0x00464e00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPowerFactor(), Wire::TOTAL, "PacCosPhi");
-const SpeedwireData SpeedwireData::InverterCurrentL1         (Command::COMMAND_AC_QUERY,     0x00465300, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::L1, "IacL1");
-const SpeedwireData SpeedwireData::InverterCurrentL2         (Command::COMMAND_AC_QUERY,     0x00465400, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::L2, "IacL2");
-const SpeedwireData SpeedwireData::InverterCurrentL3         (Command::COMMAND_AC_QUERY,     0x00465500, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::L3, "IacL3");
-const SpeedwireData SpeedwireData::InverterFrequency         (Command::COMMAND_AC_QUERY,     0x00465700, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterFrequency(), Wire::TOTAL, "Fac");
-const SpeedwireData SpeedwireData::InverterPowerACTotal      (Command::COMMAND_AC_QUERY,     0x00263f00, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::TOTAL, "Pac");
-const SpeedwireData SpeedwireData::InverterReactivePowerTotal(Command::COMMAND_AC_QUERY,     0x00265f00, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterReactivePower(), Wire::TOTAL, "Qac");
-const SpeedwireData SpeedwireData::InverterNominalPower      (Command::COMMAND_AC_QUERY,     0x00411e00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterNominalPower(), Wire::TOTAL, "Pnominal");
-const SpeedwireData SpeedwireData::InverterEnergyTotal          (Command::COMMAND_ENERGY_QUERY, 0x00260100, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterEnergy(), Wire::TOTAL, "Etotal");
-const SpeedwireData SpeedwireData::InverterEnergyDaily          (Command::COMMAND_ENERGY_QUERY, 0x00262200, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterEnergy(), Wire::NO_WIRE, "Edaily");
-const SpeedwireData SpeedwireData::InverterGridExportEnergyTotal(Command::COMMAND_ENERGY_QUERY, 0x00462400, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterEnergy(Direction::NEGATIVE), Wire::GRID_TOTAL, "Eexport");
-const SpeedwireData SpeedwireData::InverterGridImportEnergyTotal(Command::COMMAND_ENERGY_QUERY, 0x00462500, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterEnergy(Direction::POSITIVE), Wire::GRID_TOTAL, "Eimport");
-const SpeedwireData SpeedwireData::InverterOperationTime        (Command::COMMAND_ENERGY_QUERY, 0x00462e00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterDuration(), Wire::TOTAL, "htotal");
-const SpeedwireData SpeedwireData::InverterFeedInTime           (Command::COMMAND_ENERGY_QUERY, 0x00462f00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterDuration(), Wire::NO_WIRE, "hon");
-const SpeedwireData SpeedwireData::InverterOperationStatus      (Command::COMMAND_STATUS_QUERY, 0x00214800, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(),  Wire::DEVICE_OK, "OpInvCtlStt");
-const SpeedwireData SpeedwireData::InverterUpdateStatus         (Command::COMMAND_STATUS_QUERY, 0x00412900, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvUpdStt");
-const SpeedwireData SpeedwireData::InverterMessageStatus        (Command::COMMAND_STATUS_QUERY, 0x00414900, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvMsgStt");
-const SpeedwireData SpeedwireData::InverterActionStatus         (Command::COMMAND_STATUS_QUERY, 0x00414a00, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvActnStt");
-const SpeedwireData SpeedwireData::InverterDescriptionStatus    (Command::COMMAND_STATUS_QUERY, 0x00414b00, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvDscrStt");
-const SpeedwireData SpeedwireData::InverterErrorStatus          (Command::COMMAND_STATUS_QUERY, 0x00414c00, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvErrStt");
-const SpeedwireData SpeedwireData::InverterRelay                (Command::COMMAND_STATUS_QUERY, 0x00416400, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterRelay(),   Wire::RELAY_ON, "OpGriSwStt");
+const SpeedwireData SpeedwireData::InverterDiscovery         (Command::DEVICE_QUERY, 0x00000300, 0x00, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "Discovery");
+const SpeedwireData SpeedwireData::InverterDeviceName        (Command::DEVICE_QUERY, 0x00821e00, 0x01, SpeedwireDataType::String32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "Name");
+const SpeedwireData SpeedwireData::InverterDeviceClass       (Command::DEVICE_QUERY, 0x00821f00, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "MainModel");
+const SpeedwireData SpeedwireData::InverterDeviceType        (Command::DEVICE_QUERY, 0x00822000, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "Model");
+const SpeedwireData SpeedwireData::InverterSoftwareVersion   (Command::DEVICE_QUERY, 0x00823400, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "SwRev");
+const SpeedwireData SpeedwireData::InverterPowerMPP1         (Command::DC_QUERY,     0x00251E00, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::MPP1, "PpvdcA");
+const SpeedwireData SpeedwireData::InverterPowerMPP2         (Command::DC_QUERY,     0x00251E00, 0x02, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::MPP2, "PpvdcB");
+const SpeedwireData SpeedwireData::InverterVoltageMPP1       (Command::DC_QUERY,     0x00451F00, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::MPP1, "UpvdcA");
+const SpeedwireData SpeedwireData::InverterVoltageMPP2       (Command::DC_QUERY,     0x00451F00, 0x02, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::MPP2, "UpvdcB");
+const SpeedwireData SpeedwireData::InverterCurrentMPP1       (Command::DC_QUERY,     0x00452100, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::MPP1, "IpvdcA");
+const SpeedwireData SpeedwireData::InverterCurrentMPP2       (Command::DC_QUERY,     0x00452100, 0x02, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::MPP2, "IpvdcB");
+const SpeedwireData SpeedwireData::InverterPowerL1           (Command::AC_QUERY,     0x00464000, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::L1, "PacL1");
+const SpeedwireData SpeedwireData::InverterPowerL2           (Command::AC_QUERY,     0x00464100, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::L2, "PacL2");
+const SpeedwireData SpeedwireData::InverterPowerL3           (Command::AC_QUERY,     0x00464200, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(),   Wire::L3, "PacL3");
+const SpeedwireData SpeedwireData::InverterVoltageL1         (Command::AC_QUERY,     0x00464800, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L1, "UacL1");    // L1 -> N
+const SpeedwireData SpeedwireData::InverterVoltageL2         (Command::AC_QUERY,     0x00464900, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L2, "UacL2");    // L2 -> N
+const SpeedwireData SpeedwireData::InverterVoltageL3         (Command::AC_QUERY,     0x00464a00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L3, "UacL3");    // L3 -> N
+const SpeedwireData SpeedwireData::InverterVoltageL1toL2     (Command::AC_QUERY,     0x00464b00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L1L2, "UacL1L2");  // L1 -> L2
+const SpeedwireData SpeedwireData::InverterVoltageL2toL3     (Command::AC_QUERY,     0x00464c00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L2L3, "UacL2L3");  // L2 -> L3
+const SpeedwireData SpeedwireData::InverterVoltageL3toL1     (Command::AC_QUERY,     0x00464d00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L3L1, "UacL3L1");  // L3 -> L1
+const SpeedwireData SpeedwireData::InverterPowerFactor       (Command::AC_QUERY,     0x00464e00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPowerFactor(), Wire::TOTAL, "PacCosPhi");
+const SpeedwireData SpeedwireData::InverterCurrentL1         (Command::AC_QUERY,     0x00465300, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::L1, "IacL1");
+const SpeedwireData SpeedwireData::InverterCurrentL2         (Command::AC_QUERY,     0x00465400, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::L2, "IacL2");
+const SpeedwireData SpeedwireData::InverterCurrentL3         (Command::AC_QUERY,     0x00465500, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::L3, "IacL3");
+const SpeedwireData SpeedwireData::InverterFrequency         (Command::AC_QUERY,     0x00465700, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterFrequency(), Wire::TOTAL, "Fac");
+const SpeedwireData SpeedwireData::InverterPowerACTotal      (Command::AC_QUERY,     0x00263f00, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::TOTAL, "Pac");
+const SpeedwireData SpeedwireData::InverterReactivePowerTotal(Command::AC_QUERY,     0x00265f00, 0x01, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterReactivePower(), Wire::TOTAL, "Qac");
+const SpeedwireData SpeedwireData::InverterNominalPower      (Command::AC_QUERY,     0x00411e00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterNominalPower(), Wire::TOTAL, "Pnominal");
+const SpeedwireData SpeedwireData::InverterEnergyTotal          (Command::ENERGY_QUERY, 0x00260100, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterEnergy(), Wire::TOTAL, "Etotal");
+const SpeedwireData SpeedwireData::InverterEnergyDaily          (Command::ENERGY_QUERY, 0x00262200, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterEnergy(), Wire::NO_WIRE, "Edaily");
+const SpeedwireData SpeedwireData::InverterGridExportEnergyTotal(Command::ENERGY_QUERY, 0x00462400, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterEnergy(Direction::NEGATIVE), Wire::GRID_TOTAL, "Eexport");
+const SpeedwireData SpeedwireData::InverterGridImportEnergyTotal(Command::ENERGY_QUERY, 0x00462500, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterEnergy(Direction::POSITIVE), Wire::GRID_TOTAL, "Eimport");
+const SpeedwireData SpeedwireData::InverterOperationTime        (Command::ENERGY_QUERY, 0x00462e00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterDuration(), Wire::TOTAL, "htotal");
+const SpeedwireData SpeedwireData::InverterFeedInTime           (Command::ENERGY_QUERY, 0x00462f00, 0x01, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterDuration(), Wire::NO_WIRE, "hon");
+const SpeedwireData SpeedwireData::InverterOperationStatus      (Command::STATUS_QUERY, 0x00214800, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(),  Wire::DEVICE_OK, "OpInvCtlStt");
+const SpeedwireData SpeedwireData::InverterUpdateStatus         (Command::STATUS_QUERY, 0x00412900, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvUpdStt");
+const SpeedwireData SpeedwireData::InverterMessageStatus        (Command::STATUS_QUERY, 0x00414900, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvMsgStt");
+const SpeedwireData SpeedwireData::InverterActionStatus         (Command::STATUS_QUERY, 0x00414a00, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvActnStt");
+const SpeedwireData SpeedwireData::InverterDescriptionStatus    (Command::STATUS_QUERY, 0x00414b00, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvDscrStt");
+const SpeedwireData SpeedwireData::InverterErrorStatus          (Command::STATUS_QUERY, 0x00414c00, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "OpInvErrStt");
+const SpeedwireData SpeedwireData::InverterRelay                (Command::STATUS_QUERY, 0x00416400, 0x01, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterRelay(),   Wire::RELAY_ON, "OpGriSwStt");
 
-const SpeedwireData SpeedwireData::BatterySoftwareVersion    (Command::COMMAND_AC_QUERY, 0x00823300, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "SwRev");
-const SpeedwireData SpeedwireData::BatteryPowerACTotal       (Command::COMMAND_AC_QUERY, 0x00263F00, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::TOTAL, "BatPacTotal");
-const SpeedwireData SpeedwireData::BatteryStateOfCharge      (Command::COMMAND_AC_QUERY, 0x00295a00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterStateOfCharge(), Wire::NO_WIRE, "BatSoC");
-const SpeedwireData SpeedwireData::BatteryDiagChargeCycles   (Command::COMMAND_AC_QUERY, 0x00491e00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterRelay(), Wire::NO_WIRE, "BatChargeCycl");
-const SpeedwireData SpeedwireData::BatteryDiagTotalAhIn      (Command::COMMAND_AC_QUERY, 0x00492600, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterRelay(), Wire::NO_WIRE, "BatTotAhIn");
-const SpeedwireData SpeedwireData::BatteryDiagTotalAhOut     (Command::COMMAND_AC_QUERY, 0x00492700, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterRelay(), Wire::NO_WIRE, "BatTotAhOut");
-const SpeedwireData SpeedwireData::BatteryTemperature        (Command::COMMAND_AC_QUERY, 0x00495b00, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterTemperature(), Wire::NO_WIRE, "BatTemp");
-const SpeedwireData SpeedwireData::BatteryVoltage            (Command::COMMAND_AC_QUERY, 0x00495c00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::NO_WIRE, "BatUdc");
-const SpeedwireData SpeedwireData::BatteryCurrent            (Command::COMMAND_AC_QUERY, 0x00495d00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::NO_WIRE, "BatIdc");
-const SpeedwireData SpeedwireData::BatteryPowerL1            (Command::COMMAND_AC_QUERY, 0x00464000, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::L1, "BatPacL1");
-const SpeedwireData SpeedwireData::BatteryPowerL2            (Command::COMMAND_AC_QUERY, 0x00464100, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::L2, "BatPacL2");
-const SpeedwireData SpeedwireData::BatteryPowerL3            (Command::COMMAND_AC_QUERY, 0x00464200, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::L3, "BatPacL3");
-const SpeedwireData SpeedwireData::BatteryVoltageL1          (Command::COMMAND_AC_QUERY, 0x00464800, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L1, "BatUacL1");    // L1 -> N);
-const SpeedwireData SpeedwireData::BatteryVoltageL2          (Command::COMMAND_AC_QUERY, 0x00464900, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L2, "BatUacL2");    // L2 -> N);
-const SpeedwireData SpeedwireData::BatteryVoltageL3          (Command::COMMAND_AC_QUERY, 0x00464a00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L3, "BatUacL3");    // L3 -> N);
-const SpeedwireData SpeedwireData::BatteryVoltageL1toL2      (Command::COMMAND_AC_QUERY, 0x00464b00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L1L2, "BatUacL1L2");  // L1 -> L2);
-const SpeedwireData SpeedwireData::BatteryVoltageL2toL3      (Command::COMMAND_AC_QUERY, 0x00464c00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L2L3, "BatUacL2L3");  // L2 -> L3);
-const SpeedwireData SpeedwireData::BatteryVoltageL3toL1      (Command::COMMAND_AC_QUERY, 0x00464d00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L3L1, "BatUacL3L1");  // L3 -> L1);
-const SpeedwireData SpeedwireData::BatteryCurrentL1          (Command::COMMAND_AC_QUERY, 0x00465300, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::L1, "BatIacL1");
-const SpeedwireData SpeedwireData::BatteryCurrentL2          (Command::COMMAND_AC_QUERY, 0x00465400, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::L2, "BatIacL2");
-const SpeedwireData SpeedwireData::BatteryCurrentL3          (Command::COMMAND_AC_QUERY, 0x00465500, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::L3, "BatIacL3");
-const SpeedwireData SpeedwireData::BatteryGridVoltageL1      (Command::COMMAND_AC_QUERY, 0x0046e500, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::NO_WIRE, "GridUacL1");
-const SpeedwireData SpeedwireData::BatteryGridVoltageL2      (Command::COMMAND_AC_QUERY, 0x0046e600, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::NO_WIRE, "GridUacL2");
-const SpeedwireData SpeedwireData::BatteryGridVoltageL3      (Command::COMMAND_AC_QUERY, 0x0046e700, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::NO_WIRE, "GridUacL3");
-const SpeedwireData SpeedwireData::BatteryGridPositivePowerL1(Command::COMMAND_AC_QUERY, 0x0046e800, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "GridPosPacL1");
-const SpeedwireData SpeedwireData::BatteryGridPositivePowerL2(Command::COMMAND_AC_QUERY, 0x0046e900, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "GridPosPacL2");
-const SpeedwireData SpeedwireData::BatteryGridPositivePowerL3(Command::COMMAND_AC_QUERY, 0x0046ea00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "GridPosPacL3");
-const SpeedwireData SpeedwireData::BatteryGridNegativePowerL1(Command::COMMAND_AC_QUERY, 0x0046eb00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "GridNegPacL1");
-const SpeedwireData SpeedwireData::BatteryGridNegativePowerL2(Command::COMMAND_AC_QUERY, 0x0046ec00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "GridNegPacL2");
-const SpeedwireData SpeedwireData::BatteryGridNegativePowerL3(Command::COMMAND_AC_QUERY, 0x0046ed00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "GridNegPacL3");
-const SpeedwireData SpeedwireData::BatteryGridReactivePowerL1(Command::COMMAND_AC_QUERY, 0x0046ee00, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterReactivePower(), Wire::NO_WIRE, "GridQacL1");
-const SpeedwireData SpeedwireData::BatteryGridReactivePowerL2(Command::COMMAND_AC_QUERY, 0x0046ef00, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterReactivePower(), Wire::NO_WIRE, "GridQacL2");
-const SpeedwireData SpeedwireData::BatteryGridReactivePowerL3(Command::COMMAND_AC_QUERY, 0x0046f000, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterReactivePower(), Wire::NO_WIRE, "GridQacL3");
-const SpeedwireData SpeedwireData::BatteryGridReactivePower  (Command::COMMAND_AC_QUERY, 0x0046f100, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterReactivePower(), Wire::NO_WIRE, "GridQac");
-const SpeedwireData SpeedwireData::BatterySetVoltage         (Command::COMMAND_AC_QUERY, 0x00493300, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::NO_WIRE, "BatSetUdc");
-const SpeedwireData SpeedwireData::BatteryOperationStatus    (Command::COMMAND_STATUS_QUERY, 0x00214800, 0x07, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::DEVICE_OK, "OpInvCtlStt");
-const SpeedwireData SpeedwireData::BatteryRelay              (Command::COMMAND_STATUS_QUERY, 0x00416400, 0x07, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterRelay(),   Wire::RELAY_ON, "OpGriSwStt");
-const SpeedwireData SpeedwireData::BatteryType               (Command::COMMAND_STATUS_QUERY, 0x00918d00, 0x07, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "BmsType");
+const SpeedwireData SpeedwireData::BatterySoftwareVersion    (Command::AC_QUERY, 0x00823300, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "SwRev");
+const SpeedwireData SpeedwireData::BatteryPowerACTotal       (Command::AC_QUERY, 0x00263F00, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::TOTAL, "BatPacTotal");
+const SpeedwireData SpeedwireData::BatteryStateOfCharge      (Command::AC_QUERY, 0x00295a00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterStateOfCharge(), Wire::NO_WIRE, "BatSoC");
+const SpeedwireData SpeedwireData::BatteryDiagChargeCycles   (Command::AC_QUERY, 0x00491e00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterRelay(), Wire::NO_WIRE, "BatChargeCycl");
+const SpeedwireData SpeedwireData::BatteryDiagTotalAhIn      (Command::AC_QUERY, 0x00492600, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterRelay(), Wire::NO_WIRE, "BatTotAhIn");
+const SpeedwireData SpeedwireData::BatteryDiagTotalAhOut     (Command::AC_QUERY, 0x00492700, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterRelay(), Wire::NO_WIRE, "BatTotAhOut");
+const SpeedwireData SpeedwireData::BatteryTemperature        (Command::AC_QUERY, 0x00495b00, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterTemperature(), Wire::NO_WIRE, "BatTemp");
+const SpeedwireData SpeedwireData::BatteryVoltage            (Command::AC_QUERY, 0x00495c00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::NO_WIRE, "BatUdc");
+const SpeedwireData SpeedwireData::BatteryCurrent            (Command::AC_QUERY, 0x00495d00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::NO_WIRE, "BatIdc");
+const SpeedwireData SpeedwireData::BatteryPowerL1            (Command::AC_QUERY, 0x00464000, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::L1, "BatPacL1");
+const SpeedwireData SpeedwireData::BatteryPowerL2            (Command::AC_QUERY, 0x00464100, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::L2, "BatPacL2");
+const SpeedwireData SpeedwireData::BatteryPowerL3            (Command::AC_QUERY, 0x00464200, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::L3, "BatPacL3");
+const SpeedwireData SpeedwireData::BatteryVoltageL1          (Command::AC_QUERY, 0x00464800, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L1, "BatUacL1");    // L1 -> N);
+const SpeedwireData SpeedwireData::BatteryVoltageL2          (Command::AC_QUERY, 0x00464900, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L2, "BatUacL2");    // L2 -> N);
+const SpeedwireData SpeedwireData::BatteryVoltageL3          (Command::AC_QUERY, 0x00464a00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L3, "BatUacL3");    // L3 -> N);
+const SpeedwireData SpeedwireData::BatteryVoltageL1toL2      (Command::AC_QUERY, 0x00464b00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L1L2, "BatUacL1L2");  // L1 -> L2);
+const SpeedwireData SpeedwireData::BatteryVoltageL2toL3      (Command::AC_QUERY, 0x00464c00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L2L3, "BatUacL2L3");  // L2 -> L3);
+const SpeedwireData SpeedwireData::BatteryVoltageL3toL1      (Command::AC_QUERY, 0x00464d00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::L3L1, "BatUacL3L1");  // L3 -> L1);
+const SpeedwireData SpeedwireData::BatteryCurrentL1          (Command::AC_QUERY, 0x00465300, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::L1, "BatIacL1");
+const SpeedwireData SpeedwireData::BatteryCurrentL2          (Command::AC_QUERY, 0x00465400, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::L2, "BatIacL2");
+const SpeedwireData SpeedwireData::BatteryCurrentL3          (Command::AC_QUERY, 0x00465500, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterCurrent(), Wire::L3, "BatIacL3");
+const SpeedwireData SpeedwireData::BatteryGridVoltageL1      (Command::AC_QUERY, 0x0046e500, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::NO_WIRE, "GridUacL1");
+const SpeedwireData SpeedwireData::BatteryGridVoltageL2      (Command::AC_QUERY, 0x0046e600, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::NO_WIRE, "GridUacL2");
+const SpeedwireData SpeedwireData::BatteryGridVoltageL3      (Command::AC_QUERY, 0x0046e700, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::NO_WIRE, "GridUacL3");
+const SpeedwireData SpeedwireData::BatteryGridPositivePowerL1(Command::AC_QUERY, 0x0046e800, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "GridPosPacL1");
+const SpeedwireData SpeedwireData::BatteryGridPositivePowerL2(Command::AC_QUERY, 0x0046e900, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "GridPosPacL2");
+const SpeedwireData SpeedwireData::BatteryGridPositivePowerL3(Command::AC_QUERY, 0x0046ea00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "GridPosPacL3");
+const SpeedwireData SpeedwireData::BatteryGridNegativePowerL1(Command::AC_QUERY, 0x0046eb00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "GridNegPacL1");
+const SpeedwireData SpeedwireData::BatteryGridNegativePowerL2(Command::AC_QUERY, 0x0046ec00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "GridNegPacL2");
+const SpeedwireData SpeedwireData::BatteryGridNegativePowerL3(Command::AC_QUERY, 0x0046ed00, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "GridNegPacL3");
+const SpeedwireData SpeedwireData::BatteryGridReactivePowerL1(Command::AC_QUERY, 0x0046ee00, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterReactivePower(), Wire::NO_WIRE, "GridQacL1");
+const SpeedwireData SpeedwireData::BatteryGridReactivePowerL2(Command::AC_QUERY, 0x0046ef00, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterReactivePower(), Wire::NO_WIRE, "GridQacL2");
+const SpeedwireData SpeedwireData::BatteryGridReactivePowerL3(Command::AC_QUERY, 0x0046f000, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterReactivePower(), Wire::NO_WIRE, "GridQacL3");
+const SpeedwireData SpeedwireData::BatteryGridReactivePower  (Command::AC_QUERY, 0x0046f100, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterReactivePower(), Wire::NO_WIRE, "GridQac");
+const SpeedwireData SpeedwireData::BatterySetVoltage         (Command::AC_QUERY, 0x00493300, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterVoltage(), Wire::NO_WIRE, "BatSetUdc");
+const SpeedwireData SpeedwireData::BatteryOperationStatus    (Command::STATUS_QUERY, 0x00214800, 0x07, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::DEVICE_OK, "OpInvCtlStt");
+const SpeedwireData SpeedwireData::BatteryRelay              (Command::STATUS_QUERY, 0x00416400, 0x07, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterRelay(),   Wire::RELAY_ON, "OpGriSwStt");
+const SpeedwireData SpeedwireData::BatteryType               (Command::STATUS_QUERY, 0x00918d00, 0x07, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "BmsType");
 
 // pre-defined instances of derived measurement values
-const SpeedwireData SpeedwireData::InverterPowerDCTotal   (0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(),      Wire::MPP_TOTAL, "Pdc");
-const SpeedwireData SpeedwireData::InverterPowerLoss      (0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterLoss(),       Wire::LOSS_TOTAL, "Ploss");
-const SpeedwireData SpeedwireData::InverterPowerEfficiency(0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterEfficiency(), Wire::NO_WIRE, "Peff");
+const SpeedwireData SpeedwireData::InverterPowerDCTotal   (Command::NONE, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(),      Wire::MPP_TOTAL, "Pdc");
+const SpeedwireData SpeedwireData::InverterPowerLoss      (Command::NONE, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterLoss(),       Wire::LOSS_TOTAL, "Ploss");
+const SpeedwireData SpeedwireData::InverterPowerEfficiency(Command::NONE, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterEfficiency(), Wire::NO_WIRE, "Peff");
 
 // pre-defined instances for miscellaneous measurement types
-const SpeedwireData SpeedwireData::HouseholdPowerTotal           (0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::TOTAL, "Phh");
-const SpeedwireData SpeedwireData::HouseholdIncomeTotal          (0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::Currency(),      Wire::TOTAL, "Chh");
-const SpeedwireData SpeedwireData::HouseholdIncomeFeedIn         (0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::Currency(),      Wire::FEED_IN, "ChhFeedIn");
-const SpeedwireData SpeedwireData::HouseholdIncomeSelfConsumption(0, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::Currency(),      Wire::SELF_CONSUMPTION, "ChhCons");
+const SpeedwireData SpeedwireData::HouseholdPowerTotal           (Command::NONE, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::TOTAL, "Phh");
+const SpeedwireData SpeedwireData::HouseholdIncomeTotal          (Command::NONE, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::Currency(),      Wire::TOTAL, "Chh");
+const SpeedwireData SpeedwireData::HouseholdIncomeFeedIn         (Command::NONE, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::Currency(),      Wire::FEED_IN, "ChhFeedIn");
+const SpeedwireData SpeedwireData::HouseholdIncomeSelfConsumption(Command::NONE, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::Currency(),      Wire::SELF_CONSUMPTION, "ChhCons");
 
-const SpeedwireData SpeedwireData::YieldByMinute                 (Command::COMMAND_YIELD_BY_MINUTE_QUERY, Command::COMMAND_YIELD_BY_MINUTE_QUERY, 0, SpeedwireDataType::Yield, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "EYieldByMinute");
-const SpeedwireData SpeedwireData::YieldByDay                    (Command::COMMAND_YIELD_BY_DAY_QUERY,    Command::COMMAND_YIELD_BY_DAY_QUERY,    0, SpeedwireDataType::Yield, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "EYieldByDay");
-const SpeedwireData SpeedwireData::Event                         (Command::COMMAND_EVENT_QUERY,           Command::COMMAND_EVENT_QUERY,           0, SpeedwireDataType::Event, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "Event");
+const SpeedwireData SpeedwireData::YieldByMinute                 (Command::YIELD_BY_MINUTE_QUERY, (uint32_t)Command::YIELD_BY_MINUTE_QUERY, 0, SpeedwireDataType::Yield, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "EYieldByMinute");
+const SpeedwireData SpeedwireData::YieldByDay                    (Command::YIELD_BY_DAY_QUERY,    (uint32_t)Command::YIELD_BY_DAY_QUERY,    0, SpeedwireDataType::Yield, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "EYieldByDay");
+const SpeedwireData SpeedwireData::Event                         (Command::EVENT_QUERY,           (uint32_t)Command::EVENT_QUERY,           0, SpeedwireDataType::Event, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "Event");
 
 
 /*******************************

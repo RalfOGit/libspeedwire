@@ -6,31 +6,61 @@
 #include <vector>
 #include <map>
 #include <SpeedwireDiscovery.hpp>
-#include <SpeedwireData.hpp>
 #include <SpeedwireHeader.hpp>
 #include <SpeedwireSocket.hpp>
 
 namespace libspeedwire {
 
-    enum Command : uint32_t {
-        COMMAND_AC_QUERY              = 0x51000200,
-        COMMAND_AC_QUERY_2            = 0x51020200,
-        COMMAND_STATUS_QUERY          = 0x51800200,
-        COMMAND_TEMPERATURE_QUERY     = 0x52000200,
-        COMMAND_DC_QUERY              = 0x53800200,
-        COMMAND_DC_QUERY_2            = 0x53820200,
-        COMMAND_UNKNOWN               = 0x53400200,
-        COMMAND_UNKNOWN_2             = 0x53420200,
-        COMMAND_ENERGY_QUERY          = 0x54000200,
-        COMMAND_ENERGY_QUERY_2        = 0x54020200,
-        COMMAND_DEVICE_QUERY          = 0x58000200,
-        COMMAND_DEVICE_QUERY_1        = 0x58010200,
-        COMMAND_DEVICE_QUERY_2        = 0x58020200,
-        COMMAND_DEVICE_QUERY_3        = 0x58030200,
-        COMMAND_YIELD_BY_MINUTE_QUERY = 0x70000200,  // query yield in 5 minute intervals
-        COMMAND_YIELD_BY_DAY_QUERY    = 0x70200200,  // query yield in 24 hour intervals
-        COMMAND_EVENT_QUERY           = 0x70100200   // query events
+    enum class Command : uint32_t {
+        NONE                  = 0x00000000,
+
+        ID_MASK               = 0xfffc0000,  // just a guess
+        COMPONENT_MASK        = 0x00030000,  // just a guess
+        RW_MASK               = 0x0000ff00,  // just a guess
+        REQUEST_TYPE_MASK     = 0x000000ff,  // just a guess
+
+        AC                    = 0x51000000,
+        STATUS                = 0x51800000,
+        TEMPERATURE           = 0x52000000,
+        ID_UNKNOWN            = 0x53400000,
+        DC                    = 0x53800000,
+        ENERGY                = 0x54000000,
+        DEVICE                = 0x58000000,
+        YIELD_BY_MINUTE       = 0x70000000,
+        EVENT                 = 0x70100000,
+        YIELD_BY_DAY          = 0x70200000,
+        AUTHENTICATION        = 0xfffc0000,
+
+        COMPONENT_0           = 0x00000000,
+        COMPONENT_1           = 0x00010000,
+        COMPONENT_2           = 0x00020000,
+        COMPONENT_3           = 0x00030000,
+
+        WRITE                 = 0x00000100,
+        READ                  = 0x00000200,
+        RW_LOGIN              = 0x00000400,     // used for login
+
+        AC_QUERY              = AC              | COMPONENT_0 | READ,   // 0x51000200
+        STATUS_QUERY          = STATUS          | COMPONENT_0 | READ,   // 0x51800200
+        TEMPERATURE_QUERY     = TEMPERATURE     | COMPONENT_0 | READ,   // 0x52000200
+        DC_QUERY              = DC              | COMPONENT_0 | READ,   // 0x53800200
+        UNKNOWN               = ID_UNKNOWN      | COMPONENT_0 | READ,   // 0x53400200
+        ENERGY_QUERY          = ENERGY          | COMPONENT_0 | READ,   // 0x54000200
+        DEVICE_QUERY          = DEVICE          | COMPONENT_0 | READ,   // 0x58000200
+        YIELD_BY_MINUTE_QUERY = YIELD_BY_MINUTE | COMPONENT_0 | READ,   // 0x70000200 - query yield in 5 minute intervals
+        YIELD_BY_DAY_QUERY    = YIELD_BY_DAY    | COMPONENT_0 | READ,   // 0x70200200 - query yield in 24 hour intervals
+        EVENT_QUERY           = EVENT           | COMPONENT_0 | READ,   // 0x70100200 - query events
+
+        LOGIN                 = AUTHENTICATION  | COMPONENT_1 | RW_LOGIN | 0x0c,    // 0xfffd040c
+        LOGOFF                = AUTHENTICATION  | COMPONENT_1 | WRITE    | 0xe0,    // 0xfffd01e0
+
+        DEVICE_WRITE          = DEVICE          | COMPONENT_0 | WRITE,  // 0x58000100
     };
+
+    static Command operator|(Command lhs, Command rhs) { return (Command)(((uint32_t)lhs) | ((uint32_t)rhs)); }
+    static Command operator&(Command lhs, Command rhs) { return (Command)(((uint32_t)lhs) & ((uint32_t)rhs)); }
+    static Command operator~(Command rhs) { return (Command)~((uint32_t)rhs); }
+    static bool   operator==(Command lhs, Command rhs) { return (((uint32_t)lhs) == ((uint32_t)rhs)); }
 
 
     /**
@@ -41,7 +71,7 @@ namespace libspeedwire {
         uint32_t    serialnumber;       //!< Serial number of the speedwire device the query was send to
         uint16_t    packetid;           //!< Packet identifier of the query packet
         std::string peer_ip_address;    //!< IP address of the speedwire device the query was send to
-        uint32_t    command;            //!< Command identifier of the query
+        Command     command;            //!< Command identifier of the query
         uint32_t    create_time;        //!< Creation time of the query as lower 32-bit of unix epoch timestamp
     } SpeedwireCommandToken;
 
@@ -54,7 +84,7 @@ namespace libspeedwire {
 
     class SpeedwireCommandTokenRepository {
     public:
-        SpeedwireCommandTokenIndex add(const uint16_t susyid, const uint32_t serialnumber, const uint16_t packetid, const std::string& peer_ip_address, const uint32_t command);
+        SpeedwireCommandTokenIndex add(const uint16_t susyid, const uint32_t serialnumber, const uint16_t packetid, const std::string& peer_ip_address, const Command command);
         int  find(const uint16_t susyid, const uint32_t serialnumber, const uint16_t packetid) const;
         void remove(const SpeedwireCommandTokenIndex index);
         void clear(void);
