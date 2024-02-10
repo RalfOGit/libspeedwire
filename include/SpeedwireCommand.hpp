@@ -19,6 +19,7 @@ namespace libspeedwire {
         RW_MASK               = 0x0000ff00,  // just a guess
         REQUEST_TYPE_MASK     = 0x000000ff,  // just a guess
 
+        DISCOVERY             = 0x00000000,
         AC                    = 0x51000000,
         STATUS                = 0x51800000,
         TEMPERATURE           = 0x52000000,
@@ -39,6 +40,14 @@ namespace libspeedwire {
         WRITE                 = 0x00000100,
         READ                  = 0x00000200,
         RW_LOGIN              = 0x00000400,     // used for login
+
+        QUERY_REQUEST         = 0x00000000,     // 0x00 <> 00000000
+        QUERY_RESPONSE        = 0x00000001,     // 0x01 <> 00000001
+        UPDATE_RESPONSE       = 0x0000000a,     // 0x0a <> 00001010
+        LOGIN_REQUEST         = 0x0000000c,     // 0x0c <> 00001100
+        LOGIN_RESPONSE        = 0x0000000d,     // 0x0c <> 00001101
+        UPDATE_REQUEST        = 0x0000000e,     // 0x0e <> 00001110
+        LOGOFF_REQUEST        = 0x000000e0,     // 0xe0 <> 11100000
 
         AC_QUERY              = AC              | COMPONENT_0 | READ,   // 0x51000200
         STATUS_QUERY          = STATUS          | COMPONENT_0 | READ,   // 0x51800200

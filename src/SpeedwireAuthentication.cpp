@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS (1)
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,16 +19,16 @@ static Logger logger("SpeedwireAuthentication");
 /**
  *  Login this local device from to other devices. This is done by sending a broadcast login command for this device to each local interface.
  */
-bool SpeedwireAuthentication::login(const bool user, const std::string& password, const int timeout_in_ms) {
+bool SpeedwireAuthentication::login(const Credentials& credentials, const int timeout_in_ms) {
     bool result = true;
     const SpeedwireAddress& local_address     = SpeedwireAddress::getLocalAddress();
     const SpeedwireAddress& broadcast_address = SpeedwireAddress::getBroadcastAddress();
     for (const auto& entry : socket_map) {
-        result &= login(entry.first, broadcast_address, local_address, user, password, timeout_in_ms);
+        result &= login(entry.first, broadcast_address, local_address, credentials, timeout_in_ms);
     }
     for (const auto& device : devices) {
         if (!AddressConversion::resideOnSameSubnet(device.deviceIpAddress, device.interfaceIpAddress, 24) && device.interfaceIpAddress.length() > 0) { // FIXME: hard coded prefix
-            result &= login(device.interfaceIpAddress, device.deviceAddress, local_address, user, password, timeout_in_ms);
+            result &= login(device.interfaceIpAddress, device.deviceAddress, local_address, credentials, timeout_in_ms);
         }
     }
     return result;
@@ -36,12 +37,12 @@ bool SpeedwireAuthentication::login(const bool user, const std::string& password
 /**
  *  Login all devices to all other devices. This is done by sending a broadcast login command for each device to each local interface.
  */
-bool SpeedwireAuthentication::loginAnyToAny(const bool user, const std::string& password, const int timeout_in_ms) {
+bool SpeedwireAuthentication::loginAnyToAny(const Credentials& credentials, const int timeout_in_ms) {
     bool result = true;
     const SpeedwireAddress& broadcast_address = SpeedwireAddress::getBroadcastAddress();
     for (const auto& device : devices) {
         for (const auto& entry : socket_map) {
-            result &= login(entry.first, broadcast_address, device.deviceAddress, user, password, timeout_in_ms);
+            result &= login(entry.first, broadcast_address, device.deviceAddress, credentials, timeout_in_ms);
         }
     }
     return result;
@@ -50,14 +51,14 @@ bool SpeedwireAuthentication::loginAnyToAny(const bool user, const std::string& 
 /**
  *  synchronous login method - send inverter login command to the given destination peer, wait for the response and check for error codes
  */
-bool SpeedwireAuthentication::login(const SpeedwireDevice& dst_peer, const bool user, const std::string& password, const int timeout_in_ms) {
-    return login(dst_peer.interfaceIpAddress, dst_peer.deviceAddress, SpeedwireAddress::getLocalAddress(), user, password, timeout_in_ms);
+bool SpeedwireAuthentication::login(const SpeedwireDevice& dst_peer, const Credentials& credentials, const int timeout_in_ms) {
+    return login(dst_peer.interfaceIpAddress, dst_peer.deviceAddress, SpeedwireAddress::getLocalAddress(), credentials, timeout_in_ms);
 }
 
 /**
  *  synchronous login method - send inverter login command to the given peer, wait for the response and check for error codes
  */
-bool SpeedwireAuthentication::login(const std::string& if_address, const SpeedwireAddress& dst, const SpeedwireAddress& src, const bool user, const std::string& password, const int timeout_in_ms) {
+bool SpeedwireAuthentication::login(const std::string& if_address, const SpeedwireAddress& dst, const SpeedwireAddress& src, const Credentials& credentials, const int timeout_in_ms) {
     logger.print(LogLevel::LOG_INFO_0, "login susyid %u serial %lu => susyid %u serial %lu time 0x%016llx",
         src.susyID, src.serialNumber, dst.susyID, dst.serialNumber, localhost.getUnixEpochTimeInMs());
 
@@ -70,7 +71,7 @@ bool SpeedwireAuthentication::login(const std::string& if_address, const Speedwi
     SpeedwireSocket& socket = sockets[socket_index];
 
     // send login request to peer
-    SpeedwireCommandTokenIndex token_index = sendLoginRequest(if_address, dst, src, user, password);
+    SpeedwireCommandTokenIndex token_index = sendLoginRequest(if_address, dst, src, credentials);
     if (token_index < 0) {
         return false;
     }
@@ -89,6 +90,8 @@ bool SpeedwireAuthentication::login(const std::string& if_address, const Speedwi
 
         if (data2_packet.isInverterProtocolID()) {
             const SpeedwireInverterProtocol inverter_packet(data2_packet);
+//          logger.print(LogLevel::LOG_INFO_1, "%s\n", inverter_packet.toString().c_str());
+
 
             uint16_t error_code = inverter_packet.getErrorCode();
             if (error_code != 0x0000) {
@@ -170,7 +173,7 @@ bool SpeedwireAuthentication::logoff(const std::string& if_address, const Speedw
 /**
  *  Send inverter login command to the given peer
  */
-SpeedwireCommandTokenIndex SpeedwireAuthentication::sendLoginRequest(const std::string& if_address, const SpeedwireAddress& dst, const SpeedwireAddress& src, const bool user, const std::string& password) {
+SpeedwireCommandTokenIndex SpeedwireAuthentication::sendLoginRequest(const std::string& if_address, const SpeedwireAddress& dst, const SpeedwireAddress& src, const Credentials& credentials) {
     // Request  534d4100000402a000000001003a0010 60650ea0 7a01842a71b30001 7d0042be283a0001 000000000280 0c04fdff 07000000 84030000 00d8e85f 00000000 c1c1c1c18888888888888888 00000000   => login command = 0xfffd040c, first = 0x00000007 (user 7, installer a), last = 0x00000384 (hier timeout), time = 0x5fdf9ae8, 0x00000000, pw 12 bytes
     // Response 534d4100000402a000000001002e0010 60650be0 7d0042be283a0001 7a01842a71b30001 000000000280 0d04fdff 07000000 84030000 00d8e85f 00000000 00000000 => login OK
     // Response 534d4100000402a000000001002e0010 60650be0 7d0042be283a0001 7a01842a71b30001 000100000280 0d04fdff 07000000 84030000 fddbe85f 00000000 00000000 => login INVALID PASSWORD
@@ -199,16 +202,12 @@ SpeedwireCommandTokenIndex SpeedwireAuthentication::sendLoginRequest(const std::
     request.setFragmentCounter(0);
     request.setPacketID(packet_id);
     request.setCommandID(Command::LOGIN);
-    request.setFirstRegisterID((user ? 0x00000007 : 0x0000000a));    // user: 0x7  installer: 0xa
+    request.setFirstRegisterID((uint32_t)credentials.getUserName());    // user: 0x7  installer: 0xa
     request.setLastRegisterID(0x00000384);     // timeout
     request.setDataUint32(0, SpeedwireTime::getInverterTimeNow());
     request.setDataUint32(4, 0x00000000);
-    uint8_t encoded_password[12];
-    memset(encoded_password, (user ? 0x88 : 0xBB), sizeof(encoded_password));
-    for (int i = 0; password[i] != '\0' && i < sizeof(encoded_password); ++i) {
-        encoded_password[i] = password[i] + (user ? 0x88 : 0xBB);
-    }
-    request.setDataUint8Array(8, encoded_password, sizeof(encoded_password));
+    std::array<uint8_t, 12> encoded_password = credentials.getEncodedPassWord();
+    request.setDataUint8Array(8, encoded_password.data(), (unsigned long)encoded_password.size());
 
     // identify the socket to be used
     SocketIndex socket_index = socket_map[if_address];
@@ -300,4 +299,84 @@ bool SpeedwireAuthentication::sendLogoffRequest(const std::string& if_address, c
     }
 
     return true;
+}
+
+
+/**
+ *  Encode password string into its 12 byte binary line encoding.
+ */
+std::array<uint8_t, 12> Credentials::getEncodedPassWord(void) const {
+    uint8_t pattern = 0x88;
+    switch (getUserName()) {
+    case UserName::USER:      pattern = 0x88; break;
+    case UserName::INSTALLER: pattern = 0xBB; break;
+    }
+    std::string password = getPassWord();
+    std::array<uint8_t, 12> encoded_password;
+    for (size_t i = 0; i < encoded_password.size(); ++i) {
+        encoded_password[i] = (i < password.length() ? password[i] + pattern : pattern);
+    }
+    return encoded_password;
+}
+
+
+// initialize default user name to USER
+UserName CredentialsMap::default_user_name = UserName::USER;
+
+
+/**
+ *  Read credentials from input file.
+ *  Credentials are encoded similar to http basic authentication: user=password, installer=password.
+ *  @param path input file path
+ *  @return number of credentials in credentials map after the read operation.
+ */
+int CredentialsMap::readFromFile(const std::string& path) {
+
+    FILE* inp = fopen(path.c_str(), "r");
+    if (inp == NULL) {
+        printf("Could not open credentials input file \"%s\"\n", path.c_str());
+        return -1;
+    }
+
+    char buffer[1024] = { 0 };
+
+    while (fgets(buffer, sizeof(buffer), inp) != NULL) {
+        std::string line(buffer);
+
+        // remove comments, empty lines and trailing \r or \n
+        size_t hashpos = line.find_first_of("#\r\n");
+        if (hashpos != std::string::npos) {
+            line.erase(hashpos);
+        }
+
+        if (line.length() > 0) {
+            std::string username;
+            std::string password;
+
+            // split line at first '='
+            std::string::size_type pos = line.find('=');
+            if (pos != std::string::npos) {
+                username = line.substr(0, pos);
+                password = line.substr(pos + 1);
+                if (username == "user") {
+                    add(UserName::USER, password);
+                }
+                else if (username == "installer") {
+                    add(UserName::INSTALLER, password);
+                }
+                else {
+                    unsigned int user;
+                    if (sscanf(username.c_str(), " %u", &user) > 0) {
+                        add((UserName)user, password);
+                    }
+                    else{
+                        printf("Unknown username \"%s\" in credentials input file \"%s\"\n", username.c_str(), path.c_str());
+                    }
+                }
+            }
+        }
+    }
+    fclose(inp);
+
+    return (int)size();
 }
