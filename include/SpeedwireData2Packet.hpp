@@ -1,6 +1,7 @@
 #ifndef __LIBSPEEDWIRE_SPEEDWIREDATA2PACKET_H__
 #define __LIBSPEEDWIRE_SPEEDWIREDATA2PACKET_H__
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <SpeedwireByteEncoding.hpp>
