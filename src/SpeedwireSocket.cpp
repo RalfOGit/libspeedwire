@@ -413,7 +413,7 @@ int SpeedwireSocket::openSocketV6(const std::string &local_interface_address, co
             }
         }
 #ifdef _WIN32
-        if (setsockopt(fd, IPPROTO_IP, IPV6_UNICAST_IF, (const char*)&ifindex, sizeof(ifindex)) < 0) {
+        if (setsockopt(fd, IPPROTO_IPV6, IPV6_UNICAST_IF, (const char*)&ifindex, sizeof(ifindex)) < 0) {
             perror("setsockopt IP_UNICAST_IF failure");
             return -1;
         }

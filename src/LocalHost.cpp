@@ -132,7 +132,7 @@ void LocalHost::cacheLocalIPAddresses(const std::vector<std::string> &local_ip_a
     local_ipv4_addresses.clear();
     local_ipv6_addresses.clear();
     for (auto& a : local_ip_addresses) {
-        std::string addr = AddressConversion::stripIPAddress(a);
+        std::string addr = AddressConversion::extractIPAddress(a);
         if (AddressConversion::isIpv4(addr) == true) {
             local_ipv4_addresses.push_back(addr);
         } else if (AddressConversion::isIpv6(addr) == true) {

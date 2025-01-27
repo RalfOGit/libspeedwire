@@ -123,6 +123,67 @@ bool AddressConversion::isIpv6(const std::string& ip_address) {
 }
 
 /**
+ *  Check if the given string contains a valid ipv4 uri address, i.e. xx.xx.xx.xx or xx.xx.xx.xx:pp
+ */
+bool AddressConversion::isIpv4Uri(const std::string& uri_address) {
+    size_t port_offset = uri_address.find(':');
+    if (port_offset != std::string::npos && (port_offset+1) < uri_address.length()) {
+        std::string ipv4 = uri_address.substr(0, port_offset);
+        std::string port = uri_address.substr(port_offset+1);
+        size_t invalid = port.find_first_not_of("0123456789");
+        if (invalid == std::string::npos) {
+            return isIpv4(ipv4);
+        }
+        return false;
+    }
+    return isIpv4(uri_address);
+}
+
+/**
+ *  Check if the given string contains a valid ipv4 uri address, i.e. xx::xx:xx:xx or xx::xx:xx:xx%ss [xx::xx:xx:xx%ss]:pp
+ */
+bool AddressConversion::isIpv6Uri(const std::string& uri_address) {
+    size_t trailing_square_bracket = uri_address.find(']');
+    // check if there is an [...] encapsulation
+    if (uri_address.find('[') == 0 && trailing_square_bracket != std::string::npos && trailing_square_bracket > 0) {
+        // check if there is some port appended to the [...] encapsulation, i.e. [...]:pp
+        size_t port_offset = uri_address.substr(trailing_square_bracket).find("]:");
+        if (port_offset != std::string::npos) {
+            port_offset = trailing_square_bracket + port_offset + 2;
+            // check if there is some data behind the [...]:
+            if (port_offset < uri_address.length()) {
+                std::string port = uri_address.substr(port_offset);
+                // check if there are just digits behind the [...]:
+                size_t invalid = port.find_first_not_of("0123456789");
+                if (invalid != std::string::npos) {
+                    return false;   // non-digit data behind  [...]:
+                }
+            }
+            else {
+                return false;   // no characters behind  [...]:
+            }
+        }
+        // check if there is some data behind the [...] that is not a port
+        else if (uri_address.length() > (trailing_square_bracket + 1)) {
+            return false;   // at least one character behind [...] and it is not a :
+        }
+        // check if there is some scope id behind the encapsulated ip address, i.e [...%ss]
+        std::string ipv6 = uri_address.substr(1, trailing_square_bracket - 1);
+        size_t percent_offset = ipv6.find('%');
+        if (percent_offset != std::string::npos) {
+            return isIpv6(ipv6.substr(0, percent_offset));
+        }
+        return isIpv6(ipv6);
+    }
+    // check if there is some scope id behind the unencapsulated ip address, i.e ...%ss
+    size_t percent_offset = uri_address.find('%');
+    if (percent_offset != std::string::npos) {
+        return isIpv6(uri_address.substr(0, percent_offset));
+    }
+    return isIpv6(uri_address);
+}
+
+/**
  *  Convert an ipv4 string to an ipv4 binary address
  */
 struct in_addr AddressConversion::toInAddress(const std::string& ipv4_address) {
@@ -216,17 +277,101 @@ bool AddressConversion::resideOnSameSubnet(const std::string& host1, const std::
 
 
 /**
- *  Remove non-ip address related characters like []%/, subnet masks, escape characters, etc
+ *  Extract ip address from uri, i.e. 192.168.1.1:8080 => 192.168.1.1 or [ff02::fb%21}:8080 => ff02
  */
-std::string AddressConversion::stripIPAddress(const std::string& ip_address) {
-    std::string::size_type first_1 = ip_address.find('[');
-    std::string::size_type first_index = (first_1 != std::string::npos ? first_1 : 0);
-    std::string::size_type last_1 = ip_address.find('%');
-    std::string::size_type last_2 = ip_address.find('/');
-    std::string::size_type last_3 = ip_address.find(']');
-    std::string::size_type last_n = (last_1 < last_2 ? (last_1 < last_3 ? last_1 : last_3) : (last_2 < last_3 ? last_2 : last_3));
-    std::string::size_type last_index = (last_n != std::string::npos ? last_n : ip_address.size());
-    return ip_address.substr(first_index, last_index);
+std::string AddressConversion::extractIPAddress(const std::string& uri_address) {
+    if (isIpv4Uri(uri_address)) {
+        size_t port_offset = uri_address.find(':');
+        if (port_offset != std::string::npos) {
+            return uri_address.substr(0, port_offset);
+        }
+        return uri_address;
+    }
+    else if (isIpv6Uri(uri_address)) {
+        std::string::size_type first = uri_address.find('[');
+        std::string::size_type last = uri_address.find_first_of("%]");
+        first = (first == std::string::npos ? 0 : first + 1);
+        if (last  == std::string::npos) { last = uri_address.length(); }
+        return uri_address.substr(first, last - first);
+    }
+    return "";
+}
+
+/**
+ *  Extract port from uri, i.e. 192.168.1.1:8080 or [ff02::fb%21}:8080 => 8080
+ */
+std::string AddressConversion::extractIPPort(const std::string& uri_address) {
+    if (isIpv4Uri(uri_address)) {
+        size_t port_offset = uri_address.find(':');
+        if (port_offset != std::string::npos) {
+            return uri_address.substr(port_offset + 1);
+        }
+    }
+    else if (isIpv6Uri(uri_address)) {
+        std::string::size_type offs = uri_address.find("]:");
+        if (offs != std::string::npos) {
+            return uri_address.substr(offs + 2, uri_address.length() - offs - 2);
+        }
+    }
+    return "";
+}
+
+/**
+ *  Extract scope id from uri, i.e. [ff02::fb%21}:8080 => 21
+ */
+std::string AddressConversion::extractIPScopeId(const std::string& uri_address) {
+    if (isIpv6Uri(uri_address)) {
+        std::string::size_type first = uri_address.find('%');
+        if (first != std::string::npos) {
+            std::string::size_type last = uri_address.find(']');
+            if (last == std::string::npos) {
+                last = uri_address.length();
+            }
+            return uri_address.substr(first + 1, last - first - 1);
+        }
+    }
+    return "";
+}
+
+/**
+ *  Interprete ip addresses in uri format, i.e. 192.168.1.1:8080 or [ff02::fb%21}:8080
+ */
+struct sockaddr AddressConversion::toSockAddrFromUri(const std::string& uri_address) {
+    struct sockaddr socketaddr;
+    memset(&socketaddr, 0, sizeof(socketaddr));
+    if (isIpv4Uri(uri_address)) {
+        const std::string ipv4addr = extractIPAddress(uri_address);
+        const std::string ipv4port = extractIPPort(uri_address);
+        size_t nchars = 0;
+        size_t port = toUint(ipv4port, nchars);
+        struct sockaddr_in sockaddr = toSockAddrIn(ipv4addr, (uint16_t)port);
+        socketaddr = toSockAddr(sockaddr);
+    }
+    else if (isIpv6Uri(uri_address)) {
+        const std::string ipv6addr = extractIPAddress(uri_address);
+        const std::string ipv6port = extractIPPort(uri_address);
+        const std::string ipv6scope = extractIPScopeId(uri_address);
+        size_t nchars = 0;
+        size_t port = toUint(ipv6port, nchars);
+        struct sockaddr_in6 sockaddr = toSockAddrIn6(ipv6addr, (uint16_t)port);
+        socketaddr = toSockAddr(sockaddr);
+    }
+    return socketaddr;
+}
+
+
+/**
+ *  Remove occurences of characters in the given set of characters from the given string.
+ */
+std::string AddressConversion::stripChars(const std::string& string, const std::string& chars) {
+    std::string result = string;
+    std::string::size_type offset = 0;
+    while (offset < result.length()) {
+        offset = result.find_first_of(chars, offset);
+        if (offset == std::string::npos) break;
+        result = result.erase(offset, 1);
+    }
+    return result;
 }
 
 
@@ -259,6 +404,9 @@ struct sockaddr_in AddressConversion::toSockAddrIn(const struct in_addr& address
     struct sockaddr_in socket_address;
     memset(&socket_address, 0, sizeof(socket_address));
     socket_address.sin_family = AF_INET;
+#ifdef __APPLE__
+    socket_address.sin_len = sizeof(socket_address);
+#endif
     socket_address.sin_port = htons(port);
     socket_address.sin_addr = address;
     return socket_address;
@@ -268,9 +416,26 @@ struct sockaddr_in6 AddressConversion::toSockAddrIn6(const struct in6_addr& addr
     struct sockaddr_in6 socket_address;
     memset(&socket_address, 0, sizeof(socket_address));
     socket_address.sin6_family = AF_INET6;
+#ifdef __APPLE__
+    socket_address.sin6_len = sizeof(socket_address);
+#endif
     socket_address.sin6_port = htons(port);
     socket_address.sin6_addr = address;
     return socket_address;
+}
+
+struct sockaddr AddressConversion::toSockAddr(const std::string& ip_address, const uint16_t port) {
+    struct sockaddr socketaddr;
+    memset(&socketaddr, 0, sizeof(socketaddr));
+    if (AddressConversion::isIpv4(ip_address)) {
+        struct sockaddr_in sockin = AddressConversion::toSockAddrIn(ip_address, port);
+        socketaddr = AddressConversion::toSockAddr(sockin);
+    }
+    else if (AddressConversion::isIpv6(ip_address)) {
+        struct sockaddr_in6 sockin6 = AddressConversion::toSockAddrIn6(ip_address, port);
+        socketaddr = AddressConversion::toSockAddr(sockin6);
+    }
+    return socketaddr;
 }
 
 struct sockaddr AddressConversion::toSockAddr(const struct in_addr& address, const uint16_t port) {
@@ -343,3 +508,21 @@ int AddressConversion::hexToInt(const char c) {
     return -1;
 }
 
+
+/**
+ *  Convert a character string to an unsigned integer value.
+ */
+size_t AddressConversion::toUint(const std::string& string, size_t& nchars) {
+    size_t int_value = 0;
+    for (size_t offs = 0; offs < string.length(); ++offs) {
+        char c = string[offs];
+        if (c < '0' || c > '9') {
+            nchars = offs;
+            return int_value;
+        }
+        int digit = c - '0';
+        int_value = int_value * 10 + digit;
+    }
+    nchars = string.length();
+    return int_value;
+}

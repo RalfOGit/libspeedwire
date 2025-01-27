@@ -33,6 +33,8 @@ namespace libspeedwire {
         // conversions for ip addresses
         static bool isIpv4(const std::string& ip_address);
         static bool isIpv6(const std::string& ip_address);
+        static bool isIpv4Uri(const std::string& uri_address);
+        static bool isIpv6Uri(const std::string& uri_address);
         static struct in_addr  toInAddress(const std::string& ipv4_address);
         static struct in6_addr toIn6Address(const std::string& ipv6_address);
 
@@ -60,15 +62,22 @@ namespace libspeedwire {
         static struct sockaddr toSockAddr(const struct in6_addr& address, const uint16_t port = 0);
         static struct sockaddr_in toSockAddrIn(const std::string& ipv4_address, const uint16_t port = 0);
         static struct sockaddr_in6 toSockAddrIn6(const std::string& ipv6_address, const uint16_t port = 0);
+        static struct sockaddr toSockAddr(const std::string& ip_address, const uint16_t port = 0);
 
         // conversions for ethernet mac addresses
         static std::array<uint8_t, 6> toMacAddress(const std::string& mac);
         static std::string toString(const std::array<uint8_t, 6>& mac);
 
-        // remove non-ip characters like []%/, subnet masks, escape characters, etc
-        static std::string stripIPAddress(const std::string& ip_address);
+        // extract address parts from uri, i.e. 192.168.1.1:8080 or [ff02::fb%21}:8080
+        static std::string extractIPAddress(const std::string& uri_address);
+        static std::string extractIPPort(const std::string& uri_address);
+        static std::string extractIPScopeId(const std::string& uri_address);
+        static struct sockaddr toSockAddrFromUri(const std::string& uri_address);
+
+        static std::string stripChars(const std::string& string, const std::string& chars);
 
         static int hexToInt(const char nibble);
+        static size_t toUint(const std::string& string, size_t& nchars);
     };
 
 }   // namespace libspeedwire
