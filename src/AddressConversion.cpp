@@ -62,7 +62,7 @@ std::string AddressConversion::toString(const struct sockaddr& address) {
  *  Convert a binary ipv4 socket address into a string
  */
 std::string AddressConversion::toString(const struct sockaddr_in& address) {
-    char buffer[20] = { 0 };
+    char buffer[22] = { 0 };
     char host[NI_MAXHOST];
     char service[NI_MAXSERV];
     memset(host, 0, sizeof(host));
@@ -127,9 +127,9 @@ bool AddressConversion::isIpv6(const std::string& ip_address) {
  */
 bool AddressConversion::isIpv4Uri(const std::string& uri_address) {
     size_t port_offset = uri_address.find(':');
-    if (port_offset != std::string::npos && (port_offset+1) < uri_address.length()) {
+    if (port_offset != std::string::npos && (port_offset + 1) < uri_address.length()) {
         std::string ipv4 = uri_address.substr(0, port_offset);
-        std::string port = uri_address.substr(port_offset+1);
+        std::string port = uri_address.substr(port_offset + 1);
         size_t invalid = port.find_first_not_of("0123456789");
         if (invalid == std::string::npos) {
             return isIpv4(ipv4);
@@ -276,110 +276,14 @@ bool AddressConversion::resideOnSameSubnet(const std::string& host1, const std::
 }
 
 
-/**
- *  Extract ip address from uri, i.e. 192.168.1.1:8080 => 192.168.1.1 or [ff02::fb%21}:8080 => ff02
- */
-std::string AddressConversion::extractIPAddress(const std::string& uri_address) {
-    if (isIpv4Uri(uri_address)) {
-        size_t port_offset = uri_address.find(':');
-        if (port_offset != std::string::npos) {
-            return uri_address.substr(0, port_offset);
-        }
-        return uri_address;
-    }
-    else if (isIpv6Uri(uri_address)) {
-        std::string::size_type first = uri_address.find('[');
-        std::string::size_type last = uri_address.find_first_of("%]");
-        first = (first == std::string::npos ? 0 : first + 1);
-        if (last  == std::string::npos) { last = uri_address.length(); }
-        return uri_address.substr(first, last - first);
-    }
-    return "";
-}
-
-/**
- *  Extract port from uri, i.e. 192.168.1.1:8080 or [ff02::fb%21}:8080 => 8080
- */
-std::string AddressConversion::extractIPPort(const std::string& uri_address) {
-    if (isIpv4Uri(uri_address)) {
-        size_t port_offset = uri_address.find(':');
-        if (port_offset != std::string::npos) {
-            return uri_address.substr(port_offset + 1);
-        }
-    }
-    else if (isIpv6Uri(uri_address)) {
-        std::string::size_type offs = uri_address.find("]:");
-        if (offs != std::string::npos) {
-            return uri_address.substr(offs + 2, uri_address.length() - offs - 2);
-        }
-    }
-    return "";
-}
-
-/**
- *  Extract scope id from uri, i.e. [ff02::fb%21}:8080 => 21
- */
-std::string AddressConversion::extractIPScopeId(const std::string& uri_address) {
-    if (isIpv6Uri(uri_address)) {
-        std::string::size_type first = uri_address.find('%');
-        if (first != std::string::npos) {
-            std::string::size_type last = uri_address.find(']');
-            if (last == std::string::npos) {
-                last = uri_address.length();
-            }
-            return uri_address.substr(first + 1, last - first - 1);
-        }
-    }
-    return "";
-}
-
-/**
- *  Interprete ip addresses in uri format, i.e. 192.168.1.1:8080 or [ff02::fb%21}:8080
- */
-struct sockaddr AddressConversion::toSockAddrFromUri(const std::string& uri_address) {
-    struct sockaddr socketaddr;
-    memset(&socketaddr, 0, sizeof(socketaddr));
-    if (isIpv4Uri(uri_address)) {
-        const std::string ipv4addr = extractIPAddress(uri_address);
-        const std::string ipv4port = extractIPPort(uri_address);
-        size_t nchars = 0;
-        size_t port = toUint(ipv4port, nchars);
-        struct sockaddr_in sockaddr = toSockAddrIn(ipv4addr, (uint16_t)port);
-        socketaddr = toSockAddr(sockaddr);
-    }
-    else if (isIpv6Uri(uri_address)) {
-        const std::string ipv6addr = extractIPAddress(uri_address);
-        const std::string ipv6port = extractIPPort(uri_address);
-        const std::string ipv6scope = extractIPScopeId(uri_address);
-        size_t nchars = 0;
-        size_t port = toUint(ipv6port, nchars);
-        struct sockaddr_in6 sockaddr = toSockAddrIn6(ipv6addr, (uint16_t)port);
-        socketaddr = toSockAddr(sockaddr);
-    }
-    return socketaddr;
-}
-
-
-/**
- *  Remove occurences of characters in the given set of characters from the given string.
- */
-std::string AddressConversion::stripChars(const std::string& string, const std::string& chars) {
-    std::string result = string;
-    std::string::size_type offset = 0;
-    while (offset < result.length()) {
-        offset = result.find_first_of(chars, offset);
-        if (offset == std::string::npos) break;
-        result = result.erase(offset, 1);
-    }
-    return result;
-}
-
-
 /** Cast the given binary ipv4 socket address reference into a binary generic ipv4/ipv6 socket address reference in a type safe way */
 struct sockaddr& AddressConversion::toSockAddr(struct sockaddr_in& src) { return (struct sockaddr&)src; }
 
 /** Cast the given binary ipv6 socket address reference into a binary generic ipv4/ipv6 socket address reference in a type safe way */
 struct sockaddr& AddressConversion::toSockAddr(struct sockaddr_in6& src) { return (struct sockaddr&)src; }
+
+/** Cast the given binary storage socket address reference into a binary generic ipv4/ipv6 socket address reference in a type safe way */
+struct sockaddr& AddressConversion::toSockAddr(struct sockaddr_storage& src) { return (struct sockaddr&)src; }
 
 /** Cast the given binary generic ipv4/ipv6 socket address reference into a binary ipv4 socket address reference in a type safe way */
 struct sockaddr_in& AddressConversion::toSockAddrIn(struct sockaddr& src) { return (struct sockaddr_in&)src; }
@@ -393,11 +297,29 @@ const struct sockaddr& AddressConversion::toSockAddr(const struct sockaddr_in& s
 /** Cast the given const binary ipv6 socket address reference into a binary generic const ipv4/ipv6 socket address reference in a type safe way */
 const struct sockaddr& AddressConversion::toSockAddr(const struct sockaddr_in6& src) { return (const struct sockaddr&)src; }
 
+/** Cast the given const binary storage socket address reference into a binary generic const ipv4/ipv6 socket address reference in a type safe way */
+const struct sockaddr& AddressConversion::toSockAddr(const struct sockaddr_storage& src) { return (const struct sockaddr&)src; }
+
 /** Cast the given const binary generic ipv4/ipv6 socket address reference into a binary const ipv4 socket address reference in a type safe way */
 const struct sockaddr_in& AddressConversion::toSockAddrIn(const struct sockaddr& src) { return (const struct sockaddr_in&)src; }
 
 /** Cast the given const binary generic ipv4/ipv6 socket address reference into a binary const ipv6 socket address reference in a type safe way */
 const struct sockaddr_in6& AddressConversion::toSockAddrIn6(const struct sockaddr& src) { return (const struct sockaddr_in6&)src; }
+
+
+struct sockaddr_storage AddressConversion::toSockAddrStorage(const struct sockaddr_in& src) {
+    struct sockaddr_storage result;
+    memset(&result, 0, sizeof(result));
+    memcpy(&result, &src, sizeof(src));
+    return result;
+}
+
+struct sockaddr_storage AddressConversion::toSockAddrStorage(const struct sockaddr_in6& src) {
+    struct sockaddr_storage result;
+    memset(&result, 0, sizeof(result));
+    memcpy(&result, &src, sizeof(src));
+    return result;
+}
 
 
 struct sockaddr_in AddressConversion::toSockAddrIn(const struct in_addr& address, const uint16_t port) {
@@ -424,16 +346,16 @@ struct sockaddr_in6 AddressConversion::toSockAddrIn6(const struct in6_addr& addr
     return socket_address;
 }
 
-struct sockaddr AddressConversion::toSockAddr(const std::string& ip_address, const uint16_t port) {
-    struct sockaddr socketaddr;
+struct sockaddr_storage AddressConversion::toSockAddr(const std::string& ip_address, const uint16_t port) {
+    struct sockaddr_storage socketaddr;
     memset(&socketaddr, 0, sizeof(socketaddr));
     if (AddressConversion::isIpv4(ip_address)) {
         struct sockaddr_in sockin = AddressConversion::toSockAddrIn(ip_address, port);
-        socketaddr = AddressConversion::toSockAddr(sockin);
+        socketaddr = AddressConversion::toSockAddrStorage(sockin);
     }
     else if (AddressConversion::isIpv6(ip_address)) {
         struct sockaddr_in6 sockin6 = AddressConversion::toSockAddrIn6(ip_address, port);
-        socketaddr = AddressConversion::toSockAddr(sockin6);
+        socketaddr = AddressConversion::toSockAddrStorage(sockin6);
     }
     return socketaddr;
 }
@@ -456,15 +378,64 @@ struct sockaddr_in6 AddressConversion::toSockAddrIn6(const std::string& ipv6_add
 
 
 /**
- *  Convert a string representation of a an ethernet mac address into its binary format
+ *  Check address scope
  */
-std::array<uint8_t, 6> AddressConversion::toMacAddress(const std::string& mac) {
-    std::array<uint8_t, 6> arr;
-    //arr.fill(0);
+bool AddressConversion::isLoopbackAddress(const struct in_addr& address) {
+    return (address.s_addr & 0xff000000) == 0x7f000000;     // 127.0.0.0/8
+}
+
+bool AddressConversion::isBroadcastAddress(const struct in_addr& address) {
+    return address.s_addr == 0xffffffff;                    // 255.255.255.255/32
+}
+
+bool AddressConversion::isMulticastAddress(const struct in_addr& address) {
+    return (address.s_addr & 0xf0000000) == 0xe0000000;     // 224.0.0.0/4
+}
+
+bool AddressConversion::isPrivateAddress(const struct in_addr& address) {
+    return (address.s_addr & 0xff000000) == 0x0a000000 ||   // 10.0.0.0/8
+        (address.s_addr & 0xfff00000) == 0xac100000 ||   // 172.16.0.0/12
+        (address.s_addr & 0xffff0000) == 0xc0a80000;     // 192.168.0.0/16
+}
+
+bool AddressConversion::isLinkLocalAddress(const struct in_addr& address) {
+    return (address.s_addr & 0xffff0000) == 0xa9fe0000;     // 169.254.0.0/16
+}
+
+bool AddressConversion::isLoopbackAddress(const struct in6_addr& address) {
+    static const unsigned char loopback[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
+    return memcmp(&address, &loopback, sizeof(address)) == 0;   // ::1/128
+}
+
+bool AddressConversion::isMulticastAddress(const struct in6_addr& address) {
+    return (((const unsigned char*)&address)[0] == 0xff);       // ff::/8
+}
+
+bool AddressConversion::isLinkLocalAddress(const struct in6_addr& address) {
+    static const unsigned char nulls[6] = { 0, 0, 0, 0, 0, 0 };
+    return (((const unsigned char*)&address)[0] == 0xfe &&      // fe80::/64
+        ((const unsigned char*)&address)[1] == 0x80 &&
+        memcmp(((const unsigned char*)&address) + 2, nulls, sizeof(nulls)) == 0);
+}
+
+bool AddressConversion::isUniqueLocalAddress(const struct in6_addr& address) {
+    return (((const unsigned char*)&address)[0] == 0xfc ||      // fc::/7
+        ((const unsigned char*)&address)[0] == 0xfd);
+}
+
+bool AddressConversion::isGlobalAddress(const struct in6_addr& address) {
+    return !isLoopbackAddress(address) && !isMulticastAddress(address) &&
+        !isLinkLocalAddress(address) && !isUniqueLocalAddress(address);
+}
+
+
+// Convert a string representation of a an ethernet mac, eui48 or eui64 address into its binary format
+template<int N> static std::array<uint8_t, N> toEUI(const std::string& mac) {
+    std::array<uint8_t, N> arr;
     size_t n = 0, i = 0;
-    for (; i + 1 < mac.length() && n < arr.size(); i += 2) {
-        int i1 = hexToInt(mac[i]);
-        int i2 = hexToInt(mac[i+1]);
+    for (; i + 1 < mac.length() && n < N; i += 2) {
+        int i1 = AddressConversion::hexToInt(mac[i]);
+        int i2 = AddressConversion::hexToInt(mac[i + 1]);
         if (i1 < 0 || i2 < 0) {
             break;
         }
@@ -473,24 +444,162 @@ std::array<uint8_t, 6> AddressConversion::toMacAddress(const std::string& mac) {
             ++i;
         }
     }
-    if (i < mac.length() || n != arr.size()) {
+    if (i < mac.length() || n != N) {
         //perror("ethernet string to mac address failure");
         arr.fill(0);
     }
     return arr;
 }
 
+// Convert a binary ethernet mac, eui48 or eui64 address into a string
+template<int N> static std::string euiToString(const std::array<uint8_t, N>& mac) {
+    std::string result;
+    for (const uint8_t c : mac) {
+        if (result.length() > 0) result.append(1, ':');
+        result.append(1, "0123456789abcdef"[(c >> 4) & 0xf]);
+        result.append(1, "0123456789abcdef"[c & 0xf]);
+    }
+    return result;
+}
+
+/**
+ *  Convert a string representation of a an ethernet mac address into its binary format
+ */
+std::array<uint8_t, 6> AddressConversion::toMacAddress(const std::string& mac) {
+    return toEUI<6>(mac);
+}
+
+/**
+ *  Convert a string representation of a an eui64 address into its binary format
+ */
+std::array<uint8_t, 8> AddressConversion::toEUI64(const std::string& eui64) {
+    return toEUI<8>(eui64);
+}
+
 /**
  *  Convert a binary ethernet mac address into a string
  */
 std::string AddressConversion::toString(const std::array<uint8_t, 6>& mac) {
-    char temp[18];
-    int n = snprintf(temp, sizeof(temp), "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    if (n == 17) {
-        return temp;
-    }
-    return std::string();
+    return euiToString<6>(mac);
 }
+
+/**
+ *  Convert a binary extended mac address into a string
+ */
+std::string AddressConversion::toString(const std::array<uint8_t, 8>& mac) {
+    return euiToString<8>(mac);
+}
+
+/**
+ *  Convert a binary ethernet mac address into a binary modified extended mac address
+ */
+std::array<uint8_t, 8> AddressConversion::toEUI64(const std::array<uint8_t, 6>& mac) {
+    return { (uint8_t)(mac[0] ^ 0x02), mac[1], mac[2], 0xff, 0xfe, mac[3], mac[4], mac[5] };
+}
+
+
+/**
+ *  Extract ip address from uri, i.e. 192.168.1.1:8080 => 192.168.1.1 or [ff02::fb%21}:8080 => ff02
+ */
+std::string AddressConversion::extractIPAddress(const std::string& uri_address) {
+    if (isIpv4Uri(uri_address)) {
+        size_t port_offset = uri_address.find(':');
+        if (port_offset != std::string::npos) {
+            return uri_address.substr(0, port_offset);
+        }
+        return uri_address;
+    }
+    else if (isIpv6Uri(uri_address)) {
+        std::string::size_type first = uri_address.find('[');
+        std::string::size_type last = uri_address.find_first_of("%]");
+        first = (first == std::string::npos ? 0 : first + 1);
+        if (last == std::string::npos) { last = uri_address.length(); }
+        return uri_address.substr(first, last - first);
+    }
+    return "";
+}
+
+/**
+ *  Extract port from uri, i.e. 192.168.1.1:8080 or [ff02::fb%21}:8080 => 8080
+ */
+std::string AddressConversion::extractIPPort(const std::string& uri_address) {
+    if (isIpv4Uri(uri_address)) {
+        size_t port_offset = uri_address.find(':');
+        if (port_offset != std::string::npos) {
+            return uri_address.substr(port_offset + 1);
+        }
+    }
+    else if (isIpv6Uri(uri_address)) {
+        std::string::size_type offs = uri_address.find("]:");
+        if (offs != std::string::npos) {
+            return uri_address.substr(offs + 2, uri_address.length() - offs - 2);
+        }
+    }
+    return "";
+}
+
+/**
+ *  Extract zone id from ipv6 uri, i.e. [ff02::fb%21}:8080 => 21 or [ff02::fb%eth0}:8080 => eth0.
+ *  Zone id is the name used for uri notations in RFC 4007. If it is a numeric value, it corresponds
+*   to the interface id. If it is a non-numeric value like eth0, it needs to be mapped to the interface
+ *  id. The scopeid in sockaddr_in6 is not necessarily identical to the interface id, as multiple interfaces
+ *  can belong to the same zone. For Windows all ids are identical: zone id == interface id == scope id.
+ */
+std::string AddressConversion::extractIPZoneId(const std::string& uri_address) {
+    if (isIpv6Uri(uri_address)) {
+        std::string::size_type first = uri_address.find('%');
+        if (first != std::string::npos) {
+            std::string::size_type last = uri_address.find(']');
+            if (last == std::string::npos) {
+                last = uri_address.length();
+            }
+            return uri_address.substr(first + 1, last - first - 1);
+        }
+    }
+    return "";
+}
+
+/**
+ *  Interprete ip addresses in uri format, i.e. 192.168.1.1:8080 or [ff02::fb%21}:8080
+ */
+struct sockaddr_storage AddressConversion::toSockAddrStorageFromUri(const std::string& uri_address) {
+    struct sockaddr_storage socketaddr;
+    memset(&socketaddr, 0, sizeof(socketaddr));
+    if (isIpv4Uri(uri_address)) {
+        const std::string ipv4addr = extractIPAddress(uri_address);
+        const std::string ipv4port = extractIPPort(uri_address);
+        size_t nchars = 0;
+        size_t port = toUint(ipv4port, nchars);
+        struct sockaddr_in sockaddr = toSockAddrIn(ipv4addr, (uint16_t)port);
+        socketaddr = toSockAddrStorage(sockaddr);
+    }
+    else if (isIpv6Uri(uri_address)) {
+        const std::string ipv6addr = extractIPAddress(uri_address);
+        const std::string ipv6port = extractIPPort(uri_address);
+        //const std::string ipv6zone = extractIPZoneId(uri_address);
+        size_t nchars = 0;
+        size_t port = toUint(ipv6port, nchars);
+        struct sockaddr_in6 sockaddr = toSockAddrIn6(ipv6addr, (uint16_t)port);
+        socketaddr = toSockAddrStorage(sockaddr);
+    }
+    return socketaddr;
+}
+
+
+/**
+ *  Remove occurences of characters in the given set of characters from the given string.
+ */
+std::string AddressConversion::stripChars(const std::string& string, const std::string& chars) {
+    std::string result = string;
+    std::string::size_type offset = 0;
+    while (offset < result.length()) {
+        offset = result.find_first_of(chars, offset);
+        if (offset == std::string::npos) break;
+        result = result.erase(offset, 1);
+    }
+    return result;
+}
+
 
 /**
  *  Convert a hexadecimal character to an int value
@@ -525,4 +634,19 @@ size_t AddressConversion::toUint(const std::string& string, size_t& nchars) {
     }
     nchars = string.length();
     return int_value;
+}
+
+
+/**
+ *  Convert an unsigned int to a string, using the given radix
+ */
+std::string AddressConversion::uintToString(size_t value, unsigned int radix) {
+    std::string result;
+    do {
+        size_t digit = value % radix;
+        value /= radix;
+        char c = "0123456789ABCDEF"[digit];
+        result.insert(0, 1, c);
+    } while (value > 0);
+    return result;
 }

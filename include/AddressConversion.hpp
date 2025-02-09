@@ -48,12 +48,18 @@ namespace libspeedwire {
         // type casts for bsd socket address information
         static struct sockaddr& toSockAddr(struct sockaddr_in& src);
         static struct sockaddr& toSockAddr(struct sockaddr_in6& src);
+        static struct sockaddr& toSockAddr(struct sockaddr_storage& src);
         static struct sockaddr_in& toSockAddrIn(struct sockaddr& src);
         static struct sockaddr_in6& toSockAddrIn6(struct sockaddr& src);
         static const struct sockaddr& toSockAddr(const struct sockaddr_in& src);
         static const struct sockaddr& toSockAddr(const struct sockaddr_in6& src);
+        static const struct sockaddr& toSockAddr(const struct sockaddr_storage& src);
         static const struct sockaddr_in& toSockAddrIn(const struct sockaddr& src);
         static const struct sockaddr_in6& toSockAddrIn6(const struct sockaddr& src);
+
+        // conversions for sockaddr_storage
+        static struct sockaddr_storage toSockAddrStorage(const struct sockaddr_in& src);
+        static struct sockaddr_storage toSockAddrStorage(const struct sockaddr_in6& src);
 
         // conversions for bsd socket address information
         static struct sockaddr_in toSockAddrIn(const struct in_addr& address, const uint16_t port = 0);
@@ -62,22 +68,39 @@ namespace libspeedwire {
         static struct sockaddr toSockAddr(const struct in6_addr& address, const uint16_t port = 0);
         static struct sockaddr_in toSockAddrIn(const std::string& ipv4_address, const uint16_t port = 0);
         static struct sockaddr_in6 toSockAddrIn6(const std::string& ipv6_address, const uint16_t port = 0);
-        static struct sockaddr toSockAddr(const std::string& ip_address, const uint16_t port = 0);
+        static struct sockaddr_storage toSockAddr(const std::string& ip_address, const uint16_t port = 0);
+
+        // check address scope
+        static bool isLoopbackAddress(const struct in_addr& address);
+        static bool isBroadcastAddress(const struct in_addr& address);
+        static bool isMulticastAddress(const struct in_addr& address);
+        static bool isPrivateAddress(const struct in_addr& address);
+        static bool isLinkLocalAddress(const struct in_addr& address);
+
+        static bool isLoopbackAddress(const struct in6_addr& address);
+        static bool isMulticastAddress(const struct in6_addr& address);
+        static bool isLinkLocalAddress(const struct in6_addr& address);
+        static bool isUniqueLocalAddress(const struct in6_addr& address);
+        static bool isGlobalAddress(const struct in6_addr& address);
 
         // conversions for ethernet mac addresses
         static std::array<uint8_t, 6> toMacAddress(const std::string& mac);
         static std::string toString(const std::array<uint8_t, 6>& mac);
+        static std::array<uint8_t, 8> toEUI64(const std::array<uint8_t, 6>& mac);
+        static std::array<uint8_t, 8> toEUI64(const std::string& eui64);
+        static std::string toString(const std::array<uint8_t, 8>& eui64);
 
         // extract address parts from uri, i.e. 192.168.1.1:8080 or [ff02::fb%21}:8080
         static std::string extractIPAddress(const std::string& uri_address);
         static std::string extractIPPort(const std::string& uri_address);
-        static std::string extractIPScopeId(const std::string& uri_address);
-        static struct sockaddr toSockAddrFromUri(const std::string& uri_address);
+        static std::string extractIPZoneId(const std::string& uri_address);
+        static struct sockaddr_storage toSockAddrStorageFromUri(const std::string& uri_address);
 
         static std::string stripChars(const std::string& string, const std::string& chars);
 
         static int hexToInt(const char nibble);
         static size_t toUint(const std::string& string, size_t& nchars);
+        static std::string uintToString(size_t value, unsigned int radix = 10);
     };
 
 }   // namespace libspeedwire
