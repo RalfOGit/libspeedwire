@@ -3,7 +3,11 @@
 // https://www.sma.de/fileadmin/content/global/Partner/Documents/sma_developer/SpeedwireDD-TI-de-10.pdf
 //
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
-#ifdef _WIN32
+#ifdef ARDUINO
+#include <lwip/sockets.h>
+#include <lwip/netdb.h>
+#define poll(a, b, c)  lwip_poll((a), (b), (c))
+#elif defined(_WIN32)
 #include <Winsock2.h>
 #include <Ws2tcpip.h>
 #define poll(a, b, c)  WSAPoll((a), (b), (c))

@@ -2,6 +2,11 @@
 #include <cstdarg>
 #include <Logger.hpp>
 #include <LocalHost.hpp>
+
+#ifdef ARDUINO
+#include <Arduino.h>
+#endif
+
 using namespace libspeedwire;
 
 //#define PRINT_TIMESTAMP
@@ -108,7 +113,11 @@ void Logger::print(LogLevel level, const char* format, ... )
         }
     }
     else {
+#ifdef ARDUINO
+        Serial.print(text.c_str());
+#else
         fputs(text.c_str(), stderr);
+#endif
     }
 }
 
@@ -168,7 +177,13 @@ void Logger::print(LogLevel level, const wchar_t* format, ... )
         }
     }
     else {
+#ifdef ARDUINO
+        // Arduino doesn't support wide strings well, convert to regular string
+        std::string narrowText(text.begin(), text.end());
+        Serial.print(narrowText.c_str());
+#else
         fwprintf(stderr, text.c_str());
+#endif
     }
 
 }

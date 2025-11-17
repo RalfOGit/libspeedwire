@@ -2,6 +2,13 @@
 #include <cstring>
 #include <stdio.h>
 #include <vector>
+
+#ifdef ARDUINO
+#include <lwip/sockets.h>
+#include <lwip/netdb.h>
+#include <lwip/igmp.h>
+#endif
+
 #include <SpeedwireSocket.hpp>
 #include <AddressConversion.hpp>
 using namespace libspeedwire;

@@ -1,10 +1,18 @@
 #ifndef __LIBSPEEDWIRE_LOCALHOST_HPP__
 #define __LIBSPEEDWIRE_LOCALHOST_HPP__
 
+#ifdef ARDUINO
+#include <Arduino.h>
 #include <cstdint>
 #include <vector>
 #include <string>
 #include <map>
+#else
+#include <cstdint>
+#include <vector>
+#include <string>
+#include <map>
+#endif
 
 namespace libspeedwire {
 

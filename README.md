@@ -1,5 +1,16 @@
 # speedwire-lib
+
 Code implementing a SMA Speedwire(TM) access library. It implements a full parser for the sma header and the emeter datagram structure, including obis filtering. In addition, it implements some parsing functionality for inverter query and response datagrams.
+
+## 🎉 ESP32/Arduino Support
+
+**This library now supports ESP32!** See [README_ESP32.md](README_ESP32.md) for ESP32-specific documentation, examples, and setup instructions.
+
+For Arduino/ESP32 users:
+- Install via Arduino Library Manager or copy to your libraries folder
+- See `examples/` folder for ready-to-use sketches
+- Supports device discovery and real-time energy monitoring
+- Vietnamese documentation available
 
 The overall speedwire packet format is:
 - The packets start with a 4 byte SMA Signature containing the ascii encoded string "SMA\0".

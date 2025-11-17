@@ -1,7 +1,13 @@
 #ifndef __LIBSPEEDWIRE_SPEEDWIRESOCKET_H__
 #define __LIBSPEEDWIRE_SPEEDWIRESOCKET_H__
 
-#ifdef _WIN32
+#ifdef ARDUINO
+#include <Arduino.h>
+#include <WiFi.h>
+#include <WiFiUdp.h>
+#include <lwip/sockets.h>
+#include <lwip/netdb.h>
+#elif defined(_WIN32)
 #include <Winsock2.h>
 #include <Ws2tcpip.h>
 #else

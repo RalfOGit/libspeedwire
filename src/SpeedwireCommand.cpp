@@ -1,4 +1,8 @@
-#ifdef _WIN32
+#ifdef ARDUINO
+#include <lwip/sockets.h>
+#include <lwip/netdb.h>
+#define poll(a, b, c)  lwip_poll((a), (b), (c))
+#elif defined(_WIN32)
 #include <Winsock2.h>
 #include <Ws2tcpip.h>
 #define poll(a, b, c)  WSAPoll((a), (b), (c))
