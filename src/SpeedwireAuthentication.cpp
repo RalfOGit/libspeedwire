@@ -99,13 +99,11 @@ bool SpeedwireAuthentication::login(const std::string& if_address, const Speedwi
                     logger.print(LogLevel::LOG_ERROR, "lost connection - not authenticated (error code 0x0017)");
                     token_repository.needs_login = true;
                 }
-                else if (token_repository.at(token_index).command == Command::LOGIN) { // login command
-                    if (error_code == 0x0100) {
-                        logger.print(LogLevel::LOG_ERROR, "invalid password - not authenticated");
-                    }
-                    else {
-                        logger.print(LogLevel::LOG_ERROR, "login failure - not authenticated");
-                    }
+                else if (error_code == 0x0100) {
+                    logger.print(LogLevel::LOG_ERROR, "invalid password - not authenticated");
+                }
+                else if (token_repository.size() > token_index && token_repository.at(token_index).command == Command::LOGIN) { // login command
+                    logger.print(LogLevel::LOG_ERROR, "login failure - not authenticated");
                 }
                 else {
                     logger.print(LogLevel::LOG_ERROR, "query error code received");
@@ -202,11 +200,11 @@ SpeedwireCommandTokenIndex SpeedwireAuthentication::sendLoginRequest(const std::
     request.setFragmentCounter(0);
     request.setPacketID(packet_id);
     request.setCommandID(Command::LOGIN);
-    request.setFirstRegisterID((uint32_t)credentials.getUserName());    // user: 0x7  installer: 0xa
+    request.setFirstRegisterID((uint32_t)credentials.getUserCode());    // user: 0x7  installer: 0xa
     request.setLastRegisterID(0x00000384);     // timeout
     request.setDataUint32(0, SpeedwireTime::getInverterTimeNow());
     request.setDataUint32(4, 0x00000000);
-    std::array<uint8_t, 12> encoded_password = credentials.getEncodedPassWord();
+    std::array<uint8_t, 12> encoded_password = credentials.getEncodedPassword();
     request.setDataUint8Array(8, encoded_password.data(), (unsigned long)encoded_password.size());
 
     // identify the socket to be used
@@ -305,13 +303,13 @@ bool SpeedwireAuthentication::sendLogoffRequest(const std::string& if_address, c
 /**
  *  Encode password string into its 12 byte binary line encoding.
  */
-std::array<uint8_t, 12> Credentials::getEncodedPassWord(void) const {
+std::array<uint8_t, 12> Credentials::getEncodedPassword(void) const {
     uint8_t pattern = 0x88;
-    switch (getUserName()) {
-    case UserName::USER:      pattern = 0x88; break;
-    case UserName::INSTALLER: pattern = 0xBB; break;
+    switch (getUserCode()) {
+    case UserCode::USER:      pattern = 0x88; break;
+    case UserCode::INSTALLER: pattern = 0xBB; break;
     }
-    std::string password = getPassWord();
+    const std::string& password = getPassword();
     std::array<uint8_t, 12> encoded_password;
     for (size_t i = 0; i < encoded_password.size(); ++i) {
         encoded_password[i] = (i < password.length() ? password[i] + pattern : pattern);
@@ -320,8 +318,8 @@ std::array<uint8_t, 12> Credentials::getEncodedPassWord(void) const {
 }
 
 
-// initialize default user name to USER
-UserName CredentialsMap::default_user_name = UserName::USER;
+// initialize default user code to UserCode::USER
+UserCode CredentialsMap::default_user = UserCode::USER;
 
 
 /**
@@ -359,15 +357,15 @@ int CredentialsMap::readFromFile(const std::string& path) {
                 username = line.substr(0, pos);
                 password = line.substr(pos + 1);
                 if (username == "user") {
-                    add(UserName::USER, password);
+                    add(UserCode::USER, password);
                 }
                 else if (username == "installer") {
-                    add(UserName::INSTALLER, password);
+                    add(UserCode::INSTALLER, password);
                 }
                 else {
-                    unsigned int user;
-                    if (sscanf(username.c_str(), " %u", &user) > 0) {
-                        add((UserName)user, password);
+                    unsigned int code;
+                    if (sscanf(username.c_str(), " %u", &code) > 0) {
+                        add((UserCode)code, password);
                     }
                     else{
                         printf("Unknown username \"%s\" in credentials input file \"%s\"\n", username.c_str(), path.c_str());

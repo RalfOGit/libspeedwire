@@ -5,11 +5,11 @@
 #include <string>
 #include <stdio.h>
 #include <map>
-#include <SpeedwireCommand.hpp>
 #include <Measurement.hpp>
 #include <MeasurementType.hpp>
 #include <MeasurementValues.hpp>
 #include <SpeedwireByteEncoding.hpp>
+#include <SpeedwireCommand.hpp>
 #include <SpeedwireStatus.hpp>
 
 namespace libspeedwire {
@@ -102,7 +102,7 @@ namespace libspeedwire {
         static const uint32_t nan = 0xffffffff;
         static const uint32_t eod = 0xfffffffe;
 
-        SpeedwireRawDataUnsigned32(const SpeedwireRawData& raw_data) : base(raw_data) {}
+        SpeedwireRawDataUnsigned32(const SpeedwireRawData& raw_data) : base(raw_data)/*, is_const_base(true)*/ {}
 
         size_t getNumberOfValues(void) const { return base.data_size / value_size; }
         bool isNanValue(uint32_t value) const { return (value == nan); }
@@ -123,6 +123,15 @@ namespace libspeedwire {
         bool isRevisionOrSerial(void) const { return (isValueWithRange() && getValue(0) == 0 && (isEoDValue(getValue(2)) || isNanValue(getValue(2))) && !isNanValue(getValue(4))); }
         std::string toValueWithRangeString(void) const;
         std::string toRevisionOrSerialString(void) const;
+    };
+
+    class SpeedwireRawDataUnsigned32Mutable : public SpeedwireRawDataUnsigned32 {
+    protected:
+        SpeedwireRawData& base;
+
+    public:
+        SpeedwireRawDataUnsigned32Mutable(SpeedwireRawData& raw_data) : SpeedwireRawDataUnsigned32(raw_data), base(raw_data) {}
+        void setValue(size_t pos, uint32_t value) { SpeedwireByteEncoding::setUint32LittleEndian((uint8_t*)base.data + pos * SpeedwireRawDataUnsigned32::value_size, value); }
     };
 
 
@@ -154,6 +163,15 @@ namespace libspeedwire {
 
         bool isValueWithRange(void) const { return (base.getNumberOfValues() == 8 && base.getNumberOfSignificantValues() == 4); }
         std::string toValueWithRangeString(void) const;
+    };
+
+    class SpeedwireRawDataSigned32Mutable : public SpeedwireRawDataSigned32 {
+    protected:
+        SpeedwireRawData& base;
+
+    public:
+        SpeedwireRawDataSigned32Mutable(SpeedwireRawData& raw_data) : SpeedwireRawDataSigned32(raw_data), base(raw_data) {}
+        void setValue(size_t pos, uint32_t value) { SpeedwireByteEncoding::setUint32LittleEndian((uint8_t*)base.data + pos * SpeedwireRawDataUnsigned32::value_size, value); }
     };
 
 
@@ -221,15 +239,24 @@ namespace libspeedwire {
         }
     };
 
+    class SpeedwireRawDataStatus32Mutable : public SpeedwireRawDataStatus32 {
+    protected:
+        SpeedwireRawData& base;
+
+    public:
+        SpeedwireRawDataStatus32Mutable(SpeedwireRawData& raw_data) : SpeedwireRawDataStatus32(raw_data), base(raw_data) {}
+        void setValue(size_t pos, uint32_t value) { SpeedwireByteEncoding::setUint32LittleEndian((uint8_t*)base.data + pos * SpeedwireRawDataUnsigned32::value_size, value); }
+    };
+
 
     /**
      *  Wrapper class to simplify access to SpeedwireRawData of type String32
      */
     class SpeedwireRawDataString32 {
-        protected:
-            const SpeedwireRawData& base;
+    protected:
+        const SpeedwireRawData& base;
 
-        public:
+    public:
         static const size_t value_size = 32u;
 
         SpeedwireRawDataString32(const SpeedwireRawData& raw_data) : base(raw_data) {}
@@ -439,6 +466,14 @@ namespace libspeedwire {
         static const SpeedwireData BatteryOperationStatus;         //!< Inverter operation status
         static const SpeedwireData BatteryRelay;                   //!< Grid relay status
         static const SpeedwireData BatteryType;                    //!< Battery type
+
+        static const SpeedwireData BatteryActivePowerSetPoint;     //!< Battery active power set point -    Inverter.WModCfg.WCtlComCfg.WSpt       => modbus 40149
+        static const SpeedwireData BatteryPowerControlMode;        //!< Battery active power control mode - Inverter.WModCfg.WCtlComCfg.WCtlComAct => modbus 40151
+        static const SpeedwireData BmsOperationMode;               //!< BMS operation mode -                CmpBMS.OpMod                           => modbus 40236
+        static const SpeedwireData BmsChargeMinPower;              //!< BSM minimum charging power -        CmpBMS.BatChaMinW                      => modbus 40793
+        static const SpeedwireData BmsChargeMaxPower;              //!< BSM maximum charging power -        CmpBMS.BatChaMinW                      => modbus 40795
+        static const SpeedwireData BmsDischargeMinPower;           //!< BSM minimum discharging power -     CmpBMS.BatDschMinW                     => modbus 40797
+        static const SpeedwireData BmsDischargeMaxPower;           //!< BSM maximum cischarging power -     CmpBMS.BatDschMaxW                     => modbus 40799
 
         static const SpeedwireData InverterPowerDCTotal;           //!< Total power on direct current inverter inputs MPP1 + MPP2
         static const SpeedwireData InverterPowerLoss;              //!< Total power loss

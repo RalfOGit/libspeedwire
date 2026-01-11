@@ -131,19 +131,19 @@ std::string SpeedwireRawData::toString(void) const {
             std::string value_string;
             switch (type & SpeedwireDataType::TypeMask) {
             case SpeedwireDataType::Signed32: {
-                SpeedwireRawDataSigned32 rd(*this);
+                const SpeedwireRawDataSigned32 rd(*this);
                 int32_t value = rd.getValue(i);
                 value_string = rd.convertValueToString(value, true);
                 break;
             }
             case SpeedwireDataType::Unsigned32: {
-                SpeedwireRawDataUnsigned32 rd(*this);
+                const SpeedwireRawDataUnsigned32 rd(*this);
                 uint32_t value = rd.getValue(i);
                 value_string = rd.convertValueToString(value, true);
                 break;
             }
             case SpeedwireDataType::Status32: {
-                SpeedwireRawDataStatus32 rd(*this);
+                const SpeedwireRawDataStatus32 rd(*this);
                 uint32_t value = rd.getValue(i);
                 value_string = rd.convertValueToString(value);
                 break;
@@ -156,7 +156,7 @@ std::string SpeedwireRawData::toString(void) const {
             //    break;
             //}
             case SpeedwireDataType::String32: {
-                SpeedwireRawDataString32 rd(*this);
+                const SpeedwireRawDataString32 rd(*this);
                 value_string = rd.getHexValue(i);
                 break;
             }
@@ -183,7 +183,7 @@ std::string SpeedwireRawData::toString(void) const {
     if (conn != 0x00) {
         switch (type & SpeedwireDataType::TypeMask) {
         case SpeedwireDataType::Signed32: {
-            SpeedwireRawDataSigned32 rd(*this);
+            const SpeedwireRawDataSigned32 rd(*this);
             std::vector<int32_t> values = rd.getValues();
             if (rd.isValueWithRange()) {
                 result.append("  => ");
@@ -198,7 +198,7 @@ std::string SpeedwireRawData::toString(void) const {
             break;
         }
         case SpeedwireDataType::Unsigned32: {
-            SpeedwireRawDataUnsigned32 rd(*this);
+            const SpeedwireRawDataUnsigned32 rd(*this);
             std::vector<uint32_t> values = rd.getValues();
             if (rd.isRevisionOrSerial()) {
                 result.append("  => ");
@@ -217,7 +217,7 @@ std::string SpeedwireRawData::toString(void) const {
             break;
         }
         case SpeedwireDataType::Status32: {
-            SpeedwireRawDataStatus32 rd(*this);
+            const SpeedwireRawDataStatus32 rd(*this);
             std::vector<uint32_t> values = rd.getValues();
             result.append("  => ");
             if (values.size() > 0) {
@@ -226,7 +226,7 @@ std::string SpeedwireRawData::toString(void) const {
             break;
         }
         case SpeedwireDataType::String32: {
-            SpeedwireRawDataString32 rd(*this);
+            const SpeedwireRawDataString32 rd(*this);
             std::vector<std::string> values = rd.getValues();
             for (size_t i = 0; i < values.size(); ++i) {
                 result.append((i == 0) ? "  => \"" : ", \"");
@@ -241,13 +241,13 @@ std::string SpeedwireRawData::toString(void) const {
     else {
         switch (type & SpeedwireDataType::TypeMask) {
         case SpeedwireDataType::Yield: {
-            SpeedwireRawDataYield rd(*this);
+            const SpeedwireRawDataYield rd(*this);
             result.append("  => ");
             result.append(rd.convertValueToString(rd.getValue(0), false));
             break;
         }
         case SpeedwireDataType::Event: {
-            SpeedwireRawDataEvent rd(*this);
+            const SpeedwireRawDataEvent rd(*this);
             result.append("  => ");
             result.append(rd.convertValueToString(rd.getValue(0), false));
             break;
@@ -753,6 +753,14 @@ std::vector<SpeedwireData> SpeedwireData::getAllPredefined(void) {
     predefined.push_back(BatteryGridReactivePower);
     predefined.push_back(BatterySetVoltage);
 
+    predefined.push_back(BatteryActivePowerSetPoint);
+    predefined.push_back(BatteryPowerControlMode);
+    predefined.push_back(BmsOperationMode);
+    predefined.push_back(BmsChargeMinPower);
+    predefined.push_back(BmsChargeMaxPower);
+    predefined.push_back(BmsDischargeMinPower);
+    predefined.push_back(BmsDischargeMaxPower);
+
     predefined.push_back(InverterPowerDCTotal);
     predefined.push_back(InverterPowerLoss);
     predefined.push_back(InverterPowerEfficiency);
@@ -852,6 +860,14 @@ const SpeedwireData SpeedwireData::BatterySetVoltage         (Command::AC_QUERY,
 const SpeedwireData SpeedwireData::BatteryOperationStatus    (Command::STATUS_QUERY, 0x00214800, 0x07, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::DEVICE_OK, "OpInvCtlStt");
 const SpeedwireData SpeedwireData::BatteryRelay              (Command::STATUS_QUERY, 0x00416400, 0x07, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterRelay(),   Wire::RELAY_ON, "OpGriSwStt");
 const SpeedwireData SpeedwireData::BatteryType               (Command::STATUS_QUERY, 0x00918d00, 0x07, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "BmsType");
+
+const SpeedwireData SpeedwireData::BatteryActivePowerSetPoint(Command::DEVICE_QUERY, 0x00924400, 0x07, SpeedwireDataType::Signed32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "BatActPowerSetPt");       // modbus 40149
+const SpeedwireData SpeedwireData::BatteryPowerControlMode   (Command::DEVICE_QUERY, 0x00924500, 0x07, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "BatPowerControlMode");   // modbus 40151
+const SpeedwireData SpeedwireData::BmsOperationMode          (Command::DEVICE_QUERY, 0x00896000, 0x07, SpeedwireDataType::Status32, 0, NULL, 0, MeasurementType::InverterStatus(), Wire::NO_WIRE, "CmpBMS.OpMod");          // modbus 40236
+const SpeedwireData SpeedwireData::BmsChargeMinPower         (Command::DEVICE_QUERY, 0x00896100, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "CmpBMS.BatChaMinW");    // modbus 40793
+const SpeedwireData SpeedwireData::BmsChargeMaxPower         (Command::DEVICE_QUERY, 0x00896200, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "CmpBMS.BatChaMaxW");    // modbus 40795
+const SpeedwireData SpeedwireData::BmsDischargeMinPower      (Command::DEVICE_QUERY, 0x00896300, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "CmpBMS.BatDschMinW");   // modbus 40797
+const SpeedwireData SpeedwireData::BmsDischargeMaxPower      (Command::DEVICE_QUERY, 0x00896400, 0x07, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(), Wire::NO_WIRE, "CmpBMS.BatDschMaxW");   // modbus 40799
 
 // pre-defined instances of derived measurement values
 const SpeedwireData SpeedwireData::InverterPowerDCTotal   (Command::NONE, 0, 0, SpeedwireDataType::Unsigned32, 0, NULL, 0, MeasurementType::InverterPower(),      Wire::MPP_TOTAL, "Pdc");
